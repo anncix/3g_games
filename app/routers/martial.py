@@ -1070,6 +1070,15 @@ async def rules(request: Request, db: AsyncSession = Depends(get_db)):
     return await render(request, "martial/rules.html", db, user=user)
 
 
+# v0.2.5：WAP 原版资料图鉴（纯展示参考层，不改动现有战斗/属性/装备系统）
+@router.get("/archive")
+async def wap_archive(request: Request, db: AsyncSession = Depends(get_db)):
+    user = await get_current_user(request, db)
+    if not user:
+        return RedirectResponse("/login", status_code=303)
+    return await render(request, "martial/archive.html", db, user=user, D=D)
+
+
 # ============================================================
 # 战神宫（分层修炼 + 排位混战，来源 zol.com 玩家攻略）
 # 状态存于 daily_counters JSON：warshrine_floor（当前层数）、warshrine_started_at（修炼开始时间戳）
