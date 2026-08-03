@@ -17,6 +17,7 @@ from .seed_sea_large import seed_sea_large
 from .seed_sea_equips import seed_sea_equips
 from .seed_farm_large import seed_farm_large
 from .seed_town_large import seed_town_large
+from .seed_sea_v018 import seed_sea_v018
 
 
 async def seed():
@@ -491,6 +492,10 @@ async def seed():
         # Farm: 50作物（v0.1.6前仅2种）+ Town: 233食材（v0.1.6前仅14种）+ 精武堂15手机版技能（routers/martial_data.py）
         await seed_farm_large(db)
         await seed_town_large(db)
+
+        # ---------- v0.1.8：纵横四海补全（spec 船只/主线任务/城市特产/宠物技能/补全城市）----------
+        # 14船（v0.1.7前0）+ 12主线任务链（v0.1.7前0）+ 23宠物技能（v0.1.7前0）+ 30城市特产 + 16补全城市 + 里斯本区域修正
+        await seed_sea_v018(db)
 
         print("✅ 种子数据已写入。管理员: admin/admin123  演示: demo/demo123")
 

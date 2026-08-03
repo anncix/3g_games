@@ -1054,6 +1054,47 @@ class SeaEquipPiece(Base):
     confirmed: Mapped[bool] = mapped_column(Boolean, default=False)  # 官方确认件名
 
 
+# v0.1.8：纵横四海补全（spec 船只/主线任务/城市特产/宠物技能）
+class SeaShip(Base):
+    """船只字典（spec 船只系统：14 艘船，购买地点/价格/载重/消耗）"""
+    __tablename__ = "sea_ships"
+    key: Mapped[str] = mapped_column(String(32), primary_key=True)
+    name: Mapped[str] = mapped_column(String(32))
+    buy_city: Mapped[str] = mapped_column(String(64), default="")  # 购买地点（商城/城市名）
+    price: Mapped[int] = mapped_column(Integer, default=1000)  # 价格（铜贝/金贝）
+    currency: Mapped[str] = mapped_column(String(8), default="铜")  # 铜/金贝
+    load: Mapped[int] = mapped_column(Integer, default=35)  # 载重
+    consume_per_100: Mapped[int] = mapped_column(Integer, default=15)  # 每百海里消耗（铜）
+
+
+class SeaMainQuest(Base):
+    """主线任务链（spec 主线任务系统：12 条链，环数 + 主要奖励）"""
+    __tablename__ = "sea_main_quests"
+    key: Mapped[str] = mapped_column(String(32), primary_key=True)
+    name: Mapped[str] = mapped_column(String(32))
+    rounds: Mapped[int] = mapped_column(Integer, default=10)  # 环数
+    reward_desc: Mapped[str] = mapped_column(String(255), default="")  # 主要奖励描述
+    sort: Mapped[int] = mapped_column(Integer, default=0)  # 顺序
+
+
+class SeaCitySpecialty(Base):
+    """城市贸易特产（spec 贸易跑商：每城市特产列表）"""
+    __tablename__ = "sea_city_specialties"
+    city_key: Mapped[str] = mapped_column(String(32), primary_key=True)
+    city_name: Mapped[str] = mapped_column(String(32))
+    region: Mapped[str] = mapped_column(String(16), default="")  # 地中海/北海/非洲/印度洋/东亚
+    specialties: Mapped[str] = mapped_column(Text, default="[]")  # JSON 特产名列表
+
+
+class SeaPetSkill(Base):
+    """宠物技能字典（spec 宠物技能：23 种技能 + T0/T1 分级）"""
+    __tablename__ = "sea_pet_skills"
+    key: Mapped[str] = mapped_column(String(32), primary_key=True)
+    name: Mapped[str] = mapped_column(String(32))
+    effect: Mapped[str] = mapped_column(String(255), default="")
+    tier: Mapped[str] = mapped_column(String(4), default="T2")  # T0/T1/T2 分级
+
+
 # ============================================================
 # 召唤之王（v0.0.6）：召唤师 + 幻兽 + 战斗 + 日常任务
 # 静态配置（经验表/120图鉴/60技能/属性公式/捕捉公式/掉落表/日常任务）见 routers/summon_data.py
