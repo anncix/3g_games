@@ -1,0 +1,21 @@
+{% extends "base.html" %}
+{% from "macros.html" import topbar, footer %}
+{% block title %}主线任务 · 召唤之王{% endblock %}
+{% block body %}
+{{ topbar("主线任务链", user) }}
+<div class="crumb"><a href="/games/summon">召唤之王</a> › 主线任务</div>
+<div class="content">
+  <div class="notice">8 条主线任务链，幻兽收集 + 战力推进，按等级顺序解锁。</div>
+  {% for q in quests %}
+  {% set q_sort, q_name, q_level, q_desc, q_reward = q %}
+  <div class="card">
+    <div class="hd">第{{ q_sort }}章 · {{ q_name }}<span class="tag">Lv{{ q_level }}解锁</span></div>
+    <div class="muted">{{ q_desc }}</div>
+    <div>奖励：<b>{{ q_reward }}</b></div>
+  </div>
+  {% endfor %}
+  {% if not quests %}<div class="muted">暂无主线</div>{% endif %}
+</div>
+<div class="content"><a class="btn ghost" href="/games/summon">返回召唤首页</a></div>
+{{ footer(user) }}
+{% endblock %}

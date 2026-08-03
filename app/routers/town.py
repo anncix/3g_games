@@ -63,6 +63,19 @@ WAITER_DURATION = 12 * 3600  # 12 小时
 WAITER_HIRE_COST = 500
 # 油量自然消耗（每有效桌每周期待机耗油 2）
 OIL_IDLE_PER_TABLE = 2
+
+# v0.2.6 主线任务链（经营成长线，来源：美味小镇原版玩法 + youxiabc.com 攻略）
+MAIN_QUESTS = [
+    (1, "开业大吉", 1, "完成第一道菜（蛋炒饭）", "经验+50、金币+200"),
+    (2, "食材采购", 5, "翻橱柜5次获得食材", "经验+120、菜谱碎片×2"),
+    (3, "菜谱升级", 10, "解锁并制作2级菜（红烧肉）", "经验+300、金币+500"),
+    (4, "油壶扩容", 15, "油壶升级到5000", "经验+200、特殊调料×1"),
+    (5, "蟑螂来袭", 20, "处理3次蟑螂事件", "经验+250、金币+300"),
+    (6, "雇佣帮手", 25, "雇佣1名服务员", "经验+180、金币+500"),
+    (7, "厨艺大赛", 40, "报名参加厨艺大赛", "经验+1000、菜谱碎片×5"),
+    (8, "金牌餐厅", 60, "餐厅升到5星", "经验+5000、特殊调料×3、金牌食材资格"),
+]
+
 # 经验公式（与平台方案A统一）
 def exp_needed(level: int) -> int:
     return 120 + 80 * level
@@ -2079,3 +2092,14 @@ async def rules(request: Request, db: AsyncSession = Depends(get_db)):
     if not user:
         return RedirectResponse("/login", status_code=303)
     return await render(request, "town/rules.html", db, user=user)
+
+
+# ---------- v0.2.6 主线任务链 ----------
+@router.get("/mainquests")
+async def mainquests_list(request: Request, db: AsyncSession = Depends(get_db)):
+    """列表页：8 条主线任务链（经营成长线）"""
+    user = await get_current_user(request, db)
+    if not user:
+        return RedirectResponse("/login", status_code=303)
+    st = await get_state(db, user.id)
+    return await render(request, "town/mainquests.html", db, user=user, st=st, quests=MAIN_QUESTS)

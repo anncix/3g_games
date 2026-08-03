@@ -29,6 +29,18 @@ SOIL_GRADES = {
     "黑":   {"next": "",   "min_level": 99, "cost": 0,         "yield_mul": 2.0, "variation_bonus": 0.15},
 }
 
+# v0.2.6 主线任务链（新手引导 + 成长里程碑，来源：阳光农场原版玩法 + baike.com 词条）
+MAIN_QUESTS = [
+    (1, "播种希望", 1, "种下第一颗萝卜种子", "经验+50、金币+100"),
+    (2, "辛勤浇灌", 3, "完成5次浇水护理", "经验+120、萝卜种子×3"),
+    (3, "丰收时刻", 5, "累计收获10次作物", "经验+200、金币+500"),
+    (4, "偷菜有道", 8, "去好友家偷菜5次", "经验+150、普通化肥×2"),
+    (5, "作物进阶", 12, "种植并收获番茄", "经验+300、番茄种子×5"),
+    (6, "红土开荒", 28, "解锁红土地", "经验+1000、金币+2000"),
+    (7, "社交达人", 35, "添加10位好友互访", "经验+800、有机化肥×1"),
+    (8, "农场大亨", 50, "累计获得10万金币", "经验+5000、高级化肥×1、金土地资格"),
+]
+
 # 化肥系统（spec：普通化肥缩短成熟时间/有机化肥多次使用，来源 youxiabc.com 攻略）
 FERTILIZERS = {
     "normal":  {"name": "普通化肥", "item_key": "farm_fert_normal",  "speedup_sec": 60,  "uses": 1,  "cost": 200},
@@ -436,3 +448,14 @@ async def rules(request: Request, db: AsyncSession = Depends(get_db)):
     if not user:
         return RedirectResponse("/login", status_code=303)
     return await render(request, "farm/rules.html", db, user=user)
+
+
+# ---------- v0.2.6 主线任务链 ----------
+@router.get("/mainquests")
+async def mainquests_list(request: Request, db: AsyncSession = Depends(get_db)):
+    """列表页：8 条主线任务链（新手引导 + 成长里程碑）"""
+    user = await get_current_user(request, db)
+    if not user:
+        return RedirectResponse("/login", status_code=303)
+    st = await get_state(db, user.id)
+    return await render(request, "farm/mainquests.html", db, user=user, st=st, quests=MAIN_QUESTS)

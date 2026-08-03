@@ -1,6 +1,6 @@
 # QQ家园 — 怀旧平台化复刻
 
-> 版本：**v0.2.5** （2026-08-03 精武堂 WAP 原版资料补全：22 组常量/87级经验表/四圣兽宠物/战神宫7层/命力祈福/武魂段位/帮派心法 + 资料图鉴路由）
+> 版本：**v0.2.6** （2026-08-04 全游戏主线任务补全：6 模块新增 MAIN_QUESTS 主线任务链 + 6 路由 + 6 模板 + 首页导航补全）
 >
 > 基于 **FastAPI + SQLite + Jinja2(简版 WAP 风)** 实现的怀旧 QQ 家园平台复刻。
 > 严格遵循《怀旧QQ家园平台设计规范》：平台统一、模块自治、旧逻辑优先、一页只做一件事。
@@ -10,6 +10,67 @@
 ---
 
 ## 更新日志
+
+### v0.2.6 （2026-08-04）— 全游戏主线任务补全 + 导航栏目完善（6 模块 +6 路由 +6 模板）
+
+修复致命问题：八个游戏模块中六个（阳光农场/美味小镇/召唤之王/风云三国/精武堂/幻想西游）**完全没有主线任务**，且首页导航栏目缺失主线入口。本次全网检索原版玩法资料，为六模块补全结构化主线任务链，新增主线任务页面，并在各游戏首页快捷入口首位补全"主线任务"导航链接。
+
+**一、主线任务链补全（6 模块 +MAIN_QUESTS 常量，统一 5 元组结构）**
+
+统一结构：`(sort 序号, 名称, 解锁等级, 目标/剧情描述, 奖励)`，按等级顺序解锁，纯静态常量不入库。
+
+- **阳光农场** `farm.py` MAIN_QUESTS（8 步·新手引导+成长里程碑，来源：阳光农场原版玩法 + baike.com 红土地词条）
+  播种希望(1) → 辛勤浇灌(3) → 丰收时刻(5) → 偷菜有道(8) → 作物进阶(12) → 红土开荒(28) → 社交达人(35) → 农场大亨(50)
+- **美味小镇** `town.py` MAIN_QUESTS（8 步·经营成长线，来源：美味小镇原版玩法 + youxiabc.com 攻略）
+  开业大吉(1) → 食材采购(5) → 菜谱升级(10) → 油壶扩容(15) → 蟑螂来袭(20) → 雇佣帮手(25) → 厨艺大赛(40) → 金牌餐厅(60)
+- **召唤之王** `summon_data.py` MAIN_QUESTS（8 步·收集+推进，来源：召唤之王原版玩法 + zol.com 攻略）
+  初次捕捉(1) → 图鉴开启(5) → 战骨强化(10) → 通天塔(15) → 擂台首胜(20) → 魂之猎手(30) → 联盟加入(40) → 幻兽大师(60)
+- **风云三国** `fengyun_data.py` MAIN_QUESTS（8 章·三国剧情主线，来源：三国演义 + 三国风云官方事件大全）
+  黄巾之乱(1) → 董卓之乱(10) → 群雄逐鹿(20) → 官渡之战(35) → 赤壁之战(50) → 三国鼎立(65) → 北伐中原(80) → 天下一统(100)
+- **精武堂** `martial_data.py` MAIN_QUESTS（8 步·武学成长线，来源：精武堂WAP原版玩法 + 用户资料）
+  初入江湖(1) → 修炼有成(10) → 技能初成(15) → 比武切磋(20) → 战神宫(25) → 加入帮派(30) → 装备锻造(40) → 武林大会(50)
+- **幻想西游** `xyou_data.py` MAIN_QUESTS（8 章·西行取经剧情主线，来源：西游记 + zol.com.cn 幻想西游攻略）
+  新手起步(1) → 拜师入门(9) → 长安历练(15) → 中级转职(59) → 西行启程(70) → 大闹天宫(80) → 地府探险(90) → 灵山取经(180)
+
+> 已有主线模块（无需补全）：纵横四海 `sea_data.py` MAIN_QUESTS（12 条链/4000+环，DB 入库）、魔法花园 `garden_data.py` QUEST_CHAIN（7 步交互式任务链）。
+
+**二、路由 + 模板（+6 路由 +6 模板）**
+
+| 模块 | 路由 | 模板 | 说明 |
+|------|------|------|------|
+| 阳光农场 | `GET /games/farm/mainquests` | `farm/mainquests.html` | 8 章主线展示 |
+| 美味小镇 | `GET /games/town/mainquests` | `town/mainquests.html` | 8 章主线展示 |
+| 召唤之王 | `GET /games/summon/mainquests` | `summon/mainquests.html` | 8 章主线展示 |
+| 风云三国 | `GET /games/fengyun/mainquests` | `fengyun/mainquests.html` | 8 章三国剧情展示 |
+| 精武堂 | `GET /games/martial/mainquests` | `martial/mainquests.html` | 8 章武学成长展示 |
+| 幻想西游 | `GET /games/xyou/mainquests` | `xyou/mainquests.html` | 8 章西行取经展示 |
+
+模板沿用 WAP 层级页设计，卡片式展示每章（序号·名称·解锁等级·剧情/目标·奖励），与既有 `sea/mainquests.html` 风格一致。
+
+**三、导航栏目完善（6 模块首页快捷入口首位 +主线任务）**
+
+各游戏首页 `home.html` 的"快捷入口"网格首位新增"主线任务"链接，确保玩家进入游戏即可看到主线入口：
+- `farm/home.html` / `town/home.html` / `summon/home.html` / `fengyun/home.html` / `martial/home.html` / `xyou/home.html`
+- 同时清理 fengyun/martial/xyou 首页误放在快捷入口里的"返回大厅"重复链接（底部已有返回按钮）
+
+> 已有主线入口模块（无需补全）：纵横四海 `sea/home.html`（第39行）、魔法花园 `garden/home.html`（魔法任务）。
+
+**四、闭环验证**
+- ✅ IMPORT OK：`VERSION = 0.2.6`；8 模块主线任务常量全部可访问（farm/town/summon/fengyun/martial/xyou 各 8 条 + sea 12 条 + garden 7 步）
+- ✅ 路由注册：7 个 `/games/*/mainquests` 路由全部注册（6 新增 + sea 既有）
+- ✅ HTTP 冒烟（demo 登录）：6 个新 mainquests 页面均 200，含"主线任务"文案（farm 2807 / town 2816 / summon 2788 / fengyun 3267 / martial 2817 / xyou 3484 字节）
+- ✅ 导航校验：6 个游戏首页均含 `/mainquests` 链接
+
+**文件变更**
+- `app/routers/xyou_data.py`：+MAIN_QUESTS（8 章西行取经主线）
+- `app/routers/farm.py` / `town.py` / `summon.py` / `fengyun.py` / `martial.py` / `xyou.py`：各 +1 路由 `/mainquests`
+- `app/templates/{farm,town,summon,fengyun,martial,xyou}/mainquests.html`：+6 主线任务模板
+- `app/templates/{farm,town,summon,fengyun,martial,xyou}/home.html`：快捷入口 +主线任务链接
+- `app/config.py`：版本号 0.2.5 → 0.2.6
+
+> 注：farm/town/summon/fengyun/martial 的 MAIN_QUESTS 常量已在 v0.2.6 开发周期内先行写入对应 data 文件，本次完成 xyou 补全 + 路由/模板/导航闭环。
+
+---
 
 ### v0.2.5 （2026-08-03）— 精武堂 WAP 原版资料补全（22 组常量 + 资料图鉴路由）
 

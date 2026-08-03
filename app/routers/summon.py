@@ -1651,3 +1651,14 @@ async def tower_climb(tower_type: str, request: Request, db: AsyncSession = Depe
                             st=st, stage_no=cur_floor+1, is_elite=False,
                             exp_need=D.exp_needed(st.level),
                             back_href="/games/summon/tower", back_text="重新挑战")
+
+
+# ---------- v0.2.6 主线任务链 ----------
+@router.get("/mainquests")
+async def mainquests_list(request: Request, db: AsyncSession = Depends(get_db)):
+    """列表页：8 条主线任务链（幻兽收集 + 战力推进）"""
+    user = await get_current_user(request, db)
+    if not user:
+        return RedirectResponse("/login", status_code=303)
+    st = await get_state(db, user.id)
+    return await render(request, "summon/mainquests.html", db, user=user, st=st, quests=D.MAIN_QUESTS)

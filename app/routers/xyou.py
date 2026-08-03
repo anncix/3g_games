@@ -921,3 +921,14 @@ async def dungeon_bosses_page(request: Request, db: AsyncSession = Depends(get_d
     return await render(request, "xyou/dungeon_bosses.html", db, user=user,
                         dungeon_bosses=XY.DUNGEON_BOSSES,
                         task_types=XY.TASK_TYPES)
+
+
+# ---------- v0.2.6 主线任务链 ----------
+@router.get("/mainquests")
+async def mainquests_list(request: Request, db: AsyncSession = Depends(get_db)):
+    """列表页：8 章西行取经剧情主线（新手村 → 灵山取经）"""
+    user = await get_current_user(request, db)
+    if not user:
+        return RedirectResponse("/login", status_code=303)
+    st = await get_state(db, user.id)
+    return await render(request, "xyou/mainquests.html", db, user=user, st=st, quests=XY.MAIN_QUESTS)

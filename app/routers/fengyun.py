@@ -657,3 +657,14 @@ async def rules(request: Request, db: AsyncSession = Depends(get_db)):
     if not user:
         return RedirectResponse("/login", status_code=303)
     return await render(request, "fengyun/rules.html", db, user=user)
+
+
+# ---------- v0.2.6 主线任务链 ----------
+@router.get("/mainquests")
+async def mainquests_list(request: Request, db: AsyncSession = Depends(get_db)):
+    """列表页：8 章三国剧情主线（黄巾之乱 → 天下一统）"""
+    user = await get_current_user(request, db)
+    if not user:
+        return RedirectResponse("/login", status_code=303)
+    st = await get_state(db, user.id)
+    return await render(request, "fengyun/mainquests.html", db, user=user, st=st, quests=FY.MAIN_QUESTS)

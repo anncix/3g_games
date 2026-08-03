@@ -1254,3 +1254,14 @@ async def warshrine_challenge(request: Request, db: AsyncSession = Depends(get_d
     await db.commit()
     return await render(request, "result.html", db, user=user, ok=ok,
                         msg=msg, back_href="/games/martial/warshrine", back_text="返回战神宫")
+
+
+# ---------- v0.2.6 主线任务链 ----------
+@router.get("/mainquests")
+async def mainquests_list(request: Request, db: AsyncSession = Depends(get_db)):
+    """列表页：8 条主线任务链（武学成长线）"""
+    user = await get_current_user(request, db)
+    if not user:
+        return RedirectResponse("/login", status_code=303)
+    st = await get_state(db, user.id)
+    return await render(request, "martial/mainquests.html", db, user=user, st=st, quests=D.MAIN_QUESTS)
