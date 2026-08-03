@@ -28,7 +28,7 @@ from sqlalchemy.ext.asyncio import AsyncSession
 from .. import models
 from ..database import get_db
 from ..deps import get_current_user
-from ..platform import goods, icons, events, locks, friends as fsvc, log
+from ..platform import goods, events, locks, friends as fsvc, log
 from .views import render
 
 router = APIRouter(prefix="/games/garden")

@@ -27,7 +27,7 @@ from sqlalchemy.ext.asyncio import AsyncSession
 from .. import models
 from ..database import get_db
 from ..deps import get_current_user
-from ..platform import goods, icons, events, locks, friends as fsvc, log
+from ..platform import goods, events, locks, friends as fsvc, log
 from .views import render
 
 router = APIRouter(prefix="/games/town")
@@ -912,6 +912,25 @@ async def hire_waiter(uid: int, request: Request, db: AsyncSession = Depends(get
     await log.record(db, user.id, MODULE_KEY, "hire_waiter", f"{uid}:{bonus_type}")
     return await render(request, "result.html", db, user=user, ok=True,
                         msg=f"雇佣成功！加成类型：{bonus_type}（12 小时）",
+                        back_href="/games/town/waiter", back_text="返回")
+
+
+@router.post("/waiter/fire/{waiter_id}")
+async def fire_waiter(waiter_id: int, request: Request, db: AsyncSession = Depends(get_db)):
+    """解雇服务员（提前结束雇佣）"""
+    user = await get_current_user(request, db)
+    if not user:
+        return RedirectResponse("/login", status_code=303)
+    w = await db.get(models.TownWaiter, waiter_id)
+    if not w or w.user_id != user.id:
+        return await render(request, "result.html", db, user=user, ok=False,
+                            msg="服务员不存在", back_href="/games/town/waiter", back_text="返回")
+    friend = await db.get(models.User, w.friend_id)
+    name = friend.nickname if friend else "未知"
+    await db.delete(w)
+    await log.record(db, user.id, MODULE_KEY, "fire_waiter", f"{waiter_id}:{w.friend_id}")
+    return await render(request, "result.html", db, user=user, ok=True,
+                        msg=f"已解雇服务员 {name}",
                         back_href="/games/town/waiter", back_text="返回")
 
 

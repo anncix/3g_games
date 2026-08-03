@@ -12,7 +12,9 @@
 <div class="section-title">已雇佣好友</div>
 <div class="content">
   {% for w in waiter_info %}
-  <div class="li">{{ w.friend.nickname }}（{{ w.waiter.bonus_type }}）<span class="r">剩{{ w.remain }}秒</span></div>
+  <div class="li">{{ w.friend.nickname }}（{{ w.waiter.bonus_type }}）<span class="r">剩{{ w.remain }}秒
+    <form method="post" action="/games/town/waiter/fire/{{ w.waiter.id }}" style="display:inline"><button class="btn ghost" type="submit">解雇</button></form>
+  </span></div>
   {% endfor %}
   {% if not waiter_info %}<div class="muted">尚未雇佣好友</div>{% endif %}
 </div>
