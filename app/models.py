@@ -740,6 +740,11 @@ class GardenState(Base):
     exp: Mapped[int] = mapped_column(Integer, default=0)
     pot_count: Mapped[int] = mapped_column(Integer, default=4)
     coins: Mapped[int] = mapped_column(Integer, default=200)  # 模块金币（买基础花种/道具）
+    # v0.1.5：环境值/装饰系统（spec env_quality_mul 边际递减）
+    decorations: Mapped[str] = mapped_column(Text, default="[]")
+    env_score: Mapped[int] = mapped_column(Integer, default=0)
+    craft_queue: Mapped[str] = mapped_column(Text, default="[]")
+    craft_slots: Mapped[int] = mapped_column(Integer, default=2)
 
 
 class GardenCollection(Base):
@@ -1121,6 +1126,12 @@ class SummonState(Base):
     capture_pity: Mapped[str] = mapped_column(Text, default="{}")       # JSON: {rarity: 连续失败次数}
     daily_counters: Mapped[str] = mapped_column(Text, default="{}")     # JSON: {metric: 今日次数}
     daily_tasks: Mapped[str] = mapped_column(Text, default="{}")        # JSON: {task_id: 已领奖}
+    bone_levels: Mapped[str] = mapped_column(Text, default="{}")
+    souls: Mapped[str] = mapped_column(Text, default="[]")
+    spirits: Mapped[str] = mapped_column(Text, default="[]")
+    alliance_skills: Mapped[str] = mapped_column(Text, default="{}")
+    tower_floors: Mapped[str] = mapped_column(Text, default='{"tongtian":0,"spirit":0}')
+    mentor_count: Mapped[int] = mapped_column(Integer, default=0)
     last_battle_at: Mapped[datetime] = mapped_column(DateTime, default=_now)
 
 

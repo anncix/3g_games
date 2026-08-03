@@ -1,0 +1,33 @@
+{% extends "base.html" %}
+{% from "macros.html" import topbar, footer %}
+{% block title %}装备商店{% endblock %}
+{% block body %}
+{{ topbar("商店", user) }}
+<div class="crumb"><a href="/games/fengyun">风云三国</a> › 商店</div>
+<div class="card">
+  银两 <b>{{ st.silver }}</b> · 等级 <b>{{ st.level }}</b>
+</div>
+<div class="section-title">装备列表</div>
+<div class="content">
+  {% for e in shop_list %}
+  <div class="card">
+    <div class="hd">{{ e.name }}<span class="r">{{ e.quality }}</span></div>
+    <div class="muted">{{ e.slot }}部 · 需求{{ e.level_req }}级{% if e.class_req %} · 限{{ e.class_req }}{% endif %}</div>
+    <div class="muted">攻击+{{ e.atk_bonus }} 防御+{{ e.def_bonus }} 气血+{{ e.hp_bonus }}</div>
+    <div>价格 <b>{{ e.price }}</b> 银两</div>
+    {% if st.silver >= e.price and st.level >= e.level_req and (not e.class_req or e.class_req == st.class_key) %}
+    <form method="post" action="/games/fengyun/shop/buy/{{ e.key }}">
+      <button class="btn green" type="submit">购买</button>
+    </form>
+    {% else %}
+    <div class="muted">不满足购买条件</div>
+    {% endif %}
+  </div>
+  {% endfor %}
+  {% if not shop_list %}<div class="muted">暂无可购买装备</div>{% endif %}
+</div>
+<div class="content">
+  <a class="btn ghost" href="/games/fengyun">返回首页</a>
+</div>
+{{ footer(user) }}
+{% endblock %}

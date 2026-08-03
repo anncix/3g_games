@@ -1,0 +1,51 @@
+{% extends "base.html" %}
+{% from "macros.html" import topbar, footer %}
+{% block title %}宠物图鉴{% endblock %}
+{% block body %}
+{{ topbar("宠物图鉴", user) }}
+<div class="crumb"><a href="/games/sea">航海</a> › 宠物图鉴</div>
+<div class="section-title">宠物图鉴 ({{ pets|length }})</div>
+<div class="content">
+  {% for p in pets %}
+  <div class="card">
+    <div class="hd">{{ p.name }} <span class="tag {% if p.quality=='橙' %}red{% elif p.quality=='紫' %}gray{% else %}green{% endif %}">{{ p.quality }}</span>{% if p.key in owned_keys %} <span class="tag green">已拥有</span>{% endif %}</div>
+    <div class="muted">{{ p.skill_tag }} · 来源：{{ p.source }}</div>
+    <div>攻 {{ p.atk }} · 防 {{ p.defense }} · 敏 {{ p.agile }} · 体 {{ p.hp }}</div>
+  </div>
+  {% endfor %}
+  {% if not pets %}<div class="muted">暂无宠物</div>{% endif %}
+</div>
+<div class="section-title">宠物技能 ({{ pet_skills|length }})</div>
+<div class="content">
+  {% for sk in pet_skills %}
+  <div class="li"><span>{{ sk.name }} <span class="tag {% if sk.tier=='T0' %}red{% elif sk.tier=='T1' %}gray{% else %}green{% endif %}">{{ sk.tier }}</span></span><span class="r muted">{{ sk.effect[:16] }}</span></div>
+  {% endfor %}
+</div>
+<div class="section-title">坐骑图鉴 ({{ mounts|length }})</div>
+<div class="content">
+  {% for m in mounts %}
+  <div class="li"><span>{{ m.name }} <span class="tag">{{ m.category }}</span></span><span class="r muted">{{ m.level_req }}级·{{ m.stat_value }}{{ '%' if m.stat_type=='pct' else '' }}</span></div>
+  {% endfor %}
+  {% if not mounts %}<div class="muted">暂无坐骑</div>{% endif %}
+</div>
+<div class="section-title">羽翼图鉴 ({{ wings|length }})</div>
+<div class="content">
+  {% for w in wings %}
+  <div class="li"><span>{{ w.name }}</span><span class="r muted">{{ w.level_req }}级</span></div>
+  {% endfor %}
+  {% if not wings %}<div class="muted">暂无羽翼</div>{% endif %}
+</div>
+<div class="section-title">随从图鉴 ({{ followers|length }})</div>
+<div class="content">
+  {% for f in followers %}
+  <div class="card">
+    <div class="hd">{{ f.name }} <span class="tag {% if f.quality=='传说' %}red{% else %}gray{% endif %}">{{ f.quality }}</span></div>
+    <div>{{ f.skill_name }}</div>
+    <div class="muted">{{ f.skill_desc }}</div>
+  </div>
+  {% endfor %}
+  {% if not followers %}<div class="muted">暂无随从</div>{% endif %}
+</div>
+<div class="content"><a class="btn ghost" href="/games/sea">返回航海首页</a></div>
+{{ footer(user) }}
+{% endblock %}

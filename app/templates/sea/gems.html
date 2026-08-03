@@ -1,0 +1,22 @@
+{% extends "base.html" %}
+{% from "macros.html" import topbar, footer %}
+{% block title %}宝石图鉴{% endblock %}
+{% block body %}
+{{ topbar("宝石图鉴", user) }}
+<div class="crumb"><a href="/games/sea">航海</a> › 宝石图鉴</div>
+<div class="content">
+  <div class="notice">宝石分 5 档（碎片/小/中/大/完美），可镶嵌到对应部位。</div>
+  {% for t in [5,4,3,2,1] %}
+  <div class="section-title">{{ tier_names.get(t, t) }}档</div>
+  {% for row in gem_list if row.g.tier == t %}
+  <div class="card">
+    <div class="hd">{{ row.g.name }}</div>
+    <div>效果：<b>{{ row.g.effect }}</b></div>
+    <div class="muted">可镶嵌：{% if row.slots %}{{ row.slots|join('、') }}{% else %}升星/副本专用材料{% endif %}</div>
+  </div>
+  {% endfor %}
+  {% endfor %}
+</div>
+<div class="content"><a class="btn ghost" href="/games/sea">返回航海首页</a></div>
+{{ footer(user) }}
+{% endblock %}

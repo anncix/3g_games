@@ -1,0 +1,36 @@
+{% extends "base.html" %}
+{% from "macros.html" import topbar, footer %}
+{% block title %}称号{% endblock %}
+{% block body %}
+{{ topbar("称号", user) }}
+<div class="crumb"><a href="/games/fengyun">风云三国</a> › 称号</div>
+<div class="card">
+  <div class="muted">称号分前缀/后缀/配对三类，前缀+后缀配对可激发隐藏属性。</div>
+</div>
+{% set labels = {"prefix": "前缀称号", "suffix": "后缀称号", "pair": "配对称号（隐藏属性）"} %}
+{% for ttype, items in grouped.items() %}
+{% if items %}
+<div class="section-title">{{ labels.get(ttype, ttype) }}</div>
+<div class="content">
+  {% for t in items %}
+  <div class="card">
+    <div class="hd">{{ t.name }}<span class="r">品级 {{ t.grade }}</span></div>
+    <div class="muted">气血+{{ t.hp_bonus }} 攻击+{{ t.atk_bonus }} 防御+{{ t.def_bonus }}</div>
+  </div>
+  {% endfor %}
+</div>
+{% endif %}
+{% endfor %}
+{% if pair_rules %}
+<div class="section-title">配对规则</div>
+<div class="content">
+  {% for pre, suf, pair in pair_rules %}
+  <div class="li">{{ pre }} + {{ suf }}<span class="r">→ {{ pair }}</span></div>
+  {% endfor %}
+</div>
+{% endif %}
+<div class="content">
+  <a class="btn ghost" href="/games/fengyun">返回首页</a>
+</div>
+{{ footer(user) }}
+{% endblock %}

@@ -37,6 +37,19 @@
   <a href="/games/summon/shop">商店</a>
   <a href="/games/summon/rules">规则</a>
 </div>
+{% if st.level >= 10 %}
+<div class="section-title">高级系统</div>
+<div class="grid2">
+  {% if st.level >= 10 %}<a href="/games/summon/bone">战骨</a>{% endif %}
+  {% if st.level >= 30 %}<a href="/games/summon/soul">魔魂</a>{% endif %}
+  {% if st.level >= 35 %}<a href="/games/summon/spirit">战灵</a>{% endif %}
+  {% if st.level >= 10 %}<a href="/games/summon/arena">擂台</a>{% endif %}
+  {% if st.level >= 40 %}<a href="/games/summon/battlefield">战场</a>{% endif %}
+  <a href="/games/summon/alliance">联盟</a>
+  {% if st.level >= 40 %}<a href="/games/summon/mentor">师徒</a>{% endif %}
+  <a href="/games/summon/tower">通天塔</a>
+</div>
+{% endif %}
 <div class="content">
   <a class="btn ghost" href="/lobby">返回大厅</a>
   <a class="btn ghost" href="/">返回家园</a>

@@ -1,0 +1,26 @@
+{% extends "base.html" %}
+{% from "macros.html" import topbar, footer %}
+{% block title %}成就{% endblock %}
+{% block body %}
+{{ topbar("成就", user) }}
+<div class="crumb"><a href="/games/fengyun">风云三国</a> › 成就</div>
+<div class="card">
+  <div class="muted">成就按难度分档，达成后获得属性加成。</div>
+</div>
+{% for diff, items in grouped.items() %}
+<div class="section-title">{{ diff }}</div>
+<div class="content">
+  {% for a in items %}
+  <div class="card">
+    <div class="hd">{{ a.name }}<span class="r">{{ a.category }}</span></div>
+    <div class="muted">{{ a.desc }}</div>
+    <div class="muted">气血+{{ a.hp_bonus }} 内力+{{ a.mp_bonus }} 攻击+{{ a.atk_bonus }} 防御+{{ a.def_bonus }} 闪避+{{ a.dodge_bonus }} 暴击+{{ a.crit_bonus }}</div>
+  </div>
+  {% endfor %}
+</div>
+{% endfor %}
+<div class="content">
+  <a class="btn ghost" href="/games/fengyun">返回首页</a>
+</div>
+{{ footer(user) }}
+{% endblock %}

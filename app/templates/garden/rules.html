@@ -94,6 +94,29 @@
   <b>闭环</b>：订单需求 70% 取花朵(收获产出) / 30% 取材料(工坊产出) → plant→harvest→deliver<br>
   <b>幂等</b>：生成器 <code>need = TARGET - current</code> 填至目标，重跑 0 新增
 </div>
+<div class="card">
+  <div class="hd">环境值 / 装饰系统（v0.1.5 新增 · spec env_quality_mul 边际递减）</div>
+  <b>定位</b>：放置装饰 → 累计环境值 → 提升收获品质抽取（长期追求）<br>
+  <b>装饰</b>：10 种花园装饰（喷泉/池塘/路灯/花拱门/长椅/雕塑/栅栏/景观树/鸟笼/风车），各有 env_score<br>
+  <b>套装加成</b>（集齐全套成员 +额外环境值，互不排斥）：<br>
+  　水景套装 = 喷泉 + 池塘 → +10<br>
+  　灯饰套装 = 路灯 + 花拱门 → +15<br>
+  　雕塑套装 = 雕塑 + 花拱门 + 长椅 → +20<br>
+  <b>环境值公式</b>：env_score = Σ(deco.env_score) + Σ(套装bonus)<br>
+  <b>品质倍率（spec 边际递减）</b>：env_quality_mul = 1 + 0.3×(1 - exp(-env_score/50))<br>
+  <b>收获联动</b>：收获时按 env_quality_mul 抽取品质(N/G/R/E/L)，金币按 Q_value_mul 倍率发放<br>
+  <b>路径</b>：装饰商店购买 → 背包 → 装饰页"放置" → 计入 env_score
+</div>
+<div class="card">
+  <div class="hd">工坊合成队列（v0.1.5 新增 · spec 时间制合成，非瞬时）</div>
+  <b>定位</b>：合成改为耗时槽位制，多槽并行；时间到回工坊领取结果<br>
+  <b>槽位数</b>（随等级解锁）：Lv1=2 / Lv11=3 / Lv21=4 / Lv31=5 / Lv46=6<br>
+  <b>合成时间</b>：craft_seconds = 30 + target_level × 60（如 Lv2→150s, Lv8→510s）<br>
+  <b>流程</b>：开始合成（扣材料 + 占槽 + 置 finish_at）→ 等待 → 领取（按 success_rate + 保底结算）<br>
+  <b>保底</b>：领取失败累计 credits，满 fail_credit_threshold 必成（领取时才判定，避免提前泄露）<br>
+  <b>高阶锁</b>：require_lock_check 配方开始时记录风控日志<br>
+  <b>兼容</b>：<code>POST /craft/{recipe_id}</code> 与 <code>POST /craft/start/{recipe_id}</code> 等价
+</div>
 <div class="content"><a class="btn ghost" href="/games/garden">返回花园</a></div>
 {{ footer(user) }}
 {% endblock %}

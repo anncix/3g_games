@@ -1,0 +1,50 @@
+{% extends "base.html" %}
+{% from "macros.html" import topbar, footer %}
+{% block title %}装备{% endblock %}
+{% block body %}
+{{ topbar("装备", user) }}
+<div class="crumb"><a href="/games/fengyun">风云三国</a> › 装备</div>
+<div class="card">
+  战力 <b>{{ power }}</b> · 银两 <b>{{ st.silver }}</b>
+</div>
+<div class="section-title">穿戴槽位</div>
+<div class="content">
+  {% for slot in slots %}
+  {% set ue = slot_map[slot] %}
+  <div class="card">
+    <div class="hd">{{ slot }}<span class="r">{% if ue %}{{ def_map[ue.equip_key].name }}{% else %}空{% endif %}</span></div>
+    {% if ue and def_map[ue.equip_key] %}
+      {% set e = def_map[ue.equip_key] %}
+      <div class="muted">{{ e.quality }}品质 · 需求{{ e.level_req }}级</div>
+      <div class="muted">攻击+{{ e.atk_bonus }} 防御+{{ e.def_bonus }} 气血+{{ e.hp_bonus }}</div>
+      <form method="post" action="/games/fengyun/equip/takeoff/{{ ue.id }}">
+        <button class="btn ghost" type="submit">卸下</button>
+      </form>
+    {% else %}
+      <div class="muted">未穿戴</div>
+    {% endif %}
+  </div>
+  {% endfor %}
+</div>
+{% if bag_equips %}
+<div class="section-title">背包装备</div>
+<div class="content">
+  {% for ue in bag_equips %}
+  {% set e = def_map[ue.equip_key] %}
+  <div class="card">
+    <div class="hd">{{ e.name }}<span class="r">{{ e.quality }}</span></div>
+    <div class="muted">{{ ue.slot }}部 · 需求{{ e.level_req }}级</div>
+    <div class="muted">攻击+{{ e.atk_bonus }} 防御+{{ e.def_bonus }} 气血+{{ e.hp_bonus }}</div>
+    <form method="post" action="/games/fengyun/equip/wear/{{ ue.id }}">
+      <button class="btn" type="submit">穿戴</button>
+    </form>
+  </div>
+  {% endfor %}
+</div>
+{% endif %}
+<div class="content">
+  <a class="btn" href="/games/fengyun/shop">前往商店</a>
+  <a class="btn ghost" href="/games/fengyun">返回首页</a>
+</div>
+{{ footer(user) }}
+{% endblock %}

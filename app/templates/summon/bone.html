@@ -1,0 +1,33 @@
+{% extends "base.html" %}
+{% from "macros.html" import topbar, footer %}
+{% block title %}战骨系统{% endblock %}
+{% block body %}
+{{ topbar("战骨", user) }}
+<div class="crumb"><a href="/games/summon">召唤之王</a> › 战骨</div>
+<div class="card">
+  <div class="hd">战骨强化</div>
+  召唤师 Lv<b>{{ st.level }}</b> · 铜钱 <b>{{ st.coins }}</b> · 灵石 <b>{{ stone_n }}</b><br>
+  7 部位独立强化，公式：铜钱=200+60×等级，灵石=1+等级÷5
+</div>
+<div class="content">
+  {% for p in parts %}
+  <div class="card">
+    <div class="hd">{{ p.name }} <span class="tag">Lv{{ p.level }}</span></div>
+    <div class="muted">属性：{{ p.stats|join(' / ') }}</div>
+    <div>下次强化消耗：铜钱 <b>{{ p.coin_cost }}</b> · 灵石 <b>{{ p.stone_cost }}</b></div>
+    {% if p.affordable %}
+    <form method="post" action="/games/summon/bone/upgrade/{{ p.key }}">
+      <button class="btn green" type="submit">强化 {{ p.name }}</button>
+    </form>
+    {% else %}
+    <span class="tag red">材料不足</span>
+    {% endif %}
+  </div>
+  {% endfor %}
+</div>
+<div class="content">
+  <a class="btn ghost" href="/games/summon">返回首页</a>
+  <a class="btn" href="/games/summon/shop">去商店买灵石</a>
+</div>
+{{ footer(user) }}
+{% endblock %}

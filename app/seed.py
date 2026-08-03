@@ -227,6 +227,19 @@ async def seed():
         await goods.ensure_item(db, "garden_dust", "花之粉尘", "material", "garden", True, 8, "高阶合成材料")
         await goods.ensure_item(db, "garden_essence", "花之精华", "material", "garden", True, 15, "兑换/传说合成材料")
 
+        # v0.1.5：装饰物品（环境值/套装系统）— item_key, 名称, env_score, set_key, 价格
+        # 水景套装=喷泉+池塘(+10) / 灯饰套装=路灯+花拱门(+15) / 雕塑套装=雕塑+花拱门+长椅(+20)
+        await goods.ensure_item(db, "garden_deco_fountain", "花园喷泉", "decor", "garden", False, 200, "装饰：环境值+15，水景套装")
+        await goods.ensure_item(db, "garden_deco_pond", "池塘", "decor", "garden", False, 320, "装饰：环境值+30，水景套装")
+        await goods.ensure_item(db, "garden_deco_lamp", "路灯", "decor", "garden", False, 80, "装饰：环境值+8，灯饰套装")
+        await goods.ensure_item(db, "garden_deco_arch", "花拱门", "decor", "garden", False, 180, "装饰：环境值+20，灯饰/雕塑套装")
+        await goods.ensure_item(db, "garden_deco_bench", "长椅", "decor", "garden", False, 60, "装饰：环境值+6，雕塑套装")
+        await goods.ensure_item(db, "garden_deco_statue", "雕塑", "decor", "garden", False, 240, "装饰：环境值+25，雕塑套装")
+        await goods.ensure_item(db, "garden_deco_fence", "栅栏", "decor", "garden", False, 40, "装饰：环境值+5")
+        await goods.ensure_item(db, "garden_deco_tree", "景观树", "decor", "garden", False, 100, "装饰：环境值+10")
+        await goods.ensure_item(db, "garden_deco_birdcage", "鸟笼", "decor", "garden", False, 120, "装饰：环境值+12")
+        await goods.ensure_item(db, "garden_deco_windmill", "风车", "decor", "garden", False, 160, "装饰：环境值+18")
+
         # 花谱项（AlbumEntry）— 按系列分组（野花/玫瑰/百合/郁金香/兰花/莲花/牡丹/传说系列）
         album_entries = [
             ("album_wild_w", "野花系列", "白色野花", "朴素的白色野花", "bloom_wild_w"),
@@ -440,6 +453,7 @@ async def seed():
             ("icon_gardener", "花谱收藏家", "点亮3种花", "garden", "flower_lit>=3"),
             ("icon_captain", "航海家", "航海等级达到5", "sea", "sea_level>=5"),
             ("icon_martial", "武林高手", "精武堂达到10级", "martial", "martial_level>=10"),
+            ("icon_fengyun", "三国名将", "风云三国达到10级", "fengyun", "fengyun_level>=10"),
             ("icon_family", "家族之光", "加入家族", "platform", "join_family"),
             ("icon_forum", "论坛达人", "论坛发帖5次", "platform", "forum_post>=5"),
             ("icon_signin", "签到达人", "累计签到", "platform", "signin"),
@@ -499,8 +513,8 @@ async def seed():
         # 14船（v0.1.7前0）+ 12主线任务链（v0.1.7前0）+ 23宠物技能（v0.1.7前0）+ 30城市特产 + 16补全城市 + 里斯本区域修正
         await seed_sea_v018(db)
 
-        # ---------- v0.1.9：风云三国（spec 三国 MMORPG 全系统）----------
-        # 13城市 + 30技能(3职业×4类型) + 105装备(5品质×7部位×3档) + 13副本 + 5军团等级 + 15称号 + 21成就 + 虎符/消耗品
+        # ---------- v0.2.0：风云三国（spec 三国 MMORPG 全系统 + 全网检索补全）----------
+        # 13城市 + 30技能 + 105装备(5品质×7部位×3档) + 48官方系列(7系列×7件套) + 11名器 + 14BOSS + 13副本 + 5军团等级 + 15称号 + 21成就 + 虎符/消耗品
         await seed_fengyun(db)
 
         print("✅ 种子数据已写入。管理员: admin/admin123  演示: demo/demo123")

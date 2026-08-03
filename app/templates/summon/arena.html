@@ -1,0 +1,39 @@
+{% extends "base.html" %}
+{% from "macros.html" import topbar, footer %}
+{% block title %}擂台{% endblock %}
+{% block body %}
+{{ topbar("擂台", user) }}
+<div class="crumb"><a href="/games/summon">召唤之王</a> › 擂台</div>
+<div class="card">
+  <div class="hd">擂台挑战</div>
+  召唤师 Lv<b>{{ st.level }}</b> · 声望 <b>{{ st.prestige }}</b> · 擂台币 <b>{{ st.arena_coin }}</b><br>
+  今日 <b>{{ done_today }}/{{ limit }}</b> 次 · 赛季 <b>{{ arena.season_days }}</b> 天<br>
+  胜：声望+{{ arena.win_prestige }} 擂台币+{{ arena.win_arena_coin }} · 负：擂台币-{{ arena.loss_arena_coin }}
+</div>
+<div class="card">
+  <div class="hd">我方队伍（{{ team|length }}只）</div>
+  {% for p in team %}
+  <div class="li">{{ p.nickname or p.species_id }} <span class="tag">Lv{{ p.level }}</span><span class="r">HP{{ p.hp }} 速{{ p.spd }}</span></div>
+  {% endfor %}
+  {% if not team %}<div class="muted red">队伍为空！先去幻兽列表上阵</div>{% endif %}
+</div>
+<div class="card">
+  <div class="hd">今日对手（随机刷新）</div>
+  {% for o in opponents %}
+  <div class="li">{{ o.info.name }} <span class="tag">{{ o.info.race }}</span> <span class="tag">{{ o.info.rarity }}</span><span class="r">Lv{{ o.level }} HP{{ o.hp }}</span></div>
+  {% endfor %}
+</div>
+<div class="content">
+  {% if can_challenge %}
+  <form method="post" action="/games/summon/arena/challenge"><button class="btn green" type="submit">挑战擂台</button></form>
+  {% else %}
+    {% if not team %}<a class="btn" href="/games/summon/pets">去上阵幻兽</a>
+    {% else %}<span class="tag red">今日次数已用完</span>{% endif %}
+  {% endif %}
+</div>
+<div class="content">
+  <a class="btn ghost" href="/games/summon">返回首页</a>
+  <a class="btn" href="/games/summon/shop">擂台兑换商店</a>
+</div>
+{{ footer(user) }}
+{% endblock %}

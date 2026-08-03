@@ -5,23 +5,52 @@
 {{ topbar("合成工坊", user) }}
 <div class="crumb"><a href="/games/garden">花园</a> › 合成工坊</div>
 <div class="card">
-  <span class="tag blue">{{ title }}</span> Lv{{ st.level }} · 物品上限 Lv{{ item_cap }}
+  <span class="tag blue">{{ title }}</span> Lv{{ st.level }} · 物品上限 Lv{{ item_cap }}<br>
+  工坊槽位 <b>{{ st.craft_slots - free_slots }}/{{ st.craft_slots }}</b> 占用 · 空闲 <b>{{ free_slots }}</b> 槽
 </div>
-<div class="muted">成功率随目标等级下降；失败累计保底值满必成；高阶合成触发操作锁校验</div>
+<div class="muted">v0.1.5：合成需耗时（30 + 目标等级×60 秒），可并行；时间到回工坊领取结果（成功率 + 保底）</div>
+
+<div class="section-title">工坊槽位</div>
+<div class="content">
+  {% for s in slots %}
+  <div class="card">
+    <div class="hd">槽位 #{{ s.slot + 1 }}{% if s.busy %} · {{ s.item.recipe_name }}{% endif %}</div>
+    {% if s.busy %}
+      目标：<b>{{ s.item.target_seed_name }}</b> 种子<br>
+      {% if s.item.done %}
+        <span class="tag green">已完成，可领取</span><br>
+        <form method="post" action="/games/garden/craft/collect/{{ s.slot }}">
+          <button class="btn green" type="submit">领取结果</button>
+        </form>
+      {% else %}
+        进度 <b>{{ s.item.progress }}%</b> · 剩余 <b>{{ s.item.remain }}</b> 秒<br>
+        <div class="bar"><i style="width:{{ s.item.progress }}%"></i></div>
+        <span class="muted">完成后回来领取（届时按成功率+保底结算）</span>
+      {% endif %}
+    {% else %}
+      <span class="muted">空闲 — 可在下方配方列表"开始合成"</span>
+    {% endif %}
+  </div>
+  {% endfor %}
+</div>
+
+<div class="section-title">配方列表</div>
 {% for item in info %}
 <div class="card">
   <div class="hd">{{ item.recipe.name }} → {{ item.seed.name }}种子×{{ item.recipe.result_qty }}</div>
   目标：<b>{{ item.seed.name }}</b> <span class="tag">{{ item.seed.rarity }}</span> Lv{{ item.seed.item_level }}
   {% if item.recipe.require_lock_check %}<span class="tag orange">高阶锁</span>{% endif %}<br>
-  成功率 <b>{{ item.recipe.success_rate }}%</b> · 保底 <b>{{ item.credits }}/{{ item.recipe.fail_credit_threshold }}</b>
+  成功率 <b>{{ item.recipe.success_rate }}%</b> · 保底 <b>{{ item.credits }}/{{ item.recipe.fail_credit_threshold }}</b> · 合成耗时 <b>{{ item.craft_seconds }}秒</b>
   <div class="bar"><i style="width:{{ (item.credits/item.recipe.fail_credit_threshold*100)|int }}%"></i></div>
   材料：
   {% for m in item.mats %}{{ m.name }}×{{ m.need }}(<b>{{ m.have }}</b>) {% endfor %}<br>
   {% if item.level_locked %}
   <span class="muted">物品等级超限（需提升等级至可使用Lv{{ item.seed.item_level }}）</span>
+  {% elif free_slots <= 0 %}
+  <span class="muted">工坊槽位已满，请先领取完成的合成</span>
   {% elif item.can %}
-  <form method="post" action="/games/garden/craft/{{ item.recipe.id }}">
-    <button class="btn green" type="submit">合成</button>
+  <form method="post" action="/games/garden/craft/start/{{ item.recipe.id }}">
+    <button class="btn green" type="submit">开始合成</button>
   </form>
   {% else %}
   <span class="muted">材料不足</span>

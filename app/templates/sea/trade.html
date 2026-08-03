@@ -1,0 +1,36 @@
+{% extends "base.html" %}
+{% from "macros.html" import topbar, footer %}
+{% block title %}贸易{% endblock %}
+{% block body %}
+{{ topbar("港口贸易", user) }}
+<div class="crumb"><a href="/games/sea">航海</a> › 贸易</div>
+<div class="content">
+  <div class="card">
+    <div class="hd">当前港口</div>
+    {{ city.name if city else st.current_city }} · 区域：<b>{{ cur_region }}</b><br>
+    <span class="muted">跨区域售出特产可获厚利（120金），同区域仅 30 金。</span>
+  </div>
+</div>
+<div class="section-title">本港特产</div>
+<div class="content">
+  {% for s in specialties %}
+  <div class="li">
+    <span>{{ s.name }} <span class="muted">购入 {{ s.buy_price }}金</span></span>
+    <span class="r">{% if user.coins >= s.buy_price %}<form method="post" action="/games/sea/trade/buy/{{ s.key }}" style="display:inline"><button class="btn green" type="submit">买入</button></form>{% else %}<span class="tag red">金币不足</span>{% endif %}</span>
+  </div>
+  {% endfor %}
+  {% if not specialties %}<div class="muted">本港无特产，前往特产城市（如威尼斯/伦敦/泉州）</div>{% endif %}
+</div>
+<div class="section-title">我的货舱</div>
+<div class="content">
+  {% for o in owned %}
+  <div class="li">
+    <span>{{ o.name }} ×{{ o.qty }} <span class="muted">来自{{ o.src_region }} · 售{{ o.sell_price }}金</span></span>
+  </div>
+  {% endfor %}
+  {% if owned %}<form method="post" action="/games/sea/trade/sell"><button class="btn green" type="submit">全部售出</button></form>
+  {% else %}<div class="muted">货舱空空，先在产地买入特产</div>{% endif %}
+</div>
+<div class="content"><a class="btn ghost" href="/games/sea">返回航海首页</a></div>
+{{ footer(user) }}
+{% endblock %}

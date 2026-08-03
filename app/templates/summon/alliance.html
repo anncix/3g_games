@@ -1,0 +1,54 @@
+{% extends "base.html" %}
+{% from "macros.html" import topbar, footer %}
+{% block title %}联盟{% endblock %}
+{% block body %}
+{{ topbar("联盟", user) }}
+<div class="crumb"><a href="/games/summon">召唤之王</a> › 联盟</div>
+<div class="card">
+  <div class="hd">联盟中心</div>
+  召唤师 Lv<b>{{ st.level }}</b> · 贡献 <b>{{ st.guild_coin }}</b><br>
+  每日免费寄存 <b>{{ storage.free_store_times_daily }}</b> 次 · 额外寄存消耗 <b>{{ storage.extra_store_cost_contrib }}</b> 贡献
+</div>
+<div class="content">
+  <div class="section-title">捐献（换贡献）</div>
+  {% for d in donate_list %}
+  <div class="card">
+    <div class="hd">{{ d.name }} <span class="tag">贡献+{{ d.contrib }}</span></div>
+    <div>持有 <b>{{ d.have }}</b></div>
+    {% if d.have > 0 %}
+    <form method="post" action="/games/summon/alliance/donate/{{ d.iid }}">
+      <button class="btn green" type="submit">捐献 1 个</button>
+    </form>
+    {% else %}
+    <span class="tag red">数量不足</span>
+    {% endif %}
+  </div>
+  {% endfor %}
+</div>
+<div class="content">
+  <div class="section-title">联盟技能（4 项各 10 级，每级 +1%）</div>
+  {% for s in skills %}
+  <div class="card">
+    <div class="hd">{{ s.name }} <span class="tag">Lv{{ s.cur_lv }}/{{ s.max_lv }}</span>
+      {% if s.maxed %}<span class="tag green">满级</span>{% endif %}
+    </div>
+    <div class="muted">当前加成 +{{ (s.bonus * s.cur_lv * 100)|round(1) }}%</div>
+    {% if not s.maxed %}
+    <div>升级消耗贡献：<b>{{ s.cost }}</b></div>
+    {% if s.affordable %}
+    <form method="post" action="/games/summon/alliance/skill/{{ s.sid }}">
+      <button class="btn green" type="submit">升级 {{ s.name }}</button>
+    </form>
+    {% else %}
+    <span class="tag red">贡献不足</span>
+    {% endif %}
+    {% endif %}
+  </div>
+  {% endfor %}
+</div>
+<div class="content">
+  <a class="btn ghost" href="/games/summon">返回首页</a>
+  <a class="btn" href="/games/summon/shop">联盟兑换商店</a>
+</div>
+{{ footer(user) }}
+{% endblock %}

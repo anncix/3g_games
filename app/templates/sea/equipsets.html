@@ -1,0 +1,25 @@
+{% extends "base.html" %}
+{% from "macros.html" import topbar, footer %}
+{% block title %}装备套装{% endblock %}
+{% block body %}
+{{ topbar("装备套装", user) }}
+<div class="crumb"><a href="/games/sea">航海</a> › 装备套装</div>
+<div class="content">
+  <div class="notice">装备套装共 24 套，按等级与获取方式分阶，下方列出所属件名。</div>
+  {% for row in info %}
+  <div class="card">
+    <div class="hd">{{ row.s.name }} <span class="tag">{{ row.s.pieces }}件</span></div>
+    <div class="muted">等级 {{ row.s.level_req }} · 获取：{{ row.s.source }}</div>
+    {% if row.pieces %}
+    <div class="section-title">套装件名</div>
+    {% for p in row.pieces %}
+    <div class="li"><span>{{ p.name }} <span class="tag">{{ p.slot }}</span>{% if p.confirmed %}<span class="tag green">确认</span>{% endif %}</span><span class="r muted">{{ p.level_req }}级</span></div>
+    {% endfor %}
+    {% else %}<div class="muted">暂无件名（散件或未录入）</div>{% endif %}
+  </div>
+  {% endfor %}
+  {% if not info %}<div class="muted">暂无套装</div>{% endif %}
+</div>
+<div class="content"><a class="btn ghost" href="/games/sea">返回航海首页</a></div>
+{{ footer(user) }}
+{% endblock %}

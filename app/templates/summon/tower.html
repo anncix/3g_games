@@ -1,0 +1,44 @@
+{% extends "base.html" %}
+{% from "macros.html" import topbar, footer %}
+{% block title %}通天塔 / 战灵塔{% endblock %}
+{% block body %}
+{{ topbar("登塔", user) }}
+<div class="crumb"><a href="/games/summon">召唤之王</a> › 通天塔 / 战灵塔</div>
+<div class="card">
+  <div class="hd">我方队伍（{{ team|length }}只）</div>
+  {% for p in team %}
+  <div class="li">{{ p.nickname or p.species_id }} <span class="tag">Lv{{ p.level }}</span><span class="r">HP{{ p.hp }} 速{{ p.spd }}</span></div>
+  {% endfor %}
+  {% if not team %}<div class="muted red">队伍为空！先去幻兽列表上阵</div>{% endif %}
+</div>
+<div class="card">
+  <div class="hd">通天塔（产焚火晶）</div>
+  当前进度 <b>{{ tongtian_floor }}/{{ tongtian_max }}</b> 层<br>
+  <div class="muted">每层奖励：焚火晶 + 铜钱，层数越高奖励越丰</div>
+  {% if tongtian_maxed %}
+    <span class="tag green">已登顶！</span>
+  {% elif can_climb_tongtian %}
+    <form method="post" action="/games/summon/tower/climb/tongtian"><button class="btn green" type="submit">挑战第 {{ tongtian_floor|default(0) + 1 }} 层</button></form>
+  {% else %}
+    <span class="tag red">队伍为空</span>
+  {% endif %}
+</div>
+<div class="card">
+  <div class="hd">战灵塔（产灵力）{% if not spirit_unlocked %} <span class="tag">Lv35解锁</span>{% endif %}</div>
+  当前进度 <b>{{ spirit_floor }}/{{ spirit_max }}</b> 层<br>
+  <div class="muted">每层奖励：灵力 + 铜钱，层数越高奖励越丰</div>
+  {% if not spirit_unlocked %}
+    <span class="tag">需 Lv35 解锁战灵塔</span>
+  {% elif spirit_maxed %}
+    <span class="tag green">已登顶！</span>
+  {% elif can_climb_spirit %}
+    <form method="post" action="/games/summon/tower/climb/spirit"><button class="btn green" type="submit">挑战第 {{ spirit_floor|default(0) + 1 }} 层</button></form>
+  {% else %}
+    <span class="tag red">队伍为空</span>
+  {% endif %}
+</div>
+<div class="content">
+  <a class="btn ghost" href="/games/summon">返回首页</a>
+</div>
+{{ footer(user) }}
+{% endblock %}

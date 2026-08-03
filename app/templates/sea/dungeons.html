@@ -1,0 +1,24 @@
+{% extends "base.html" %}
+{% from "macros.html" import topbar, footer %}
+{% block title %}副本{% endblock %}
+{% block body %}
+{{ topbar("航海副本", user) }}
+<div class="crumb"><a href="/games/sea">航海</a> › 副本</div>
+<div class="content">
+  <div class="notice">副本按星期开放，等级达标可挑战，胜利得经验与掉落。今日开放编号：{{ today }}</div>
+  {% for row in info %}
+  <div class="card">
+    <div class="hd">{{ row.d.name }} {% if not row.is_open %}<span class="tag red">未开放</span>{% elif row.can %}<span class="tag green">可挑战</span>{% else %}<span class="tag gray">条件不足</span>{% endif %}</div>
+    <div class="muted">入口：{{ row.city.name if row.city else row.d.entry_city }} · 最低 {{ row.min_lvl }} 级</div>
+    <div>难度档：{% for d in row.diffs %}{{ d }}({{ row.level_reqs[loop.index0] }}级){% if not loop.last %} · {% endif %}{% endfor %}</div>
+    {% if row.can %}
+    <form method="post" action="/games/sea/dungeon/{{ row.d.key }}"><button class="btn green" type="submit">挑战副本</button></form>
+    {% elif row.is_open and row.tier < 0 %}<span class="muted">等级不足，需{{ row.min_lvl }}级</span>
+    {% elif row.is_open %}<span class="muted">航行中无法挑战</span>{% endif %}
+  </div>
+  {% endfor %}
+  {% if not info %}<div class="muted">暂无副本</div>{% endif %}
+</div>
+<div class="content"><a class="btn ghost" href="/games/sea">返回航海首页</a></div>
+{{ footer(user) }}
+{% endblock %}

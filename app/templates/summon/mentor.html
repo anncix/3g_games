@@ -1,0 +1,32 @@
+{% extends "base.html" %}
+{% from "macros.html" import topbar, footer %}
+{% block title %}师徒{% endblock %}
+{% block body %}
+{{ topbar("师徒", user) }}
+<div class="crumb"><a href="/games/summon">召唤之王</a> › 师徒</div>
+<div class="card">
+  <div class="hd">师徒系统</div>
+  召唤师 Lv<b>{{ st.level }}</b> · 桃李值 <b>{{ st.mentor_coin }}</b> · 已收徒 <b>{{ st.mentor_count }}</b> 位<br>
+  师傅需 Lv<b>{{ ma.master_min_level }}</b>+ · 徒弟需 Lv≤<b>{{ ma.apprentice_max_level }}</b> · 出师 Lv<b>{{ ma.graduate_level }}</b><br>
+  互灌活力倍率 ×<b>{{ ma.mentor_refill_multiplier }}</b> · 出师奖：桃李+{{ ma.graduate_reward_mentor_value }} 声望+{{ ma.graduate_reward_prestige }}
+</div>
+{% if can_recruit %}
+<div class="card">
+  <div class="hd">收徒</div>
+  <div class="muted">收一名 NPC 徒弟，获得桃李值奖励。每日可多次收徒。</div>
+  <form method="post" action="/games/summon/mentor/recruit">
+    <button class="btn green" type="submit">招收徒弟（桃李值+10）</button>
+  </form>
+</div>
+{% else %}
+<div class="card">
+  <div class="hd">未解锁</div>
+  <span class="tag red">需 Lv{{ ma.master_min_level }} 才能成为师傅收徒</span>
+</div>
+{% endif %}
+<div class="content">
+  <a class="btn ghost" href="/games/summon">返回首页</a>
+  <a class="btn" href="/games/summon/shop">师徒兑换商店</a>
+</div>
+{{ footer(user) }}
+{% endblock %}

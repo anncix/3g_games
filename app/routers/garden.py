@@ -71,6 +71,74 @@ def pot_count_for_level(level: int) -> int:
     return min(12, 4 + tier_index(level))
 
 
+# v0.1.5：工坊槽位数（spec：时间制合成并行槽）
+# Lv1=2, Lv11=3, Lv21=4, Lv31=5, Lv46=6（对齐段位起始等级）
+def craft_slots_for_level(level: int) -> int:
+    if level >= 46:
+        return 6
+    if level >= 31:
+        return 5
+    if level >= 21:
+        return 4
+    if level >= 11:
+        return 3
+    return 2
+
+
+# v0.1.5：合成时间公式（spec：craft_seconds = 30 + target_level * 60）
+def craft_seconds_for(target_level: int) -> int:
+    return 30 + target_level * 60
+
+
+# v0.1.5：装饰物品目录（item_key → {name, env_score, set_key, price}）
+# 数据与 seed.py 注册的 garden_deco_* 物品一一对应
+DECO_CATALOG: dict[str, dict] = {
+    "garden_deco_fountain": {"name": "花园喷泉", "env_score": 15, "set_key": "water",  "price": 200},
+    "garden_deco_pond":     {"name": "池塘",     "env_score": 30, "set_key": "water",  "price": 320},
+    "garden_deco_lamp":     {"name": "路灯",     "env_score": 8,  "set_key": "light",  "price": 80},
+    "garden_deco_arch":     {"name": "花拱门",   "env_score": 20, "set_key": "light",  "price": 180},
+    "garden_deco_bench":    {"name": "长椅",     "env_score": 6,  "set_key": "statue", "price": 60},
+    "garden_deco_statue":   {"name": "雕塑",     "env_score": 25, "set_key": "statue", "price": 240},
+    "garden_deco_fence":    {"name": "栅栏",     "env_score": 5,  "set_key": "",       "price": 40},
+    "garden_deco_tree":     {"name": "景观树",   "env_score": 10, "set_key": "",       "price": 100},
+    "garden_deco_birdcage": {"name": "鸟笼",     "env_score": 12, "set_key": "",       "price": 120},
+    "garden_deco_windmill": {"name": "风车",     "env_score": 18, "set_key": "",       "price": 160},
+}
+
+# v0.1.5：装饰套装（集齐全套成员 +额外环境值，套装间互不排斥）
+DECO_SETS: dict[str, dict] = {
+    "water":  {"name": "水景套装", "members": ["garden_deco_fountain", "garden_deco_pond"],     "bonus": 10},
+    "light":  {"name": "灯饰套装", "members": ["garden_deco_lamp", "garden_deco_arch"],          "bonus": 15},
+    "statue": {"name": "雕塑套装", "members": ["garden_deco_statue", "garden_deco_arch", "garden_deco_bench"], "bonus": 20},
+}
+
+
+def calc_env_score(decorations: list[dict]) -> tuple[int, int, list[dict]]:
+    """计算环境值（含套装加成）
+
+    返回 (total_env_score, base_sum, set_bonuses)
+    - total_env_score: 写回 GardenState.env_score 的缓存值
+    - base_sum: 装饰基础环境值之和（不含套装）
+    - set_bonuses: 已激活套装列表 [{set_key, name, bonus}]
+    """
+    base_sum = sum(d.get("env_score", 0) for d in decorations)
+    placed_keys = {d.get("item_key") for d in decorations}
+    set_bonuses = []
+    bonus_total = 0
+    for set_key, sinfo in DECO_SETS.items():
+        if all(m in placed_keys for m in sinfo["members"]):
+            bonus_total += sinfo["bonus"]
+            set_bonuses.append({"set_key": set_key, "name": sinfo["name"], "bonus": sinfo["bonus"]})
+    return base_sum + bonus_total, base_sum, set_bonuses
+
+
+def env_quality_mul(env_score: int) -> float:
+    """spec：env_quality_mul = 1 + 0.3×(1 - exp(-env_score/50))（边际递减）"""
+    import math
+    k, s = 0.3, 50.0
+    return 1 + k * (1 - math.exp(-env_score / s))
+
+
 def item_level_cap(player_level: int) -> int:
     """玩家等级段 → 可使用物品等级上限
     Lv1-10→≤2, Lv11-20→≤3, Lv21-30→≤4, Lv31-40→≤5,
@@ -198,6 +266,12 @@ async def get_state(db: AsyncSession, user_id: int) -> models.GardenState:
         st.pot_count = target
         await db.commit()
         await db.refresh(st)
+    # v0.1.5：自动按当前等级补齐工坊槽位数（段位解锁）
+    craft_target = craft_slots_for_level(st.level)
+    if craft_target > st.craft_slots:
+        st.craft_slots = craft_target
+        await db.commit()
+        await db.refresh(st)
     return st
 
 
@@ -218,6 +292,10 @@ async def add_exp(db: AsyncSession, st: models.GardenState, amount: int):
                 if not exists:
                     db.add(models.GardenPot(user_id=st.user_id, slot=i))
             st.pot_count = target
+        # v0.1.5：升级后自动补齐工坊槽位数
+        craft_target = craft_slots_for_level(st.level)
+        if craft_target > st.craft_slots:
+            st.craft_slots = craft_target
 
 
 async def get_daily_log(db: AsyncSession, user_id: int) -> models.GardenDailyLog:
@@ -498,6 +576,7 @@ async def harvest(slot: int, request: Request, db: AsyncSession = Depends(get_db
     weights = list(blooms_map.values())
     # 操作完成度高 → 稀有概率提升（简单实现：完成全部操作时，偏向高稀有）
     results = []
+    quality_results = []  # v0.1.5：每朵花对应品质（与 results 同序）
     coins_gain = 0
     exp_gain = 0
     lit_entries = []
@@ -507,8 +586,12 @@ async def harvest(slot: int, request: Request, db: AsyncSession = Depends(get_db
         if not bloom:
             continue
         await goods.add_item(db, user.id, bloom.item_key, MODULE_KEY, 1)
+        # v0.1.5：品质抽取（spec：env_quality_mul 受装饰环境值影响，边际递减）
+        quality = roll_quality(0.0, st.env_score)
+        coin_per = int(bloom.sell_price // 2 * Q_VALUE_MUL[quality])
+        coins_gain += coin_per
         results.append(bloom)
-        coins_gain += bloom.sell_price // 2
+        quality_results.append(quality)
         # 收花经验随花朵物品等级提升（Lv1→5, Lv2→7, Lv3→9...）
         exp_gain += 3 + bloom.item_level * 2
         # 花谱点亮（首次获得该花朵）
@@ -539,16 +622,20 @@ async def harvest(slot: int, request: Request, db: AsyncSession = Depends(get_db
         await events.emit(db, user.id, MODULE_KEY, "icon_light", {"icon_key": "icon_gardener"})
     # v0.1.2：收获不再推进"花谱大师"成就（该成就只在 album_light 点亮花谱时触发）
     await log.record(db, user.id, MODULE_KEY, "harvest", f"slot{slot}:{seed.key}:{final_yield}")
-    # 结果页：清晰展示获得物
+    # 结果页：清晰展示获得物（含品质标签）
     bloom_summary = {}
-    for b in results:
-        bloom_summary[b.name] = bloom_summary.get(b.name, 0) + 1
+    for b, q in zip(results, quality_results):
+        key = f"{b.name}({q})"
+        bloom_summary[key] = bloom_summary.get(key, 0) + 1
     summary_text = "、".join(f"{n}×{c}" for n, c in bloom_summary.items())
     msg = f"收获{seed.name}：{summary_text} | 金币+{coins_gain} | 经验+{exp_gain}"
+    if st.env_score > 0:
+        msg += f" | 环境值{st.env_score}加成品质"
     if lit_entries:
         msg += f" | 点亮花谱：{'、'.join(e.name for e in lit_entries)}"
     return await render(request, "garden/harvest_result.html", db, user=user, ok=True,
-                        msg=msg, results=results, bloom_summary=bloom_summary,
+                        msg=msg, results=results, quality_results=quality_results,
+                        bloom_summary=bloom_summary,
                         coins_gain=coins_gain, exp_gain=exp_gain,
                         lit_entries=lit_entries, seed=seed, st=st,
                         back_href="/games/garden/pots", back_text="返回花圃")
@@ -653,15 +740,47 @@ async def album_light(entry_key: str, request: Request, db: AsyncSession = Depen
 
 # ============================================================
 # 合成工坊 / 兑换中心
+# v0.1.5：工坊合成队列（spec：时间制合成，N 槽并行 + 完成时间戳）
 # ============================================================
+def _craft_queue(st: models.GardenState) -> list[dict]:
+    """解析 craft_queue JSON"""
+    return json.loads(st.craft_queue) if st.craft_queue else []
+
+
+def _craft_queue_view(st: models.GardenState, now: datetime) -> list[dict]:
+    """工坊队列视图：补充进度百分比 / 剩余秒数 / 是否完成"""
+    q = _craft_queue(st)
+    view = []
+    for item in q:
+        started_at = datetime.fromisoformat(item["started_at"])
+        finish_at = datetime.fromisoformat(item["finish_at"])
+        total = max(1, (finish_at - started_at).total_seconds())
+        elapsed = (now - started_at).total_seconds()
+        progress = min(100, max(0, int(elapsed / total * 100)))
+        remain = max(0, int((finish_at - now).total_seconds()))
+        view.append({**item, "progress": progress, "remain": remain,
+                     "done": now >= finish_at})
+    return view
+
+
 @router.get("/craft")
 async def craft_page(request: Request, db: AsyncSession = Depends(get_db)):
-    """合成工坊：配方列表 + 成功率 + 保底进度"""
+    """合成工坊：N 槽工坊 + 配方列表 + 进行中合成 + 可领取合成"""
     user = await get_current_user(request, db)
     if not user:
         return RedirectResponse("/login", status_code=303)
     st = await get_state(db, user.id)
     cap = item_level_cap(st.level)
+    now = datetime.utcnow()
+    # 队列视图（按槽位排序）
+    queue_view = sorted(_craft_queue_view(st, now), key=lambda x: x.get("slot", 0))
+    occupied_slots = {item["slot"] for item in queue_view}
+    # 槽位状态：占用/空闲
+    slots = []
+    for i in range(st.craft_slots):
+        item = next((x for x in queue_view if x["slot"] == i), None)
+        slots.append({"slot": i, "busy": item is not None, "item": item})
+    # 配方列表（与原 craft_page 一致）
     recipes = (await db.execute(select(models.GardenRecipe))).scalars().all()
     info = []
     for r in recipes:
@@ -682,19 +801,23 @@ async def craft_page(request: Request, db: AsyncSession = Depends(get_db)):
         credits = credit.credits if credit else 0
         # 等级/物品等级上限校验
         level_locked = seed and seed.item_level > cap
-        info.append({"recipe": r, "seed": seed, "mats": mat_info, "can": can and not level_locked,
-                     "credits": credits, "level_locked": level_locked})
-    return await render(request, "garden/craft.html", db, user=user, st=st, info=info, item_cap=cap,
-                        title=magician_title(st.level)[0])
+        # v0.1.5：合成时间（用于展示）
+        craft_secs = craft_seconds_for(r.target_level)
+        info.append({"recipe": r, "seed": seed, "mats": mat_info,
+                     "can": can and not level_locked, "credits": credits,
+                     "level_locked": level_locked, "craft_seconds": craft_secs})
+    return await render(request, "garden/craft.html", db, user=user, st=st, info=info,
+                        item_cap=cap, title=magician_title(st.level)[0],
+                        slots=slots, queue_view=queue_view,
+                        free_slots=st.craft_slots - len(occupied_slots))
 
 
-@router.post("/craft/{recipe_id}")
-async def craft(recipe_id: int, request: Request, db: AsyncSession = Depends(get_db)):
-    """合成花种：成功率 + 保底(合成值满必成) + 高阶操作锁校验"""
-    user = await get_current_user(request, db)
-    if not user:
-        return RedirectResponse("/login", status_code=303)
-    st = await get_state(db, user.id)
+async def _start_craft(db: AsyncSession, request: Request, user, st: models.GardenState,
+                       recipe_id: int) -> object:
+    """v0.1.5：开始合成（入队，扣材料，置完成时间戳；不结算结果）
+
+    结果在 collect 时按 success_rate + 保底(失败累计)结算。
+    """
     r = await db.get(models.GardenRecipe, recipe_id)
     if not r:
         return await render(request, "result.html", db, user=user, ok=False, msg="配方不存在",
@@ -708,11 +831,18 @@ async def craft(recipe_id: int, request: Request, db: AsyncSession = Depends(get
         return await render(request, "result.html", db, user=user, ok=False,
                             msg=f"目标花种Lv{seed.item_level}超过你当前可使用上限Lv{item_level_cap(st.level)}",
                             back_href="/games/garden/craft", back_text="返回合成")
+    # v0.1.5：检查空槽
+    q = _craft_queue(st)
+    occupied = {it["slot"] for it in q}
+    free_slot = next((i for i in range(st.craft_slots) if i not in occupied), None)
+    if free_slot is None:
+        return await render(request, "result.html", db, user=user, ok=False,
+                            msg=f"工坊槽位已满（{st.craft_slots}/{st.craft_slots}），请先领取完成的合成",
+                            back_href="/games/garden/craft", back_text="返回合成")
     # 高阶合成强制操作锁校验（风控）
     if r.require_lock_check:
-        # 操作锁：高价值操作需二次确认（这里简化为检查花盆锁状态作为"操作锁"代理）
-        # 真正的操作锁可在 settings 页统一管理，此处记录风控日志
         await log.record(db, user.id, MODULE_KEY, "craft_lock_check", f"recipe{recipe_id}:high_value")
+    # 校验 + 扣除材料（消耗在 start 时发生）
     mats = json.loads(r.materials)
     for k, n in mats.items():
         if await goods.count_item(db, user.id, k, MODULE_KEY) < n:
@@ -720,9 +850,83 @@ async def craft(recipe_id: int, request: Request, db: AsyncSession = Depends(get
             return await render(request, "result.html", db, user=user, ok=False,
                                 msg=f"材料不足：{item.name if item else k}",
                                 back_href="/games/garden/craft", back_text="返回合成")
-    # 扣除材料
     for k, n in mats.items():
         await goods.remove_item(db, user.id, k, MODULE_KEY, n)
+    # 入队
+    now = datetime.utcnow()
+    finish = now + timedelta(seconds=craft_seconds_for(r.target_level))
+    q.append({
+        "recipe_id": r.id,
+        "recipe_name": r.name,
+        "target_seed_key": r.result_seed_key,
+        "target_seed_name": seed.name,
+        "started_at": now.isoformat(),
+        "finish_at": finish.isoformat(),
+        "slot": free_slot,
+    })
+    st.craft_queue = json.dumps(q, ensure_ascii=False)
+    await log.record(db, user.id, MODULE_KEY, "craft_start",
+                     f"{recipe_id}:slot{free_slot}:{r.target_level}")
+    await db.commit()
+    return await render(request, "result.html", db, user=user, ok=True,
+                        msg=f"开始合成【{r.name}】！占用槽位 #{free_slot+1}，预计 {craft_seconds_for(r.target_level)} 秒后完成（Lv{r.target_level}）",
+                        back_href="/games/garden/craft", back_text="返回工坊")
+
+
+@router.post("/craft/{recipe_id}")
+async def craft(recipe_id: int, request: Request, db: AsyncSession = Depends(get_db)):
+    """合成花种（v0.1.5：开始合成入队，不再瞬时产出；结果在 collect 时结算）
+
+    兼容旧入口：等价于 /craft/start/{recipe_id}
+    """
+    user = await get_current_user(request, db)
+    if not user:
+        return RedirectResponse("/login", status_code=303)
+    st = await get_state(db, user.id)
+    return await _start_craft(db, request, user, st, recipe_id)
+
+
+@router.post("/craft/start/{recipe_id}")
+async def craft_start(recipe_id: int, request: Request, db: AsyncSession = Depends(get_db)):
+    """v0.1.5：开始合成（canonical 入口，与 /craft/{recipe_id} 等价）"""
+    user = await get_current_user(request, db)
+    if not user:
+        return RedirectResponse("/login", status_code=303)
+    st = await get_state(db, user.id)
+    return await _start_craft(db, request, user, st, recipe_id)
+
+
+@router.post("/craft/collect/{slot}")
+async def craft_collect(slot: int, request: Request, db: AsyncSession = Depends(get_db)):
+    """v0.1.5：领取完成合成（时间到 → 结算 success_rate + 保底）"""
+    user = await get_current_user(request, db)
+    if not user:
+        return RedirectResponse("/login", status_code=303)
+    st = await get_state(db, user.id)
+    q = _craft_queue(st)
+    item = next((it for it in q if it.get("slot") == slot), None)
+    if not item:
+        return await render(request, "result.html", db, user=user, ok=False,
+                            msg=f"槽位 #{slot+1} 没有进行中的合成",
+                            back_href="/games/garden/craft", back_text="返回工坊")
+    finish_at = datetime.fromisoformat(item["finish_at"])
+    now = datetime.utcnow()
+    if now < finish_at:
+        remain = int((finish_at - now).total_seconds())
+        return await render(request, "result.html", db, user=user, ok=False,
+                            msg=f"合成未完成，还需 {remain} 秒",
+                            back_href="/games/garden/craft", back_text="返回工坊")
+    recipe_id = item["recipe_id"]
+    r = await db.get(models.GardenRecipe, recipe_id)
+    if not r:
+        # 配方被删：移除队列项，不结算
+        q = [it for it in q if it.get("slot") != slot]
+        st.craft_queue = json.dumps(q, ensure_ascii=False)
+        await db.commit()
+        return await render(request, "result.html", db, user=user, ok=False,
+                            msg="配方已失效，合成作废",
+                            back_href="/games/garden/craft", back_text="返回工坊")
+    seed = await db.get(models.GardenSeed, r.result_seed_key)
     # 保底进度
     credit = (await db.execute(select(models.GardenCraftCredit).where(
         models.GardenCraftCredit.user_id == user.id,
@@ -731,16 +935,17 @@ async def craft(recipe_id: int, request: Request, db: AsyncSession = Depends(get
         credit = models.GardenCraftCredit(user_id=user.id, recipe_id=r.id, credits=0)
         db.add(credit)
         await db.flush()
-    # 保底触发：累计失败值已达阈值 → 必成
+    # 保底触发：累计失败值已达阈值 → 必成（领取时才判定，避免提前泄露）
     guaranteed = credit.credits + 1 >= r.fail_credit_threshold
     success = guaranteed or (random.randint(1, 100) <= r.success_rate)
+    # 无论成败，先移出队列
+    q = [it for it in q if it.get("slot") != slot]
+    st.craft_queue = json.dumps(q, ensure_ascii=False)
     if success:
         await goods.add_item(db, user.id, seed.seed_item_key, MODULE_KEY, r.result_qty)
         credit.credits = 0  # 成功重置保底
-        # 合成经验（与目标等级相关）
         craft_exp = 5 + r.target_level * 3
         await add_exp(db, st, craft_exp)
-        # v0.1.2：合成不再推进"花谱大师"成就（该成就只在 album_light 点亮花谱时触发）
         await log.record(db, user.id, MODULE_KEY, "craft_success",
                          f"{recipe_id}:{r.result_seed_key}:exp{craft_exp}")
         await db.commit()
@@ -749,7 +954,7 @@ async def craft(recipe_id: int, request: Request, db: AsyncSession = Depends(get
             msg += "（保底触发）"
         msg += f" | 经验+{craft_exp}"
         return await render(request, "result.html", db, user=user, ok=True, msg=msg,
-                            back_href="/games/garden/craft", back_text="返回合成")
+                            back_href="/games/garden/craft", back_text="返回工坊")
     else:
         credit.credits += 1  # 失败累计保底
         await log.record(db, user.id, MODULE_KEY, "craft_fail",
@@ -757,8 +962,8 @@ async def craft(recipe_id: int, request: Request, db: AsyncSession = Depends(get
         await db.commit()
         remain = r.fail_credit_threshold - credit.credits
         return await render(request, "result.html", db, user=user, ok=False,
-                            msg=f"合成失败…材料已消耗。保底进度 {credit.credits}/{r.fail_credit_threshold}（再失败{remain}次必成）",
-                            back_href="/games/garden/craft", back_text="返回合成")
+                            msg=f"合成失败…保底进度 {credit.credits}/{r.fail_credit_threshold}（再失败{remain}次必成）",
+                            back_href="/games/garden/craft", back_text="返回工坊")
 
 
 @router.get("/exchange")
@@ -1091,6 +1296,151 @@ async def rules(request: Request, db: AsyncSession = Depends(get_db)):
     if not user:
         return RedirectResponse("/login", status_code=303)
     return await render(request, "garden/rules.html", db, user=user)
+
+
+# ============================================================
+# v0.1.5：环境值 / 装饰系统（spec env_quality_mul 边际递减 + 套装加成）
+# ============================================================
+def _decorations(st: models.GardenState) -> list[dict]:
+    return json.loads(st.decorations) if st.decorations else []
+
+
+def _save_env_score(db: AsyncSession, st: models.GardenState):
+    """重新计算并缓存 env_score（放置/移除装饰后调用）"""
+    decos = _decorations(st)
+    total, base_sum, set_bonuses = calc_env_score(decos)
+    st.env_score = total
+    return total, base_sum, set_bonuses
+
+
+@router.get("/deco")
+async def deco_page(request: Request, db: AsyncSession = Depends(get_db)):
+    """装饰页：已放置装饰 / 总环境值 / env_quality_mul / 商店装饰 / 套装状态"""
+    user = await get_current_user(request, db)
+    if not user:
+        return RedirectResponse("/login", status_code=303)
+    st = await get_state(db, user.id)
+    # 同步环境值缓存
+    total, base_sum, set_bonuses = _save_env_score(db, st)
+    await db.commit()
+    await db.refresh(st)
+    decos = _decorations(st)
+    placed_keys = {d["item_key"] for d in decos}
+    # 套装激活状态（含已集齐/未集齐）
+    set_status = []
+    for set_key, sinfo in DECO_SETS.items():
+        placed_members = [m for m in sinfo["members"] if m in placed_keys]
+        active = len(placed_members) == len(sinfo["members"])
+        member_names = [DECO_CATALOG[m]["name"] if m in DECO_CATALOG else m for m in sinfo["members"]]
+        set_status.append({"set_key": set_key, "name": sinfo["name"],
+                           "member_names": member_names, "bonus": sinfo["bonus"],
+                           "placed_count": len(placed_members),
+                           "total_count": len(sinfo["members"]), "active": active})
+    # 商店可买装饰（全部 catalog 项）+ 持有数量
+    shop = []
+    for key, info in DECO_CATALOG.items():
+        cnt = await goods.count_item(db, user.id, key, MODULE_KEY)
+        shop.append({"key": key, "name": info["name"], "env_score": info["env_score"],
+                     "set_key": info["set_key"], "price": info["price"], "have": cnt,
+                     "placed": key in placed_keys})
+    mul = env_quality_mul(total)
+    set_bonus_total = sum(s["bonus"] for s in set_bonuses)
+    title, tier_range = magician_title(st.level)
+    return await render(request, "garden/deco.html", db, user=user, st=st,
+                        decos=decos, env_total=total, env_base=base_sum,
+                        set_bonus_total=set_bonus_total,
+                        set_bonuses=set_bonuses, set_status=set_status,
+                        shop=shop, env_mul=mul, title=title, tier_range=tier_range)
+
+
+@router.post("/deco/buy/{deco_key}")
+async def deco_buy(deco_key: str, request: Request, db: AsyncSession = Depends(get_db)):
+    """购买装饰（扣花园金币 + 入背包）"""
+    user = await get_current_user(request, db)
+    if not user:
+        return RedirectResponse("/login", status_code=303)
+    info = DECO_CATALOG.get(deco_key)
+    if not info:
+        return await render(request, "result.html", db, user=user, ok=False, msg="装饰不存在",
+                            back_href="/games/garden/deco", back_text="返回装饰")
+    st = await get_state(db, user.id)
+    if st.coins < info["price"]:
+        return await render(request, "result.html", db, user=user, ok=False,
+                            msg=f"花园金币不足（需{info['price']}）",
+                            back_href="/games/garden/deco", back_text="返回装饰")
+    st.coins -= info["price"]
+    await goods.add_item(db, user.id, deco_key, MODULE_KEY, 1)
+    await db.commit()
+    await log.record(db, user.id, MODULE_KEY, "deco_buy", f"{deco_key}:{info['price']}")
+    return await render(request, "result.html", db, user=user, ok=True,
+                        msg=f"购买{info['name']}×1（花费{info['price']}花园金币）",
+                        back_href="/games/garden/deco", back_text="返回装饰")
+
+
+@router.post("/deco/place/{deco_key}")
+async def deco_place(deco_key: str, request: Request, db: AsyncSession = Depends(get_db)):
+    """放置装饰：从背包移到花园，重算 env_score + 套装"""
+    user = await get_current_user(request, db)
+    if not user:
+        return RedirectResponse("/login", status_code=303)
+    info = DECO_CATALOG.get(deco_key)
+    if not info:
+        return await render(request, "result.html", db, user=user, ok=False, msg="装饰不存在",
+                            back_href="/games/garden/deco", back_text="返回装饰")
+    st = await get_state(db, user.id)
+    decos = _decorations(st)
+    # 已放置同款不重复放置
+    if any(d["item_key"] == deco_key for d in decos):
+        return await render(request, "result.html", db, user=user, ok=False,
+                            msg=f"{info['name']}已放置在花园中",
+                            back_href="/games/garden/deco", back_text="返回装饰")
+    # 从背包扣除
+    if not await goods.remove_item(db, user.id, deco_key, MODULE_KEY, 1):
+        return await render(request, "result.html", db, user=user, ok=False,
+                            msg=f"背包中没有{info['name']}（先去商店购买）",
+                            back_href="/games/garden/deco", back_text="返回装饰")
+    decos.append({"item_key": deco_key, "name": info["name"],
+                  "env_score": info["env_score"], "set_key": info["set_key"]})
+    st.decorations = json.dumps(decos, ensure_ascii=False)
+    total, base_sum, set_bonuses = _save_env_score(db, st)
+    await db.commit()
+    await log.record(db, user.id, MODULE_KEY, "deco_place",
+                     f"{deco_key}:env{total}")
+    msg = f"放置{info['name']}，环境值+{info['env_score']}（当前 {total}）"
+    if set_bonuses:
+        msg += f" | 激活套装：{'、'.join(s['name'] for s in set_bonuses)}"
+    return await render(request, "result.html", db, user=user, ok=True, msg=msg,
+                        back_href="/games/garden/deco", back_text="返回装饰")
+
+
+@router.post("/deco/remove/{deco_key}")
+async def deco_remove(deco_key: str, request: Request, db: AsyncSession = Depends(get_db)):
+    """撤下装饰：从花园移回背包，重算 env_score + 套装"""
+    user = await get_current_user(request, db)
+    if not user:
+        return RedirectResponse("/login", status_code=303)
+    info = DECO_CATALOG.get(deco_key)
+    if not info:
+        return await render(request, "result.html", db, user=user, ok=False, msg="装饰不存在",
+                            back_href="/games/garden/deco", back_text="返回装饰")
+    st = await get_state(db, user.id)
+    decos = _decorations(st)
+    target = next((d for d in decos if d["item_key"] == deco_key), None)
+    if not target:
+        return await render(request, "result.html", db, user=user, ok=False,
+                            msg=f"{info['name']}未放置在花园中",
+                            back_href="/games/garden/deco", back_text="返回装饰")
+    decos = [d for d in decos if d["item_key"] != deco_key]
+    st.decorations = json.dumps(decos, ensure_ascii=False)
+    total, base_sum, set_bonuses = _save_env_score(db, st)
+    # 退回背包
+    await goods.add_item(db, user.id, deco_key, MODULE_KEY, 1)
+    await db.commit()
+    await log.record(db, user.id, MODULE_KEY, "deco_remove",
+                     f"{deco_key}:env{total}")
+    msg = f"撤下{info['name']}，环境值降至 {total}"
+    return await render(request, "result.html", db, user=user, ok=True, msg=msg,
+                        back_href="/games/garden/deco", back_text="返回装饰")
 
 
 # ============================================================

@@ -1,0 +1,79 @@
+{% extends "base.html" %}
+{% from "macros.html" import topbar, footer %}
+{% block title %}花园装饰{% endblock %}
+{% block body %}
+{{ topbar("花园装饰", user) }}
+<div class="crumb"><a href="/games/garden">花园</a> › 装饰</div>
+<div class="card">
+  <span class="tag blue">{{ title }}</span> Lv{{ st.level }}（{{ tier_range[0] }}-{{ tier_range[1] }}段） · 花园金币 <b>{{ st.coins }}</b>
+</div>
+<div class="card">
+  <div class="hd">环境值</div>
+  装饰基础：<b>{{ env_base }}</b><br>
+  套装加成：<b>+{{ set_bonus_total }}</b>
+  {% if set_bonuses %}（{% for s in set_bonuses %}{{ s.name }}+{{ s.bonus }} {% endfor %}）{% endif %}<br>
+  总环境值：<b>{{ env_total }}</b><br>
+  <span class="muted">spec 边际递减公式：env_quality_mul = 1 + 0.3×(1 - exp(-env_score/50))</span><br>
+  当前品质倍率：<b>{{ '%.3f'|format(env_mul) }}</b>×（影响收获品质抽取）
+  <div class="bar"><i style="width:{{ ((env_mul-1)/0.3*100)|int }}%"></i></div>
+</div>
+
+<div class="section-title">已放置装饰（{{ decos|length }}）</div>
+<div class="content">
+  {% if not decos %}
+  <div class="muted">花园空荡荡的，去下方装饰商店买些装饰摆放吧</div>
+  {% endif %}
+  {% for d in decos %}
+  <div class="card">
+    <div class="hd">{{ d.name }}</div>
+    环境值 <b>+{{ d.env_score }}</b>
+    {% if d.set_key %}<span class="tag">{% if d.set_key == 'water' %}水景套装{% elif d.set_key == 'light' %}灯饰套装{% elif d.set_key == 'statue' %}雕塑套装{% endif %}</span>{% endif %}
+    <form method="post" action="/games/garden/deco/remove/{{ d.item_key }}">
+      <button class="btn ghost" type="submit">撤下（回背包）</button>
+    </form>
+  </div>
+  {% endfor %}
+</div>
+
+<div class="section-title">装饰套装</div>
+<div class="content">
+  {% for s in set_status %}
+  <div class="card">
+    {% if s.active %}<span class="tag green">已激活</span>{% else %}<span class="tag">未集齐</span>{% endif %}
+    <b>{{ s.name }}</b>（{{ s.placed_count }}/{{ s.total_count }}件） · 集齐 <b>+{{ s.bonus }}</b> 环境值<br>
+    <span class="muted">
+      成员：{{ s.member_names|join('、') }}
+    </span>
+  </div>
+  {% endfor %}
+</div>
+
+<div class="section-title">装饰商店</div>
+<div class="muted">购买后入背包，需在装饰页"放置"才能贡献环境值</div>
+{% for s in shop %}
+<div class="card">
+  <div class="hd">{{ s.name }}</div>
+  环境值 <b>+{{ s.env_score }}</b>
+  {% if s.set_key %}<span class="tag">{% if s.set_key == 'water' %}水景套装{% elif s.set_key == 'light' %}灯饰套装{% elif s.set_key == 'statue' %}雕塑套装{% endif %}</span>{% endif %}
+  {% if s.placed %}<span class="tag green">已放置</span>{% endif %}
+  <br>价格 <b>{{ s.price }}</b> 花园金币 · 背包持有 <b>{{ s.have }}</b><br>
+  {% if s.placed %}
+    <span class="muted">已放置在花园</span>
+  {% else %}
+    <form method="post" action="/games/garden/deco/buy/{{ s.key }}" style="display:inline">
+      <button class="btn green" type="submit">购买</button>
+    </form>
+    {% if s.have > 0 %}
+    <form method="post" action="/games/garden/deco/place/{{ s.key }}" style="display:inline">
+      <button class="btn" type="submit">放置</button>
+    </form>
+    {% else %}
+    <span class="muted">（背包无此装饰）</span>
+    {% endif %}
+  {% endif %}
+</div>
+{% endfor %}
+
+<div class="content"><a class="btn ghost" href="/games/garden">返回花园</a></div>
+{{ footer(user) }}
+{% endblock %}

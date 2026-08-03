@@ -1,6 +1,6 @@
 # QQ家园 — 怀旧平台化复刻
 
-> 版本：**v0.1.9** （2026-08-03 风云三国：三职业/三阵营/13城市/30技能/105装备/13副本/5军团等级/15称号/21成就/fengyun_data.py静态配置）
+> 版本：**v0.2.0** （2026-08-03 风云三国路由层+全网检索补全：fengyun.py路由659行/11模板/官方7系列48件装备/11名器/14BOSS/sea+summon+garden路由扩展）
 >
 > 基于 **FastAPI + SQLite + Jinja2(简版 WAP 风)** 实现的怀旧 QQ 家园平台复刻。
 > 严格遵循《怀旧QQ家园平台设计规范》：平台统一、模块自治、旧逻辑优先、一页只做一件事。
@@ -10,6 +10,92 @@
 ---
 
 ## 更新日志
+
+### v0.2.0 （2026-08-03）— 风云三国路由层上线 + 全网检索补全装备/名器/BOSS 数据
+
+本次将之前未带版本号的 PR 提交（路由层 + 模板层）合并定版为 v0.2.0，并通过全网检索补全 spec 中标注"资料不详"的装备系列/顶级名器/世界 BOSS 数据。风云三国模块从 v0.1.9 的"纯数据层"升级为"可玩路由层"，同时纵横四海/召唤之王/魔法花园三个模块的路由与模板同步扩展。
+
+**一、风云三国路由层（合并未带版本号 PR，fengyun.py 659 行 + 11 模板）**
+- 新增 `app/routers/fengyun.py`：风云三国完整路由层（659 行）
+  - 角色创建（3 职业 / 3 阵营选择）+ 主页（状态栏/导航/场景）
+  - 技能学习/升级（消耗银两+经验，按解锁等级校验）
+  - 装备穿戴/卸下（7 部位，职业限定校验，自动重算属性）
+  - 商店购买（铁匠铺/药店/杂货店，按城市 NPC 划分）
+  - 副本挑战（按阵营×等级段，进入校验，奖励经验+银两+装备掉落）
+  - 军团创建/加入/贡献（15 级解锁，虎符道具消耗）
+  - 称号切换（前缀+后缀组合，配对激发隐藏属性）
+  - 成就查看（3 难度 × 9 类型，六维属性加成）
+  - 演武挂机（2-6 小时，周一 10 倍经验，偷师日限）
+  - 规则页（职业/阵营/装备/副本/军团/演武/荣誉/称号/成就全系统说明）
+- 新增 11 个 fengyun 模板：home/create/skills/equip/shop/dungeons/legion/titles/achievements/training/rules
+- 新增 `_smoke_fengyun.py` 冒烟测试（12 GET 路由 + 6 POST 流程全通过）
+- `app/main.py`：注册 fengyun 路由（import + routers 列表）
+- `app/seed.py`：新增 `icon_fengyun` 图标成就（三国名将·风云三国达到10级）
+
+**二、全网检索补全装备数据（v0.2.0 核心，来源 doc88.com 道具编码表）**
+spec 标注"由于游戏停运超10年，70级以上装备/饰品/套装效果资料不详"，本次全网检索补全：
+
+- **官方 7 大装备系列**（`EQUIP_SERIES`，48 件，每系列 7 件套 = 4 职业武器 + 衣 + 盾 + 靴）
+  - 百战系列（白·1级，普通）：百战长枪/短刀/羽扇/木弓/布衫/盾/靴
+  - 烈风系列（蓝·1级，卓越低档）：烈风戟/剑/扇/长弓/披衣/盾/靴
+  - 凰霞系列（绿·16级，精良）：凰霞长戟/刀/折扇/弓/护甲/盾/靴
+  - 龙翔系列（蓝·30级，卓越）：龙翔枪/刀/羽扇/金弓/披风/盾/靴
+  - 霆震系列（紫·50级，史诗）：霆震枪/剑/骨扇/弓/披风/金盾/靴
+  - 霆震·精系列（紫+·60级，史诗强化版，属性 +45%）：霆震枪·精/剑·精/骨扇·精/弓·精/披风·精/金盾·精/靴·精
+  - 幻灵系列（橙·70级，神器）：幻灵枪/刀/羽扇/弓/披风/盾
+  - 属性数值全部对齐 doc88.com 道具编码表精确数值（如霆震枪 atk=690，幻灵枪 atk=1340）
+
+- **顶级名器 11 件**（`NAMED_WEAPONS`，spec 明示十大名剑 + 三国名器）
+  - 十大名剑：鱼肠剑（刺客神器·50级）/七星龙渊剑（术士史诗·60级）/巨阙剑/承影剑/七圣刀（顶级·60级·价值约500元）
+  - 三国名器：倚天剑（太和山）/丈八蛇矛（桃园）/方天画戟（下邳）/青龙偃月刀（泰山）/龙胆枪（80级·张让掉落）/华蜓（100级·周瑜掉落）
+
+- **顶级 BOSS/神兽 14 只**（`WORLD_BOSSES`，spec 明示龙之九子+烛龙+四大神兽）
+  - 龙之九子：赑屃/鸱吻/蒲牢/狴犴/饕餮/蚣蝮/睚眦/狻猊/椒图（70-78级，掉落神器）
+  - 烛龙（90级，钟山之神，神兽级 BOSS）
+  - 四大神兽：青龙/白虎/朱雀/玄武（85级，掉落神器）
+
+**三、纵横四海路由扩展（合并未带版本号 PR）**
+- `app/routers/sea.py` 扩展（+358 行）：新增 9 个子页面路由
+- 新增 9 个 sea 模板：cards/dungeons/equipsets/gems/holymarks/mainquests/pets/ships/trade
+- 覆盖 spec 纵横四海全系统：卡片/副本/装备套装/宝石/圣痕/主线任务/宠物/船只/贸易
+
+**四、召唤之王路由扩展（合并未带版本号 PR）**
+- `app/routers/summon.py` 扩展（+726 行）：新增 8 个子页面路由
+- 新增 8 个 summon 模板：alliance/arena/battlefield/bone/mentor/soul/spirit/tower
+- `app/routers/summon_data.py`：IMPLEMENTED_METRICS 新增 8 个日常指标
+- `app/models.py` SummonState 新增 6 字段：bone_levels/souls/spirits/alliance_skills/tower_floors/mentor_count
+- 覆盖 spec 召唤之王全系统：联盟/竞技场/战场/炼骨/师徒/战灵/灵体/通天塔
+
+**五、魔法花园路由扩展（合并未带版本号 PR）**
+- `app/routers/garden.py` 扩展（+406 行）：新增装饰系统/合成工坊队列
+- 新增 `app/templates/garden/deco.html`：装饰放置页（环境值/套装系统）
+- `app/models.py` GardenState 新增 4 字段：decorations/env_score/craft_queue/craft_slots
+- `app/seed.py`：新增 10 个花园装饰物品（喷泉/池塘/路灯/花拱门/长椅/雕塑/栅栏/景观树/鸟笼/风车）
+- 3 套装效果：水景套装(喷泉+池塘,+10) / 灯饰套装(路灯+花拱门,+15) / 雕塑套装(雕塑+花拱门+长椅,+20)
+
+**闭环验证**
+- ✅ 路由闭环：`python -c "from app.main import app"` IMPORT OK；fengyun 路由已注册
+- ✅ 种子闭环：`[fengyun-v020] 城市+13 技能+30 装备+105 官方系列+48 名器+11 BOSS+14 副本+13 称号+15 成就+21 物品字典+189`
+- ✅ 幂等性：重跑全 0（城市+0/技能+0/装备+0/官方系列+0/名器+0/BOSS+0/副本+0/称号+0/成就+0/物品字典+0）
+- ✅ 冒烟测试：`_smoke_fengyun.py` ALL SMOKE TESTS PASSED（12 GET + 6 POST 全通过）
+- ✅ 装备数值闭环：官方系列属性对齐 doc88.com 道具编码表（如霆震枪 atk=690 / 幻灵枪 atk=1340 / 龙翔披风 def=660）
+- ✅ BOSS 闭环：14 只世界 BOSS 全部落 Item 字典（fy_boss_token_*），可被战斗系统引用
+- ✅ 架构闭环：fengyun 路由层与数据层分离（fengyun.py 路由 / fengyun_data.py 静态配置 / seed_fengyun.py 生成器）
+
+**文件变更**
+- 新增 `app/routers/fengyun.py`（路由层，659 行）
+- 新增 11 个 `app/templates/fengyun/*.html` 模板
+- 新增 `_smoke_fengyun.py`（冒烟测试）
+- 新增 9 个 `app/templates/sea/*.html` + 8 个 `app/templates/summon/*.html` + `app/templates/garden/deco.html`
+- `app/routers/fengyun_data.py`：新增 EQUIP_SERIES(48件) / NAMED_WEAPONS(11件) / WORLD_BOSSES(14只)
+- `app/routers/{garden,sea,summon,summon_data}.py`：路由扩展（合并未带版本号 PR）
+- `app/models.py`：GardenState +4字段 / SummonState +6字段
+- `app/seed_fengyun.py`：新增官方系列/名器/BOSS 种子逻辑（v0.2.0 全网检索补全）
+- `app/seed.py`：新增 10 花园装饰物品 + icon_fengyun 图标
+- `app/main.py`：注册 fengyun 路由
+- `app/config.py`：版本号 0.1.9 → 0.2.0
+
+---
 
 ### v0.1.9 （2026-08-03）— 风云三国模块上线（spec 三国 MMORPG 全系统资料库）
 

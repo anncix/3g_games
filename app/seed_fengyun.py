@@ -1,9 +1,14 @@
-"""风云三国生成器（v0.1.9 · spec 三国 MMORPG 全系统资料库）
+"""风云三国生成器（v0.2.0 · spec 三国 MMORPG 全系统资料库 + 全网检索补全）
 
-按 spec《QQ风云三国全系统资料》落地 v0.1.9 新增模块：
+按 spec《QQ风云三国全系统资料》落地 v0.2.0 新增模块：
 - 13 城市（蜀4 / 魏4 / 吴3 / 中立2，spec 三区域城市 + 中立洛阳）
 - 30 技能（3 职业 × 10 技能，4 类型 active/passive/auxiliary/status）
 - 装备库（5 品质 × 7 部位 × 3 等级档位 = 105 件，覆盖 spec "上千件装备"样例规模）
+- v0.2.0 官方装备系列（7 系列 × 7 件套 = 48 件，全网检索补全 doc88.com 道具编码表）
+  百战(白·1级)/烈风(蓝·1级)/凰霞(绿·16级)/龙翔(蓝·30级)/霆震(紫·50级)/霆震·精(紫+·60级)/幻灵(橙·70级)
+- v0.2.0 顶级名器（11 件，spec 明示十大名剑 + 三国名器）
+  鱼肠剑/七星龙渊剑/巨阙剑/承影剑/七圣刀 + 倚天剑/丈八蛇矛/方天画戟/青龙偃月刀/龙胆枪/华蜓
+- v0.2.0 顶级 BOSS/神兽（14 只，spec 明示龙之九子 + 烛龙 + 四大神兽）
 - 13 副本（蜀4 + 魏4 + 吴3 + 终极2，覆盖 spec 等级段 16-60）
 - 5 级军团等级（spec 军团系统）
 - 15 称号（6 前缀 + 6 后缀 + 3 配对隐藏，spec 称号系统）
@@ -14,6 +19,8 @@
 - 静态常量从 routers/fengyun_data.py 引入，本生成器只负责入库（幂等）
 - 装备按品质×部位×等级档批量生成，落 Item 字典 + FengyunEquip 表
 - 装备 key 规范：fy_eq_{quality_pinyin}_{slot_pinyin}_{lvl}
+- v0.2.0 官方系列装备 key 规范：fy_s_{series}_{slot}，主属性按 spec 精确数值
+- v0.2.0 顶级名器 key 规范：fy_nw_{name}，BOSS key 规范：boss_{name}
 - 全部物品同步落 Item 字典（module_key=fengyun），可被背包/商店引用
 
 幂等：以 key 存在性判断，已存在则跳过；可断点续跑。
@@ -39,6 +46,7 @@ async def seed_fengyun(db: AsyncSession, log=print) -> dict:
     stats = {
         "cities": 0, "skills": 0, "equips": 0, "dungeons": 0,
         "titles": 0, "achievements": 0, "items": 0,
+        "series_equips": 0, "named_weapons": 0, "bosses": 0,
     }
 
     # ---------- 1. 14 城市（spec：魏蜀吴三区域 + 中立洛阳）----------
@@ -89,6 +97,67 @@ async def seed_fengyun(db: AsyncSession, log=print) -> dict:
                         price=price,
                     ))
                     stats["equips"] += 1
+    await db.commit()
+
+    # ---------- 3b. v0.2.0 官方装备系列（7 系列 × 7 件套，全网检索补全）----------
+    # 来源：doc88.com 道具编码表，spec 明示百战/烈风/凰霞/龙翔/霆震/霆震·精/幻灵
+    for key, name, slot, cls_req, quality, lvl, attr_key, attr_val in FY.EQUIP_SERIES:
+        # 落 Item 字典
+        if not await goods.get_item_by_key(db, key):
+            await goods.ensure_item(
+                db, key, name, "equip", "fengyun", False,
+                FY.gen_equip_price(quality, lvl),
+                f"{quality}品质{slot}（{cls_req}），需求等级{lvl}，{attr_key}+{attr_val}"
+            )
+            stats["items"] += 1
+        # 落 FengyunEquip 表（主属性按 spec 精确数值）
+        if not await db.get(models.FengyunEquip, key):
+            atk_b = attr_val if attr_key == "atk" else 0
+            def_b = attr_val if attr_key == "def" else 0
+            db.add(models.FengyunEquip(
+                key=key, name=name, quality=quality, slot=slot,
+                class_req=cls_req if cls_req != "all" else "",
+                level_req=lvl,
+                atk_bonus=atk_b, def_bonus=def_b, hp_bonus=0,
+                price=FY.gen_equip_price(quality, lvl),
+            ))
+            stats["series_equips"] += 1
+    await db.commit()
+
+    # ---------- 3c. v0.2.0 顶级名器（11 件，spec 明示十大名剑 + 三国名器）----------
+    for key, name, wtype, cls_req, quality, lvl, attr_key, attr_val, drop_from in FY.NAMED_WEAPONS:
+        if not await goods.get_item_by_key(db, key):
+            await goods.ensure_item(
+                db, key, name, "equip", "fengyun", False,
+                FY.gen_equip_price(quality, lvl),
+                f"{quality}品质{wtype}（{cls_req}），需求等级{lvl}，{attr_key}+{attr_val}。{drop_from}"
+            )
+            stats["items"] += 1
+        if not await db.get(models.FengyunEquip, key):
+            atk_b = attr_val if attr_key == "atk" else 0
+            def_b = attr_val if attr_key == "def" else 0
+            db.add(models.FengyunEquip(
+                key=key, name=name, quality=quality, slot=wtype,
+                class_req=cls_req if cls_req != "all" else "",
+                level_req=lvl,
+                atk_bonus=atk_b, def_bonus=def_b, hp_bonus=0,
+                price=FY.gen_equip_price(quality, lvl),
+            ))
+            stats["named_weapons"] += 1
+    await db.commit()
+
+    # ---------- 3d. v0.2.0 顶级 BOSS/神兽掉落表（14 只，spec 明示龙之九子+烛龙+四大神兽）----------
+    # 仅落 Item 字典作为 BOSS 凭证（战斗系统引用），不入 FengyunEquip 表
+    for boss_key, boss_name, boss_lvl, boss_type, drop_quality, boss_intro in FY.WORLD_BOSSES:
+        item_key = f"fy_boss_token_{boss_key}"
+        if not await goods.get_item_by_key(db, item_key):
+            await goods.ensure_item(
+                db, item_key, f"{boss_name}凭证", "material", "fengyun", True,
+                FY.gen_equip_price(drop_quality, boss_lvl),
+                f"{boss_type}级 BOSS【{boss_name}】(Lv.{boss_lvl}) 击杀凭证。{boss_intro}。掉落{drop_quality}品质装备"
+            )
+            stats["items"] += 1
+            stats["bosses"] += 1
     await db.commit()
 
     # ---------- 4. 军团虎符道具（spec：5 级军团，虎符升级道具）----------
@@ -150,8 +219,9 @@ async def seed_fengyun(db: AsyncSession, log=print) -> dict:
             stats["items"] += 1
     await db.commit()
 
-    log(f"[fengyun-v019] 城市+{stats['cities']} 技能+{stats['skills']} "
-        f"装备+{stats['equips']} 副本+{stats['dungeons']} "
+    log(f"[fengyun-v020] 城市+{stats['cities']} 技能+{stats['skills']} "
+        f"装备+{stats['equips']} 官方系列+{stats['series_equips']} 名器+{stats['named_weapons']} "
+        f"BOSS+{stats['bosses']} 副本+{stats['dungeons']} "
         f"称号+{stats['titles']} 成就+{stats['achievements']} "
         f"物品字典+{stats['items']}")
     return stats

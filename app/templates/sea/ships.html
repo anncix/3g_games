@@ -1,0 +1,22 @@
+{% extends "base.html" %}
+{% from "macros.html" import topbar, footer %}
+{% block title %}船坞{% endblock %}
+{% block body %}
+{{ topbar("航海船坞", user) }}
+<div class="crumb"><a href="/games/sea">航海</a> › 船坞</div>
+<div class="content">
+  <div class="notice">船只是航海根基，载重越大越能跑商。当前座船：<b>{{ st.ship_name }}</b></div>
+  {% for sp in ships %}
+  <div class="card">
+    <div class="hd">{{ sp.name }} {% if sp.key in owned_keys %}<span class="tag green">已拥有</span>{% endif %}</div>
+    <div>购买地：<b>{{ sp.buy_city }}</b> · 价格 <b>{{ sp.price }}{{ sp.currency }}</b></div>
+    <div class="muted">载重 {{ sp.load }} · 消耗 {{ sp.consume_per_100 }}铜/百海里</div>
+    {% if sp.key in owned_keys %}<span class="tag">已入库</span>
+    {% elif user.coins >= sp.price %}<form method="post" action="/games/sea/ships/buy/{{ sp.key }}"><button class="btn green" type="submit">购买</button></form>
+    {% else %}<span class="tag red">{{ sp.currency }}不足</span>{% endif %}
+  </div>
+  {% endfor %}
+</div>
+<div class="content"><a class="btn ghost" href="/games/sea">返回航海首页</a></div>
+{{ footer(user) }}
+{% endblock %}

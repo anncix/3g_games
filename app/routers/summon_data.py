@@ -896,6 +896,8 @@ DAILY_TASKS = [
 # 已实现的日常指标（其余为"即将开放"）
 IMPLEMENTED_METRICS = {
     "stage_normal_win", "stage_elite_win", "dungeon_win", "capture_success",
+    "arena_battle", "bone_upgrade", "tower_floor", "soul_hunt",
+    "spirit_tower_floor", "battlefield_settle", "guild_donate", "mentor_refill",
 }
 
 

@@ -925,3 +925,729 @@ async def rules_view(request: Request, db: AsyncSession = Depends(get_db)):
     if not user:
         return RedirectResponse("/login", status_code=303)
     return await render(request, "summon/rules.html", db, user=user)
+
+
+# ============================================================
+# 路由：战骨系统（BONE_PARTS / bone_upgrade_cost）
+# ============================================================
+@router.get("/bone")
+async def bone_view(request: Request, db: AsyncSession = Depends(get_db)):
+    user = await get_current_user(request, db)
+    if not user:
+        return RedirectResponse("/login", status_code=303)
+    st = await get_state(db, user.id)
+    reset_daily(st)
+    await db.commit()
+    if st.level < 10:
+        return await render(request, "result.html", db, user=user, ok=False,
+                            msg=f"需 Lv10 解锁战骨系统",
+                            back_href="/games/summon", back_text="返回首页")
+    levels = get_json(st, "bone_levels")
+    stone_n = await goods.count_item(db, user.id, "IT_STONE", MODULE_KEY)
+    parts = []
+    for key, (name, stats) in D.BONE_PARTS.items():
+        lv = levels.get(key, 0)
+        coin_cost, stone_cost = D.bone_upgrade_cost(lv)
+        parts.append({"key": key, "name": name, "stats": stats, "level": lv,
+                      "coin_cost": coin_cost, "stone_cost": stone_cost,
+                      "affordable": st.coins >= coin_cost and stone_n >= stone_cost})
+    return await render(request, "summon/bone.html", db, user=user, st=st,
+                        parts=parts, stone_n=stone_n,
+                        exp_need=D.exp_needed(st.level))
+
+
+@router.post("/bone/upgrade/{part_key}")
+async def bone_upgrade(part_key: str, request: Request, db: AsyncSession = Depends(get_db)):
+    user = await get_current_user(request, db)
+    if not user:
+        return RedirectResponse("/login", status_code=303)
+    st = await get_state(db, user.id)
+    reset_daily(st)
+    if part_key not in D.BONE_PARTS:
+        return await render(request, "result.html", db, user=user, ok=False,
+                            msg="战骨部位不存在", back_href="/games/summon/bone", back_text="返回战骨")
+    levels = get_json(st, "bone_levels")
+    lv = levels.get(part_key, 0)
+    coin_cost, stone_cost = D.bone_upgrade_cost(lv)
+    if st.coins < coin_cost:
+        return await render(request, "result.html", db, user=user, ok=False,
+                            msg=f"铜钱不足（需{coin_cost}，当前{st.coins}）",
+                            back_href="/games/summon/bone", back_text="返回战骨")
+    if await goods.count_item(db, user.id, "IT_STONE", MODULE_KEY) < stone_cost:
+        return await render(request, "result.html", db, user=user, ok=False,
+                            msg=f"灵石不足（需{stone_cost}）",
+                            back_href="/games/summon/bone", back_text="返回战骨")
+    st.coins -= coin_cost
+    await goods.remove_item(db, user.id, "IT_STONE", MODULE_KEY, stone_cost)
+    levels[part_key] = lv + 1
+    set_json(st, "bone_levels", levels)
+    incr_daily_counter(st, "bone_upgrade")
+    part_name = D.BONE_PARTS[part_key][0]
+    await log.record(db, user.id, MODULE_KEY, "bone_upgrade",
+                     f"{part_key}:{part_name}:{lv}->{lv+1}")
+    await db.commit()
+    return await render(request, "result.html", db, user=user, ok=True,
+                        msg=f"{part_name} 强化成功！Lv{lv}→Lv{lv+1}（消耗铜钱{coin_cost} 灵石{stone_cost}）",
+                        back_href="/games/summon/bone", back_text="返回战骨")
+
+
+# ============================================================
+# 路由：魔魂系统（SOUL_RARITY / SOUL_HUNT / SOUL_XP / SOUL_FEED）
+# ============================================================
+@router.get("/soul")
+async def soul_view(request: Request, db: AsyncSession = Depends(get_db)):
+    user = await get_current_user(request, db)
+    if not user:
+        return RedirectResponse("/login", status_code=303)
+    st = await get_state(db, user.id)
+    reset_daily(st)
+    await db.commit()
+    slot_count = D.soul_slots_for_level(st.level)
+    if slot_count <= 0:
+        return await render(request, "result.html", db, user=user, ok=False,
+                            msg="需 Lv30 解锁魔魂系统",
+                            back_href="/games/summon", back_text="返回首页")
+    souls = json.loads(st.souls or "[]")
+    # 补齐槽位展示（空槽显示 None）
+    while len(souls) < slot_count:
+        souls.append(None)
+    charm_n = await goods.count_item(db, user.id, "IT_SOUL_CHARM", MODULE_KEY)
+    hunters = []
+    for i, (name, coin, charm, outputs) in enumerate(D.SOUL_HUNT):
+        out_names = "、".join(D.SOUL_RARITY[o][0] for o in outputs)
+        affordable = st.coins >= coin and charm_n >= charm
+        hunters.append({"tier": i, "name": name, "coin": coin, "charm": charm,
+                        "outputs": out_names, "affordable": affordable})
+    return await render(request, "summon/soul.html", db, user=user, st=st,
+                        souls=souls[:slot_count], slot_count=slot_count,
+                        hunters=hunters, charm_n=charm_n,
+                        soul_rarity=D.SOUL_RARITY,
+                        exp_need=D.exp_needed(st.level))
+
+
+@router.post("/soul/hunt/{hunter_tier}")
+async def soul_hunt(hunter_tier: int, request: Request, db: AsyncSession = Depends(get_db)):
+    user = await get_current_user(request, db)
+    if not user:
+        return RedirectResponse("/login", status_code=303)
+    st = await get_state(db, user.id)
+    reset_daily(st)
+    slot_count = D.soul_slots_for_level(st.level)
+    if slot_count <= 0:
+        return await render(request, "result.html", db, user=user, ok=False,
+                            msg="需 Lv30 解锁魔魂系统",
+                            back_href="/games/summon", back_text="返回首页")
+    if hunter_tier < 0 or hunter_tier >= len(D.SOUL_HUNT):
+        return await render(request, "result.html", db, user=user, ok=False,
+                            msg="猎魂师不存在", back_href="/games/summon/soul", back_text="返回魔魂")
+    souls = json.loads(st.souls or "[]")
+    while len(souls) < slot_count:
+        souls.append(None)
+    if all(s is not None for s in souls[:slot_count]):
+        return await render(request, "result.html", db, user=user, ok=False,
+                            msg="魔魂槽已满，先吞噬或清理",
+                            back_href="/games/summon/soul", back_text="返回魔魂")
+    name, coin_cost, charm_cost, outputs = D.SOUL_HUNT[hunter_tier]
+    if st.coins < coin_cost:
+        return await render(request, "result.html", db, user=user, ok=False,
+                            msg=f"铜钱不足（需{coin_cost}）",
+                            back_href="/games/summon/soul", back_text="返回魔魂")
+    if charm_cost > 0 and await goods.count_item(db, user.id, "IT_SOUL_CHARM", MODULE_KEY) < charm_cost:
+        return await render(request, "result.html", db, user=user, ok=False,
+                            msg=f"追魂法宝不足（需{charm_cost}）",
+                            back_href="/games/summon/soul", back_text="返回魔魂")
+    st.coins -= coin_cost
+    if charm_cost > 0:
+        await goods.remove_item(db, user.id, "IT_SOUL_CHARM", MODULE_KEY, charm_cost)
+    rarity = random.choice(outputs)
+    new_soul = {"rarity": rarity, "level": 1, "xp": 0}
+    for i in range(slot_count):
+        if souls[i] is None:
+            souls[i] = new_soul
+            break
+    st.souls = json.dumps(souls, ensure_ascii=False)
+    incr_daily_counter(st, "soul_hunt")
+    rname = D.SOUL_RARITY[rarity][0]
+    await log.record(db, user.id, MODULE_KEY, "soul_hunt",
+                     f"{name}:{rarity}:{rname}")
+    await db.commit()
+    return await render(request, "result.html", db, user=user, ok=True,
+                        msg=f"猎魂师 {name} 成功召唤【{rname}】！（消耗铜钱{coin_cost}"
+                            + (f" 追魂法宝{charm_cost}" if charm_cost else "") + "）",
+                        back_href="/games/summon/soul", back_text="返回魔魂")
+
+
+@router.post("/soul/feed/{slot_index}")
+async def soul_feed(slot_index: int, request: Request, db: AsyncSession = Depends(get_db)):
+    user = await get_current_user(request, db)
+    if not user:
+        return RedirectResponse("/login", status_code=303)
+    st = await get_state(db, user.id)
+    reset_daily(st)
+    slot_count = D.soul_slots_for_level(st.level)
+    if slot_index < 0 or slot_index >= slot_count:
+        return await render(request, "result.html", db, user=user, ok=False,
+                            msg="槽位不存在", back_href="/games/summon/soul", back_text="返回魔魂")
+    souls = json.loads(st.souls or "[]")
+    while len(souls) < slot_count:
+        souls.append(None)
+    soul = souls[slot_index]
+    if soul is None:
+        return await render(request, "result.html", db, user=user, ok=False,
+                            msg="该槽位无魔魂", back_href="/games/summon/soul", back_text="返回魔魂")
+    # 吞噬材料：按从低到高消耗魂粉
+    feed_order = ["IT_SOUL_POWDER_1", "IT_SOUL_POWDER_2", "IT_SOUL_POWDER_3", "IT_SOUL_POWDER_4"]
+    feed_map = {"IT_SOUL_POWDER_1": ("YELLOW", 50), "IT_SOUL_POWDER_2": ("MYSTIC", 100),
+                "IT_SOUL_POWDER_3": ("EARTH", 200), "IT_SOUL_POWDER_4": ("HEAVEN", 400)}
+    gained_xp = 0
+    used = []
+    for iid in feed_order:
+        have = await goods.count_item(db, user.id, iid, MODULE_KEY)
+        if have > 0:
+            await goods.remove_item(db, user.id, iid, MODULE_KEY, 1)
+            _, xp = feed_map[iid]
+            gained_xp += xp
+            used.append(f"{D.ITEMS[iid][0]}×1(+{xp})")
+            break
+    if gained_xp == 0:
+        return await render(request, "result.html", db, user=user, ok=False,
+                            msg="没有魂粉材料（需 黄/玄/地/天 魂粉）",
+                            back_href="/games/summon/soul", back_text="返回魔魂")
+    soul["xp"] = soul.get("xp", 0) + gained_xp
+    # 升级判定
+    leveled = False
+    while soul["level"] < 10:
+        need = D.SOUL_XP.get((soul["level"], soul["level"] + 1), 0)
+        if need == 0 or soul["xp"] < need:
+            break
+        soul["xp"] -= need
+        soul["level"] += 1
+        leveled = True
+    souls[slot_index] = soul
+    st.souls = json.dumps(souls, ensure_ascii=False)
+    rname = D.SOUL_RARITY.get(soul["rarity"], ("?",))[0]
+    await log.record(db, user.id, MODULE_KEY, "soul_feed",
+                     f"slot{slot_index}:{rname}:xp+{gained_xp}:lv{soul['level']}")
+    await db.commit()
+    msg = f"【{rname}】吞噬获得魂力+{gained_xp}（{'、'.join(used)}）"
+    if leveled:
+        msg += f" 升级到 Lv{soul['level']}！"
+    return await render(request, "result.html", db, user=user, ok=True,
+                        msg=msg, back_href="/games/summon/soul", back_text="返回魔魂")
+
+
+# ============================================================
+# 路由：战灵系统（SPIRIT_SLOTS / SPIRIT_QUALITY_WEIGHTS / SPIRIT_AFFIXES）
+# ============================================================
+def _roll_spirit() -> dict:
+    """随机生成一个战灵（品质 + 3 词条）"""
+    qualities = list(D.SPIRIT_QUALITY_WEIGHTS.keys())
+    weights = [sum(D.SPIRIT_QUALITY_WEIGHTS[q]) for q in qualities]
+    quality = random.choices(qualities, weights=weights)[0]
+    affix_ids = random.sample(list(D.SPIRIT_AFFIXES.keys()), 3)
+    affixes = []
+    for aid in affix_ids:
+        aname, atype, stat, lo, hi = D.SPIRIT_AFFIXES[aid]
+        val = round(random.uniform(lo, hi), 3) if atype != "flat" else random.randint(lo, hi)
+        affixes.append({"id": aid, "name": aname, "stat": stat, "value": val})
+    return {"quality": quality, "affixes": affixes}
+
+
+@router.get("/spirit")
+async def spirit_view(request: Request, db: AsyncSession = Depends(get_db)):
+    user = await get_current_user(request, db)
+    if not user:
+        return RedirectResponse("/login", status_code=303)
+    st = await get_state(db, user.id)
+    reset_daily(st)
+    await db.commit()
+    if st.level < 35:
+        return await render(request, "result.html", db, user=user, ok=False,
+                            msg="需 Lv35 解锁战灵系统",
+                            back_href="/games/summon", back_text="返回首页")
+    spirits = json.loads(st.spirits or "[]")
+    while len(spirits) < len(D.SPIRIT_SLOTS):
+        spirits.append(None)
+    dust_n = await goods.count_item(db, user.id, "IT_SPIRIT_DUST", MODULE_KEY)
+    roll_no = get_daily_counter(st, "spirit_reroll") + 1
+    coin_cost, dust_cost, is_free = D.spirit_reroll_cost(roll_no, 0)
+    return await render(request, "summon/spirit.html", db, user=user, st=st,
+                        spirits=spirits, slot_count=len(D.SPIRIT_SLOTS),
+                        dust_n=dust_n, coin_cost=coin_cost, dust_cost=dust_cost,
+                        is_free=is_free, roll_no=roll_no,
+                        exp_need=D.exp_needed(st.level))
+
+
+@router.post("/spirit/reroll")
+async def spirit_reroll(request: Request, db: AsyncSession = Depends(get_db)):
+    user = await get_current_user(request, db)
+    if not user:
+        return RedirectResponse("/login", status_code=303)
+    st = await get_state(db, user.id)
+    reset_daily(st)
+    form = await request.form()
+    lock_count = 0
+    try:
+        lock_count = int(form.get("lock_count", "0") or "0")
+    except (TypeError, ValueError):
+        lock_count = 0
+    lock_count = max(0, min(lock_count, len(D.SPIRIT_SLOTS)))
+    roll_no = get_daily_counter(st, "spirit_reroll") + 1
+    if roll_no > D.SPIRIT_REROLL_DAILY_CAP:
+        return await render(request, "result.html", db, user=user, ok=False,
+                            msg=f"今日洗炼次数已达上限({D.SPIRIT_REROLL_DAILY_CAP})",
+                            back_href="/games/summon/spirit", back_text="返回战灵")
+    coin_cost, dust_cost, is_free = D.spirit_reroll_cost(roll_no, lock_count)
+    if not is_free:
+        if st.coins < coin_cost:
+            return await render(request, "result.html", db, user=user, ok=False,
+                                msg=f"铜钱不足（需{coin_cost}）",
+                                back_href="/games/summon/spirit", back_text="返回战灵")
+        if dust_cost > 0 and await goods.count_item(db, user.id, "IT_SPIRIT_DUST", MODULE_KEY) < dust_cost:
+            return await render(request, "result.html", db, user=user, ok=False,
+                                msg=f"灵力不足（需{dust_cost}）",
+                                back_href="/games/summon/spirit", back_text="返回战灵")
+    spirits = json.loads(st.spirits or "[]")
+    while len(spirits) < len(D.SPIRIT_SLOTS):
+        spirits.append(None)
+    # 重洗非锁定槽位
+    new_spirits = []
+    rerolled = []
+    for i in range(len(D.SPIRIT_SLOTS)):
+        if i < lock_count and spirits[i] is not None:
+            new_spirits.append(spirits[i])
+        else:
+            sp = _roll_spirit()
+            new_spirits.append(sp)
+            rerolled.append(f"{D.SPIRIT_SLOTS[i+1]}({sp['quality']})")
+    if not is_free:
+        st.coins -= coin_cost
+        if dust_cost > 0:
+            await goods.remove_item(db, user.id, "IT_SPIRIT_DUST", MODULE_KEY, dust_cost)
+    st.spirits = json.dumps(new_spirits, ensure_ascii=False)
+    incr_daily_counter(st, "spirit_reroll")
+    await log.record(db, user.id, MODULE_KEY, "spirit_reroll",
+                     f"roll{roll_no}:lock{lock_count}:{'、'.join(rerolled)}")
+    await db.commit()
+    cost_text = "免费" if is_free else f"消耗铜钱{coin_cost}" + (f" 灵力{dust_cost}" if dust_cost else "")
+    return await render(request, "result.html", db, user=user, ok=True,
+                        msg=f"战灵洗炼完成（{cost_text}）：{'、'.join(rerolled)}",
+                        back_href="/games/summon/spirit", back_text="返回战灵")
+
+
+# ============================================================
+# 路由：擂台（ARENA）
+# ============================================================
+@router.get("/arena")
+async def arena_view(request: Request, db: AsyncSession = Depends(get_db)):
+    user = await get_current_user(request, db)
+    if not user:
+        return RedirectResponse("/login", status_code=303)
+    st = await get_state(db, user.id)
+    reset_daily(st)
+    await db.commit()
+    if st.level < 10:
+        return await render(request, "result.html", db, user=user, ok=False,
+                            msg="需 Lv10 解锁擂台",
+                            back_href="/games/summon", back_text="返回首页")
+    done_today = get_daily_counter(st, "arena_battle")
+    # 随机生成 3 个对手 NPC
+    opponents = []
+    for _ in range(3):
+        tier = f"T{min(8, max(1, st.level // 10 or 1))}"
+        wild = D.roll_wild_pet(tier)
+        opponents.append(wild)
+    team = await get_team(db, user.id)
+    can_challenge = (done_today < D.ARENA["daily_free"] and len(team) > 0)
+    return await render(request, "summon/arena.html", db, user=user, st=st,
+                        done_today=done_today, limit=D.ARENA["daily_free"],
+                        opponents=opponents, team=team, can_challenge=can_challenge,
+                        arena=D.ARENA, exp_need=D.exp_needed(st.level))
+
+
+@router.post("/arena/challenge")
+async def arena_challenge(request: Request, db: AsyncSession = Depends(get_db)):
+    user = await get_current_user(request, db)
+    if not user:
+        return RedirectResponse("/login", status_code=303)
+    st = await get_state(db, user.id)
+    reset_daily(st)
+    if st.level < 10:
+        return await render(request, "result.html", db, user=user, ok=False,
+                            msg="需 Lv10 解锁擂台", back_href="/games/summon", back_text="返回首页")
+    done_today = get_daily_counter(st, "arena_battle")
+    if done_today >= D.ARENA["daily_free"]:
+        return await render(request, "result.html", db, user=user, ok=False,
+                            msg=f"今日擂台次数已达上限({D.ARENA['daily_free']})",
+                            back_href="/games/summon/arena", back_text="返回擂台")
+    team = await get_team(db, user.id)
+    if not team:
+        return await render(request, "result.html", db, user=user, ok=False,
+                            msg="队伍为空，先去幻兽列表上阵",
+                            back_href="/games/summon/pets", back_text="去幻兽")
+    tier = f"T{min(8, max(1, st.level // 10 or 1))}"
+    enemies = [D.roll_wild_pet(tier)]
+    result = auto_battle(team, enemies)
+    battle_log = result["log"][-12:]
+    incr_daily_counter(st, "arena_battle")
+    if result["win"]:
+        st.prestige += D.ARENA["win_prestige"]
+        st.arena_coin += D.ARENA["win_arena_coin"]
+        exp_reward = D.PET_XP_SOURCES["arena_win"]
+        for pet in team:
+            add_pet_exp(pet, exp_reward)
+        await log.record(db, user.id, MODULE_KEY, "arena_win",
+                         f"prestige+{D.ARENA['win_prestige']}:arena_coin+{D.ARENA['win_arena_coin']}")
+        await db.commit()
+        return await render(request, "summon/battle.html", db, user=user, ok=True,
+                            msg=f"擂台胜利！声望+{D.ARENA['win_prestige']} 擂台币+{D.ARENA['win_arena_coin']}",
+                            result=result, battle_log=battle_log, enemies=enemies,
+                            rewards={"currency_gains": {"prestige": D.ARENA['win_prestige'],
+                                                         "arena_coin": D.ARENA['win_arena_coin']},
+                                     "item_gains": []},
+                            drop_text=f"声望+{D.ARENA['win_prestige']} 擂台币+{D.ARENA['win_arena_coin']}",
+                            exp_reward=exp_reward, leveled=False, st=st, stage_no=0, is_elite=False,
+                            exp_need=D.exp_needed(st.level),
+                            back_href="/games/summon/arena", back_text="继续挑战")
+    else:
+        loss_coin = min(st.arena_coin, D.ARENA["loss_arena_coin"])
+        st.arena_coin -= loss_coin
+        exp_reward = D.PET_XP_SOURCES["arena_loss"]
+        for pet in team:
+            add_pet_exp(pet, exp_reward)
+        await log.record(db, user.id, MODULE_KEY, "arena_loss", f"arena_coin-{loss_coin}")
+        await db.commit()
+        return await render(request, "summon/battle.html", db, user=user, ok=False,
+                            msg=f"擂台失利…擂台币-{loss_coin}",
+                            result=result, battle_log=battle_log, enemies=enemies,
+                            rewards={"currency_gains": {}, "item_gains": []},
+                            drop_text="无掉落", exp_reward=exp_reward, leveled=False,
+                            st=st, stage_no=0, is_elite=False,
+                            exp_need=D.exp_needed(st.level),
+                            back_href="/games/summon/arena", back_text="重新挑战")
+
+
+# ============================================================
+# 路由：战场（BATTLEFIELD）
+# ============================================================
+@router.get("/battlefield")
+async def battlefield_view(request: Request, db: AsyncSession = Depends(get_db)):
+    user = await get_current_user(request, db)
+    if not user:
+        return RedirectResponse("/login", status_code=303)
+    st = await get_state(db, user.id)
+    reset_daily(st)
+    await db.commit()
+    if st.level < 40:
+        return await render(request, "result.html", db, user=user, ok=False,
+                            msg="需 Lv40 解锁战场",
+                            back_href="/games/summon", back_text="返回首页")
+    done_today = get_daily_counter(st, "battlefield_settle")
+    team = await get_team(db, user.id)
+    can_join = (done_today < D.BATTLEFIELD["daily_join_limit"] and len(team) > 0)
+    return await render(request, "summon/battlefield.html", db, user=user, st=st,
+                        done_today=done_today, limit=D.BATTLEFIELD["daily_join_limit"],
+                        team=team, can_join=can_join, bf=D.BATTLEFIELD,
+                        exp_need=D.exp_needed(st.level))
+
+
+@router.post("/battlefield/join")
+async def battlefield_join(request: Request, db: AsyncSession = Depends(get_db)):
+    user = await get_current_user(request, db)
+    if not user:
+        return RedirectResponse("/login", status_code=303)
+    st = await get_state(db, user.id)
+    reset_daily(st)
+    if st.level < 40:
+        return await render(request, "result.html", db, user=user, ok=False,
+                            msg="需 Lv40 解锁战场", back_href="/games/summon", back_text="返回首页")
+    done_today = get_daily_counter(st, "battlefield_settle")
+    if done_today >= D.BATTLEFIELD["daily_join_limit"]:
+        return await render(request, "result.html", db, user=user, ok=False,
+                            msg=f"今日战场次数已达上限({D.BATTLEFIELD['daily_join_limit']})",
+                            back_href="/games/summon/battlefield", back_text="返回战场")
+    team = await get_team(db, user.id)
+    if not team:
+        return await render(request, "result.html", db, user=user, ok=False,
+                            msg="队伍为空，先去幻兽列表上阵",
+                            back_href="/games/summon/pets", back_text="去幻兽")
+    tier = f"T{min(8, max(1, st.level // 10 or 1))}"
+    enemy_count = random.randint(2, 3)
+    enemies = [D.roll_wild_pet(tier) for _ in range(enemy_count)]
+    result = auto_battle(team, enemies)
+    battle_log = result["log"][-12:]
+    incr_daily_counter(st, "battlefield_settle")
+    if result["win"]:
+        st.prestige += D.BATTLEFIELD["win_prestige"]
+        st.bf_coin += D.BATTLEFIELD["win_bf_coin"]
+        # 杀戮礼包掉落
+        kill_drops = []
+        for iid, weight, lo, hi in D.KILL_BOX_DROPS:
+            if random.random() * 100 < weight:
+                qty = random.randint(lo, hi)
+                if qty > 0:
+                    kill_drops.append((iid, qty))
+        rewards = grant_rewards(st, kill_drops, user.id, db)
+        for iid, qty in rewards["item_gains"]:
+            await goods.add_item(db, user.id, iid, MODULE_KEY, qty)
+        exp_reward = D.PET_XP_SOURCES["battlefield_settle"]
+        for pet in team:
+            add_pet_exp(pet, exp_reward)
+        drop_text = format_drop_summary(rewards)
+        await log.record(db, user.id, MODULE_KEY, "battlefield_win",
+                         f"prestige+{D.BATTLEFIELD['win_prestige']}:bf_coin+{D.BATTLEFIELD['win_bf_coin']}:{drop_text}")
+        await db.commit()
+        msg = f"战场获胜！声望+{D.BATTLEFIELD['win_prestige']} 战场币+{D.BATTLEFIELD['win_bf_coin']} {drop_text}"
+        return await render(request, "summon/battle.html", db, user=user, ok=True,
+                            msg=msg, result=result, battle_log=battle_log, enemies=enemies,
+                            rewards=rewards, drop_text=drop_text,
+                            exp_reward=exp_reward, leveled=False, st=st, stage_no=0, is_elite=False,
+                            exp_need=D.exp_needed(st.level),
+                            back_href="/games/summon/battlefield", back_text="继续战场")
+    else:
+        loss_p = D.BATTLEFIELD["loss_prestige"]
+        loss_b = min(st.bf_coin, D.BATTLEFIELD["loss_bf_coin"])
+        st.prestige = max(0, st.prestige - loss_p)
+        st.bf_coin -= loss_b
+        exp_reward = 10
+        for pet in team:
+            add_pet_exp(pet, exp_reward)
+        await log.record(db, user.id, MODULE_KEY, "battlefield_loss", f"bf_coin-{loss_b}")
+        await db.commit()
+        return await render(request, "summon/battle.html", db, user=user, ok=False,
+                            msg=f"战场失利…战场币-{loss_b}",
+                            result=result, battle_log=battle_log, enemies=enemies,
+                            rewards={"currency_gains": {}, "item_gains": []},
+                            drop_text="无掉落", exp_reward=exp_reward, leveled=False,
+                            st=st, stage_no=0, is_elite=False,
+                            exp_need=D.exp_needed(st.level),
+                            back_href="/games/summon/battlefield", back_text="重新战场")
+
+
+# ============================================================
+# 路由：联盟（ALLIANCE_DONATION / ALLIANCE_SKILLS / ALLIANCE_STORAGE）
+# ============================================================
+@router.get("/alliance")
+async def alliance_view(request: Request, db: AsyncSession = Depends(get_db)):
+    user = await get_current_user(request, db)
+    if not user:
+        return RedirectResponse("/login", status_code=303)
+    st = await get_state(db, user.id)
+    reset_daily(st)
+    await db.commit()
+    skill_levels = get_json(st, "alliance_skills")
+    donate_list = []
+    for iid, contrib in D.ALLIANCE_DONATION.items():
+        have = await goods.count_item(db, user.id, iid, MODULE_KEY)
+        donate_list.append({"iid": iid, "name": D.ITEMS[iid][0],
+                            "contrib": contrib, "have": have})
+    skills = []
+    for sid, (name, max_lv, bonus, base, step) in D.ALLIANCE_SKILLS.items():
+        cur_lv = skill_levels.get(sid, 0)
+        cost, _, bonus_total = D.alliance_skill_cost(sid, cur_lv)
+        skills.append({"sid": sid, "name": name, "max_lv": max_lv, "cur_lv": cur_lv,
+                       "cost": cost, "bonus": bonus, "bonus_total": bonus_total,
+                       "affordable": st.guild_coin >= cost, "maxed": cur_lv >= max_lv})
+    return await render(request, "summon/alliance.html", db, user=user, st=st,
+                        donate_list=donate_list, skills=skills,
+                        storage=D.ALLIANCE_STORAGE, exp_need=D.exp_needed(st.level))
+
+
+@router.post("/alliance/donate/{item_key}")
+async def alliance_donate(item_key: str, request: Request, db: AsyncSession = Depends(get_db)):
+    user = await get_current_user(request, db)
+    if not user:
+        return RedirectResponse("/login", status_code=303)
+    st = await get_state(db, user.id)
+    reset_daily(st)
+    if item_key not in D.ALLIANCE_DONATION:
+        return await render(request, "result.html", db, user=user, ok=False,
+                            msg="该物品不可捐献", back_href="/games/summon/alliance", back_text="返回联盟")
+    contrib = D.ALLIANCE_DONATION[item_key]
+    if await goods.count_item(db, user.id, item_key, MODULE_KEY) <= 0:
+        return await render(request, "result.html", db, user=user, ok=False,
+                            msg=f"{D.ITEMS[item_key][0]}数量不足",
+                            back_href="/games/summon/alliance", back_text="返回联盟")
+    await goods.remove_item(db, user.id, item_key, MODULE_KEY, 1)
+    st.guild_coin += contrib
+    incr_daily_counter(st, "guild_donate")
+    await log.record(db, user.id, MODULE_KEY, "alliance_donate",
+                     f"{item_key}:{D.ITEMS[item_key][0]}:contrib+{contrib}")
+    await db.commit()
+    return await render(request, "result.html", db, user=user, ok=True,
+                        msg=f"捐献 {D.ITEMS[item_key][0]} ×1，贡献+{contrib}（当前贡献 {st.guild_coin}）",
+                        back_href="/games/summon/alliance", back_text="返回联盟")
+
+
+@router.post("/alliance/skill/{skill_id}")
+async def alliance_skill_upgrade(skill_id: str, request: Request, db: AsyncSession = Depends(get_db)):
+    user = await get_current_user(request, db)
+    if not user:
+        return RedirectResponse("/login", status_code=303)
+    st = await get_state(db, user.id)
+    reset_daily(st)
+    if skill_id not in D.ALLIANCE_SKILLS:
+        return await render(request, "result.html", db, user=user, ok=False,
+                            msg="技能不存在", back_href="/games/summon/alliance", back_text="返回联盟")
+    skill_levels = get_json(st, "alliance_skills")
+    cur_lv = skill_levels.get(skill_id, 0)
+    name, max_lv, bonus, base, step = D.ALLIANCE_SKILLS[skill_id]
+    if cur_lv >= max_lv:
+        return await render(request, "result.html", db, user=user, ok=False,
+                            msg=f"{name}已满级", back_href="/games/summon/alliance", back_text="返回联盟")
+    cost, _, _ = D.alliance_skill_cost(skill_id, cur_lv)
+    if st.guild_coin < cost:
+        return await render(request, "result.html", db, user=user, ok=False,
+                            msg=f"贡献不足（需{cost}，当前{st.guild_coin}）",
+                            back_href="/games/summon/alliance", back_text="返回联盟")
+    st.guild_coin -= cost
+    skill_levels[skill_id] = cur_lv + 1
+    set_json(st, "alliance_skills", skill_levels)
+    await log.record(db, user.id, MODULE_KEY, "alliance_skill",
+                     f"{skill_id}:{name}:{cur_lv}->{cur_lv+1}")
+    await db.commit()
+    return await render(request, "result.html", db, user=user, ok=True,
+                        msg=f"{name} 升级成功！Lv{cur_lv}→Lv{cur_lv+1}（消耗贡献{cost}）",
+                        back_href="/games/summon/alliance", back_text="返回联盟")
+
+
+# ============================================================
+# 路由：师徒（MASTER_APPRENTICE）
+# ============================================================
+@router.get("/mentor")
+async def mentor_view(request: Request, db: AsyncSession = Depends(get_db)):
+    user = await get_current_user(request, db)
+    if not user:
+        return RedirectResponse("/login", status_code=303)
+    st = await get_state(db, user.id)
+    reset_daily(st)
+    await db.commit()
+    can_recruit = st.level >= D.MASTER_APPRENTICE["master_min_level"]
+    return await render(request, "summon/mentor.html", db, user=user, st=st,
+                        can_recruit=can_recruit, ma=D.MASTER_APPRENTICE,
+                        exp_need=D.exp_needed(st.level))
+
+
+@router.post("/mentor/recruit")
+async def mentor_recruit(request: Request, db: AsyncSession = Depends(get_db)):
+    user = await get_current_user(request, db)
+    if not user:
+        return RedirectResponse("/login", status_code=303)
+    st = await get_state(db, user.id)
+    reset_daily(st)
+    if st.level < D.MASTER_APPRENTICE["master_min_level"]:
+        return await render(request, "result.html", db, user=user, ok=False,
+                            msg=f"需 Lv{D.MASTER_APPRENTICE['master_min_level']} 才能收徒",
+                            back_href="/games/summon", back_text="返回首页")
+    st.mentor_count += 1
+    # 收徒奖励：桃李值
+    reward_mentor = 10
+    st.mentor_coin += reward_mentor
+    incr_daily_counter(st, "mentor_refill")
+    await log.record(db, user.id, MODULE_KEY, "mentor_recruit",
+                     f"apprentice#{st.mentor_count}:mentor_coin+{reward_mentor}")
+    await db.commit()
+    return await render(request, "result.html", db, user=user, ok=True,
+                        msg=f"成功收徒一名（第 {st.mentor_count} 位），桃李值+{reward_mentor}",
+                        back_href="/games/summon/mentor", back_text="返回师徒")
+
+
+# ============================================================
+# 路由：通天塔 / 战灵塔（SPIRIT_TOWER_FLOORS）
+# ============================================================
+@router.get("/tower")
+async def tower_view(request: Request, db: AsyncSession = Depends(get_db)):
+    user = await get_current_user(request, db)
+    if not user:
+        return RedirectResponse("/login", status_code=303)
+    st = await get_state(db, user.id)
+    reset_daily(st)
+    await db.commit()
+    floors = json.loads(st.tower_floors or '{"tongtian":0,"spirit":0}')
+    tongtian_floor = floors.get("tongtian", 0)
+    spirit_floor = floors.get("spirit", 0)
+    team = await get_team(db, user.id)
+    tongtian_maxed = tongtian_floor >= D.TONGTIAN_TOWER_FLOORS
+    spirit_unlocked = st.level >= 35
+    spirit_maxed = spirit_floor >= D.SPIRIT_TOWER_FLOORS
+    can_climb_tongtian = (len(team) > 0 and not tongtian_maxed)
+    can_climb_spirit = (spirit_unlocked and len(team) > 0 and not spirit_maxed)
+    return await render(request, "summon/tower.html", db, user=user, st=st,
+                        tongtian_floor=tongtian_floor, spirit_floor=spirit_floor,
+                        tongtian_max=D.TONGTIAN_TOWER_FLOORS, spirit_max=D.SPIRIT_TOWER_FLOORS,
+                        team=team, spirit_unlocked=spirit_unlocked,
+                        can_climb_tongtian=can_climb_tongtian,
+                        can_climb_spirit=can_climb_spirit,
+                        exp_need=D.exp_needed(st.level))
+
+
+@router.post("/tower/climb/{tower_type}")
+async def tower_climb(tower_type: str, request: Request, db: AsyncSession = Depends(get_db)):
+    user = await get_current_user(request, db)
+    if not user:
+        return RedirectResponse("/login", status_code=303)
+    st = await get_state(db, user.id)
+    reset_daily(st)
+    if tower_type not in ("tongtian", "spirit"):
+        return await render(request, "result.html", db, user=user, ok=False,
+                            msg="塔类型不存在", back_href="/games/summon/tower", back_text="返回塔")
+    if tower_type == "spirit" and st.level < 35:
+        return await render(request, "result.html", db, user=user, ok=False,
+                            msg="需 Lv35 解锁战灵塔",
+                            back_href="/games/summon/tower", back_text="返回塔")
+    floors = json.loads(st.tower_floors or '{"tongtian":0,"spirit":0}')
+    cur_floor = floors.get(tower_type, 0)
+    max_floor = D.TONGTIAN_TOWER_FLOORS if tower_type == "tongtian" else D.SPIRIT_TOWER_FLOORS
+    if cur_floor >= max_floor:
+        return await render(request, "result.html", db, user=user, ok=False,
+                            msg="已登顶该塔", back_href="/games/summon/tower", back_text="返回塔")
+    team = await get_team(db, user.id)
+    if not team:
+        return await render(request, "result.html", db, user=user, ok=False,
+                            msg="队伍为空，先去幻兽列表上阵",
+                            back_href="/games/summon/pets", back_text="去幻兽")
+    # 敌人难度随层数提升
+    tier = f"T{min(8, max(1, (cur_floor // 10) + 1))}"
+    enemies = [D.roll_wild_pet(tier)]
+    result = auto_battle(team, enemies)
+    battle_log = result["log"][-12:]
+    tower_name = "通天塔" if tower_type == "tongtian" else "战灵塔"
+    metric = "tower_floor" if tower_type == "tongtian" else "spirit_tower_floor"
+    if result["win"]:
+        floors[tower_type] = cur_floor + 1
+        st.tower_floors = json.dumps(floors, ensure_ascii=False)
+        # 奖励
+        reward_item = "IT_BURN_CRYSTAL" if tower_type == "tongtian" else "IT_SPIRIT_DUST"
+        reward_qty = 3 + cur_floor // 5
+        await goods.add_item(db, user.id, reward_item, MODULE_KEY, reward_qty)
+        st.coins += 100 + cur_floor * 20
+        exp_reward = D.PET_XP_SOURCES["tower_floor"]
+        for pet in team:
+            add_pet_exp(pet, exp_reward)
+        incr_daily_counter(st, metric)
+        await log.record(db, user.id, MODULE_KEY, "tower_climb",
+                         f"{tower_type}:{cur_floor+1}:{reward_item}+{reward_qty}")
+        await db.commit()
+        return await render(request, "summon/battle.html", db, user=user, ok=True,
+                            msg=f"{tower_name} 第{cur_floor+1}层通过！{D.ITEMS[reward_item][0]}+{reward_qty} 铜钱+{100+cur_floor*20}",
+                            result=result, battle_log=battle_log, enemies=enemies,
+                            rewards={"currency_gains": {"coins": 100+cur_floor*20},
+                                     "item_gains": [(reward_item, reward_qty)]},
+                            drop_text=f"{D.ITEMS[reward_item][0]}+{reward_qty} 铜钱+{100+cur_floor*20}",
+                            exp_reward=exp_reward, leveled=False, st=st, stage_no=cur_floor+1,
+                            is_elite=False, exp_need=D.exp_needed(st.level),
+                            back_href="/games/summon/tower", back_text="继续登塔")
+    else:
+        exp_reward = 5
+        for pet in team:
+            add_pet_exp(pet, exp_reward)
+        await log.record(db, user.id, MODULE_KEY, "tower_loss", f"{tower_type}:{cur_floor+1}")
+        await db.commit()
+        return await render(request, "summon/battle.html", db, user=user, ok=False,
+                            msg=f"{tower_name} 第{cur_floor+1}层失败…获得安慰经验+{exp_reward}",
+                            result=result, battle_log=battle_log, enemies=enemies,
+                            rewards={"currency_gains": {}, "item_gains": []},
+                            drop_text="无掉落", exp_reward=exp_reward, leveled=False,
+                            st=st, stage_no=cur_floor+1, is_elite=False,
+                            exp_need=D.exp_needed(st.level),
+                            back_href="/games/summon/tower", back_text="重新挑战")
