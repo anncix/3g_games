@@ -381,9 +381,7 @@ async def stage_action(slot: int, action: str, request: Request, db: AsyncSessio
         p.debugged = True
     await add_exp(db, st, 3)  # 操作少量经验
     await db.commit()
-    # 事件上报：阶段操作完成
-    await events.emit(db, user.id, MODULE_KEY, "achievement",
-                      {"key": "achv_flower_master", "delta": 1})
+    # v0.1.2：阶段操作不再推进"花谱大师"成就（该成就只在 album_light 点亮花谱时触发）
     await log.record(db, user.id, MODULE_KEY, "stage_action", f"slot{slot}:{action}")
     return await render(request, "result.html", db, user=user, ok=True,
                         msg=f"{ACTION_NAMES[action]}完成！获得经验+3，产量与稀有度提升",
@@ -458,8 +456,7 @@ async def harvest(slot: int, request: Request, db: AsyncSession = Depends(get_db
                       {"metric": "flower_lit", "score": len(lit_entries)})
     if lit_entries:
         await events.emit(db, user.id, MODULE_KEY, "icon_light", {"icon_key": "icon_gardener"})
-    await events.emit(db, user.id, MODULE_KEY, "achievement",
-                      {"key": "achv_flower_master", "delta": 1})
+    # v0.1.2：收获不再推进"花谱大师"成就（该成就只在 album_light 点亮花谱时触发）
     await log.record(db, user.id, MODULE_KEY, "harvest", f"slot{slot}:{seed.key}:{final_yield}")
     # 结果页：清晰展示获得物
     bloom_summary = {}
@@ -662,8 +659,7 @@ async def craft(recipe_id: int, request: Request, db: AsyncSession = Depends(get
         # 合成经验（与目标等级相关）
         craft_exp = 5 + r.target_level * 3
         await add_exp(db, st, craft_exp)
-        await events.emit(db, user.id, MODULE_KEY, "achievement",
-                          {"key": "achv_flower_master", "delta": 1})
+        # v0.1.2：合成不再推进"花谱大师"成就（该成就只在 album_light 点亮花谱时触发）
         await log.record(db, user.id, MODULE_KEY, "craft_success",
                          f"{recipe_id}:{r.result_seed_key}:exp{craft_exp}")
         await db.commit()

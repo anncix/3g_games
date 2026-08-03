@@ -213,6 +213,7 @@ async def harvest(slot: int, request: Request, db: AsyncSession = Depends(get_db
     if st.exp >= need:
         st.exp -= need
         st.level += 1
+    st.harvest_count += 1  # v0.1.2：真实收获计数（图标触发用）
     p.crop_key = ""
     p.planted_at = None
     p.watered = False
@@ -220,13 +221,11 @@ async def harvest(slot: int, request: Request, db: AsyncSession = Depends(get_db
     await db.commit()
     # 事件上报：图标/成就/排行
     await events.emit(db, user.id, MODULE_KEY, "achievement", {"key": "achv_first_harvest", "delta": 1})
-    # 累计收获达10次点亮图标
-    total_harv = (await db.execute(select(models.FarmState).where(models.FarmState.user_id == user.id))).scalar_one_or_none()
-    # 简化：用 exp 近似判断
-    if st.exp + (st.level-1)*100 >= 100:
+    # v0.1.2：累计收获达10次点亮"勤劳农夫"图标（spec：收获10次作物）
+    if st.harvest_count >= 10:
         await events.emit(db, user.id, MODULE_KEY, "icon_light", {"icon_key": "icon_farmer"})
     await events.emit(db, user.id, MODULE_KEY, "ranking", {"metric": "harvest", "score": 1, "period": "total"})
-    await log.record(db, user.id, MODULE_KEY, "harvest", f"slot{slot}:{crop_key}")
+    await log.record(db, user.id, MODULE_KEY, "harvest", f"slot{slot}:{crop.key}")
     return await render(request, "result.html", db, user=user, ok=True,
                         msg=f"收获{crop.name}×2，经验+{crop.harvest_exp}", back_href="/games/farm/plots", back_text="返回农田")
 

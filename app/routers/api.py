@@ -281,3 +281,31 @@ async def api_sea_state(request: Request, db: AsyncSession = Depends(get_db)):
     return ok({"level": st.level if st else 1, "power": st.power if st else 10,
                "current_city": st.current_city if st else "port_a",
                "traveling_to": st.traveling_to if st else ""})
+
+
+@router.get("/summon/state")
+async def api_summon_state(request: Request, db: AsyncSession = Depends(get_db)):
+    """v0.1.2：补齐召唤之王状态接口（之前仅 farm/town/garden/sea 四个，缺 summon）"""
+    user = await _auth(request, db)
+    st = await db.get(models.SummonState, user.id)
+    # 统计队伍中的幻兽数量与最高等级
+    pets_res = await db.execute(select(models.SummonPet).where(
+        models.SummonPet.user_id == user.id))
+    pets = pets_res.scalars().all()
+    in_team = sum(1 for p in pets if p.team_slot is not None and p.team_slot >= 0)
+    max_pet_level = max((p.level for p in pets), default=0)
+    return ok({
+        "level": st.level if st else 1,
+        "exp": st.exp if st else 0,
+        "energy": st.energy if st else 120,
+        "coins": st.coins if st else 5000,         # 铜钱
+        "gems": st.gems if st else 100,            # 元宝
+        "prestige": st.prestige if st else 0,      # 声望
+        "arena_coin": st.arena_coin if st else 0,
+        "current_map": st.current_map if st else "T1",
+        "stage_cleared": st.stage_cleared if st else 0,
+        "pet_total": len(pets),
+        "pet_in_team": in_team,
+        "max_pet_level": max_pet_level,
+    })
+

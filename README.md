@@ -1,6 +1,6 @@
 # QQ家园 — 怀旧平台化复刻
 
-> 版本：**v0.1.1** （2026-08-03 美味小镇对齐资料汇总：油壶8档/赛厨/厨艺大赛/万能食材/菜系街道）
+> 版本：**v0.1.2** （2026-08-03 全仓库模拟运行修复：农场收获500/成就错位/图标触发/花谱成就/召唤API）
 >
 > 基于 **FastAPI + SQLite + Jinja2(简版 WAP 风)** 实现的怀旧 QQ 家园平台复刻。
 > 严格遵循《怀旧QQ家园平台设计规范》：平台统一、模块自治、旧逻辑优先、一页只做一件事。
@@ -10,6 +10,59 @@
 ---
 
 ## 更新日志
+
+### v0.1.2 （2026-08-03）— 全仓库模拟运行修复（5 项）
+
+对仓库做整体模拟运行与逐模块走查，复现并修复 4 个逻辑错误与 1 个功能缺口。修复原则：回归每条成就/图标定义，使触发点与定义语义一致；写操作留痕变量需在作用域内定义。
+
+**[高] 农场收获 NameError 500**
+- 复现：登录 demo → 购种子 → 种植 → 等成熟 → POST `/games/farm/harvest/{slot}` → 500
+- 根因：`harvest` 末尾日志记录 `await log.record(..., f"slot{slot}:{crop_key}")` 引用了未定义变量 `crop_key`（作用域内只有 `p.crop_key` 与 `crop`，无 `crop_key`）
+- 修复：改为 `crop.key`（与上方 `crop.name`/`crop.harvest_exp` 同源）
+- 影响：农场核心闭环在收获阶段中断，修复后收获闭环恢复
+
+**[高] 二星餐厅成就错位**
+- 复现：首次完成一道菜即可能点亮"二星餐厅"成就
+- 根因：成就定义 `achv_chef_star2` = "餐厅升至2星"（`seed.py`），正确触发点应在 `apply_star` 升星成功后；但 `finish_cook` 每次完成烹饪都上报 `achv_chef_star2 delta=1`，导致做菜即可推进
+- 修复：移除 `finish_cook` 中错误的 `achv_chef_star2` 上报；保留 `apply_star` 中 `if st.stars >= 2: 上报 achv_chef_star2`（已存在，正确）
+- 影响：成就触发点与定义一致，仅在升至 2 星时点亮
+
+**[中] 勤劳农夫图标触发条件错误**
+- 复现：图标定义 `icon_farmer` = "收获10次作物"（`seed.py`），但 `harvest` 用 `if st.exp + (st.level-1)*100 >= 100` 经验近似判断，因不同作物 `harvest_exp` 不同（如番茄=20），实际可能 5 次收获就点亮
+- 根因：缺少真实收获计数器
+- 修复：
+  - `FarmState` 模型新增 `harvest_count` 字段（累计收获次数）
+  - `harvest` 中 `st.harvest_count += 1`，触发条件改为 `if st.harvest_count >= 10`
+- 影响：图标触发严格对齐"收获10次"定义
+
+**[中] 花谱大师成就被无关动作推进**
+- 复现：成就定义 `achv_flower_master` = "点亮全部花谱"（`seed.py`），但 `stage_action`（浇水/除草/除虫）、`harvest`（收花）、`craft`（合成种子）三处都上报 `achv_flower_master delta=1`
+- 根因：浇水/收花/合成都能涨这个成就，语义跑偏
+- 修复：移除 `stage_action` / `harvest` / `craft` 三处错误上报；保留 `album_light`（点亮花谱）中的上报（已存在，正确）
+- 影响：成就只在真正点亮花谱条目时推进，与定义一致
+
+**[功能缺口] JSON API 缺召唤之王状态接口**
+- 复现：`api.py` 仅有 `/farm/state` `/town/state` `/garden/state` `/sea/state` 四个状态接口，缺 `/summon/state`；README API 列表也仅列四个
+- 修复：新增 `GET /api/summon/state`，返回召唤师核心状态：等级/经验/活力/铜钱/元宝/声望/擂台币/当前地图/通关数/幻兽总数/上阵数/最高幻兽等级
+- 影响：前端或外部调用方可统一拉取五个模块状态，API 能力完整
+
+**文件变更**
+- `app/routers/farm.py`：`harvest` 修复 `crop_key`→`crop.key`；图标触发改为 `harvest_count >= 10`
+- `app/routers/town.py`：`finish_cook` 移除错误的 `achv_chef_star2` 上报
+- `app/routers/garden.py`：`stage_action` / `harvest` / `craft` 移除错误的 `achv_flower_master` 上报
+- `app/routers/api.py`：新增 `GET /api/summon/state` 接口
+- `app/models.py`：`FarmState` 新增 `harvest_count` 字段
+- `app/config.py`：版本号 0.1.1 → 0.1.2
+
+**端到端验证**
+- ✅ 导入校验：`SummonState`/`SummonPet` 可访问；`FarmState.harvest_count` 字段存在
+- ✅ 农场收获冒烟：种番茄→催熟→收获返回 200（不再 500），`harvest_count` 递增
+- ✅ 勤劳农夫图标：收获 10 次后触发（不再受 `harvest_exp` 差异影响）
+- ✅ 二星餐厅成就：做菜不再推进；仅 `apply_star` 升至 2 星时推进
+- ✅ 花谱大师成就：浇水/收花/合成不再推进；仅 `album_light` 点亮花谱时推进
+- ✅ 召唤 API：`GET /api/summon/state` 返回 12 个字段，含幻兽统计
+
+---
 
 ### v0.1.1 （2026-08-03）— 美味小镇对齐《页面结构与数值资料汇总》
 
@@ -718,7 +771,7 @@
 - 社交：`/api/friends` `/api/friends/add` `/api/friends/remove`
 - 资源：`/api/inventory` `/api/shop/buy` `/api/messages`
 - 平台能力：`/api/ranking` `/api/icons` `/api/events/emit`
-- 模块状态：`/api/farm/state` `/api/town/state` `/api/garden/state` `/api/sea/state`
+- 模块状态：`/api/farm/state` `/api/town/state` `/api/garden/state` `/api/sea/state` `/api/summon/state`
 - 统一返回 `{code, msg, data}`，`code=0` 成功
 
 **内置数据**
@@ -909,6 +962,7 @@ qq_home/
 | GET | `/api/town/state` | 小镇状态 |
 | GET | `/api/garden/state` | 花园状态 |
 | GET | `/api/sea/state` | 航海状态 |
+| GET | `/api/summon/state` | 召唤之王状态（v0.1.2 新增） |
 
 ### 模块事件上报示例
 

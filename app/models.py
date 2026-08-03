@@ -421,6 +421,7 @@ class FarmState(Base):
     level: Mapped[int] = mapped_column(Integer, default=1)
     exp: Mapped[int] = mapped_column(Integer, default=0)
     plot_count: Mapped[int] = mapped_column(Integer, default=6)  # 可用地块数
+    harvest_count: Mapped[int] = mapped_column(Integer, default=0)  # 累计收获次数（图标触发用）
 
 
 class FarmStealLog(Base):

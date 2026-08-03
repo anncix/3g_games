@@ -758,8 +758,7 @@ async def finish_cook(request: Request, db: AsyncSession = Depends(get_db)):
     st.dishes_served += 1
     st.cooking_recipe = ""
     st.cooking_started_at = None
-    await events.emit(db, user.id, MODULE_KEY, "achievement",
-                      {"key": "achv_chef_star2", "delta": 1})
+    # v0.1.2：移除错误的 achv_chef_star2 上报（该成就只在 apply_star 升至2星时触发）
     await db.commit()
     await log.record(db, user.id, MODULE_KEY, "finish_cook", r.key)
     return await render(request, "result.html", db, user=user, ok=True,
