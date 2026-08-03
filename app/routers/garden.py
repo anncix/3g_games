@@ -1133,7 +1133,11 @@ def _calc_order_reward(reqs: list[dict], order_type: str, st_level: int, has_dea
 
 
 async def _ensure_orders(db: AsyncSession, user_id: int, st: models.GardenState):
-    """保证玩家有足够订单（首次进入/每日补充）"""
+    """保证玩家有足够订单（首次进入/每日补充）
+
+    v0.1.4：优先从订单模板池（GardenOrderTemplate，按 spec pool(L) 分层）实例化；
+           无模板时回退到原动态生成（玩家已点亮花谱花朵池）。
+    """
     res = await db.execute(select(models.GardenOrder).where(
         models.GardenOrder.user_id == user_id, models.GardenOrder.delivered.is_(False)))
     active = list(res.scalars().all())
@@ -1148,36 +1152,50 @@ async def _ensure_orders(db: AsyncSession, user_id: int, st: models.GardenState)
         active = [o for o in active if not o.delivered]
     if len(active) >= ORDER_ACTIVE_MAX:
         return active
-    # 需要补充：从玩家已点亮花谱的花朵中抽取需求池
-    col_res = await db.execute(select(models.GardenCollection).where(
-        models.GardenCollection.user_id == user_id))
-    lit_keys = [c.entry_key for c in col_res.scalars().all()]
-    bloom_keys = []
-    for ek in lit_keys:
-        entry = await db.get(models.GardenAlbumEntry, ek)
-        if entry:
-            bloom_keys.append(entry.bloom_key)
-    db_blooms = []
-    for bk in bloom_keys:
-        b = await db.get(models.GardenBloom, bk)
-        if b:
-            db_blooms.append(b)
-    # 若玩家花谱空（新手），用 Lv1 野花保底
-    if not db_blooms:
-        b = await db.get(models.GardenBloom, "bloom_wild_w")
-        if b:
-            db_blooms = [b]
+    # v0.1.4：可用模板池（按玩家等级分层 spec pool(L)）
+    tpl_res = await db.execute(select(models.GardenOrderTemplate).where(
+        models.GardenOrderTemplate.level_min <= st.level,
+        models.GardenOrderTemplate.level_max >= st.level))
+    templates = list(tpl_res.scalars().all())
+
     target = ORDER_DAILY_BASE + random.randint(0, ORDER_DAILY_RAND)
     to_add = max(0, min(target, ORDER_ACTIVE_MAX) - len(active))
     for _ in range(to_add):
-        r = random.random()
-        if r < 0.15:
-            otype = "limited"
-        elif r < 0.45:
-            otype = "premium"
+        if templates:
+            tpl = random.choices(templates, weights=[t.weight for t in templates], k=1)[0]
+            otype = tpl.order_type
+            reqs = json.loads(tpl.requirements)
         else:
-            otype = "normal"
-        reqs = _gen_order_requirements(db_blooms, st.level, otype)
+            # 回退：动态生成（玩家已点亮花谱花朵池）
+            if not hasattr(_ensure_orders, "_blooms_cache"):
+                col_res = await db.execute(select(models.GardenCollection).where(
+                    models.GardenCollection.user_id == user_id))
+                lit_keys = [c.entry_key for c in col_res.scalars().all()]
+                bloom_keys = []
+                for ek in lit_keys:
+                    entry = await db.get(models.GardenAlbumEntry, ek)
+                    if entry:
+                        bloom_keys.append(entry.bloom_key)
+                db_blooms = []
+                for bk in bloom_keys:
+                    b = await db.get(models.GardenBloom, bk)
+                    if b:
+                        db_blooms.append(b)
+                # 若玩家花谱空（新手），用 Lv1 野花保底
+                if not db_blooms:
+                    b = await db.get(models.GardenBloom, "bloom_wild_w")
+                    if b:
+                        db_blooms = [b]
+                _ensure_orders._blooms_cache = db_blooms
+            db_blooms = _ensure_orders._blooms_cache
+            r = random.random()
+            if r < 0.15:
+                otype = "limited"
+            elif r < 0.45:
+                otype = "premium"
+            else:
+                otype = "normal"
+            reqs = _gen_order_requirements(db_blooms, st.level, otype)
         if not reqs:
             continue
         has_dl = otype == "limited"
@@ -1189,6 +1207,9 @@ async def _ensure_orders(db: AsyncSession, user_id: int, st: models.GardenState)
                                   reward_token=5 if otype == "limited" else 0,
                                   expire_at=expire))
     await db.flush()
+    # 清理一次性缓存
+    if hasattr(_ensure_orders, "_blooms_cache"):
+        del _ensure_orders._blooms_cache
     res = await db.execute(select(models.GardenOrder).where(
         models.GardenOrder.user_id == user_id, models.GardenOrder.delivered.is_(False),
         (models.GardenOrder.expire_at.is_(None)) | (models.GardenOrder.expire_at > now)))

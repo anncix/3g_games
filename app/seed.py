@@ -12,6 +12,7 @@ from .database import init_db, SessionLocal
 from . import models
 from .platform import goods, icons
 from .deps import hash_password
+from .seed_garden_large import seed_garden_large
 
 
 async def seed():
@@ -469,6 +470,10 @@ async def seed():
             db.add(models.Activity(name="每日签到", description="每天签到领金币", type="signin",
                                    start_at=datetime.utcnow(), end_at=datetime.utcnow() + timedelta(days=365)))
         await db.commit()
+
+        # ---------- v0.1.4：魔法花园超大数据（spec 大全级资料库）----------
+        # 作物 520 / 材料 1024 / 配方 1536 / 订单模板 3072（幂等，已达标则跳过）
+        await seed_garden_large(db)
 
         print("✅ 种子数据已写入。管理员: admin/admin123  演示: demo/demo123")
 

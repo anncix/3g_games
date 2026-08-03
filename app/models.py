@@ -835,6 +835,25 @@ class GardenOrderLog(Base):
     delivered_at: Mapped[datetime] = mapped_column(DateTime, default=_now)
 
 
+# v0.1.4：订单模板表（spec 大全级资料库 / 订单池按等级分层 pool(L)）
+class GardenOrderTemplate(Base):
+    """订单模板：spec 订单系统分册 order_templates
+
+    requirements: JSON [{item_key, name, qty, quality, value_coin, item_level, rarity}]
+    奖励不在模板存死，由 _calc_order_reward 按 spec 公式即时计算（单一真值源）。
+    level_min/level_max: 玩家等级分层过滤（spec：pool(L)）。
+    weight: 抽取权重（限时单可低权）。
+    """
+    __tablename__ = "garden_order_templates"
+    id: Mapped[int] = mapped_column(Integer, primary_key=True)
+    order_type: Mapped[str] = mapped_column(String(16), default="normal", index=True)  # normal/premium/limited
+    requirements: Mapped[str] = mapped_column(Text)  # JSON
+    level_min: Mapped[int] = mapped_column(Integer, default=1, index=True)
+    level_max: Mapped[int] = mapped_column(Integer, default=99)
+    weight: Mapped[int] = mapped_column(Integer, default=100)
+    created_at: Mapped[datetime] = mapped_column(DateTime, default=_now)
+
+
 
 # ============================================================
 # 模块4：纵横四海 Sea

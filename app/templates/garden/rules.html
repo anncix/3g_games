@@ -85,6 +85,15 @@
   稀有度倍率：普通1.0 / 稀有1.8 / 史诗2.6 / 传说4.0<br>
   <span class="muted">value_coin 用于订单/配方定价，不等于玩家可见卖价</span>
 </div>
+<div class="card">
+  <div class="hd">大全级资料库（v0.1.4 新增 · spec 物品体系/订单系统分册）</div>
+  <b>资料库规模</b>：作物 520 / 材料 1024 / 配方 1536 / 订单模板 3072<br>
+  <b>8 tier 分层</b>：T1-2 普通 / T3-4 稀有 / T5-6 史诗 / T7-8 传说<br>
+  <b>解锁等级</b>：1/6/11/16/21/31/46/66（对齐段位起始等级）<br>
+  <b>订单池</b>：按 spec <code>pool(L)</code> 分层，<code>level_min</code> = tier 解锁等级<br>
+  <b>闭环</b>：订单需求 70% 取花朵(收获产出) / 30% 取材料(工坊产出) → plant→harvest→deliver<br>
+  <b>幂等</b>：生成器 <code>need = TARGET - current</code> 填至目标，重跑 0 新增
+</div>
 <div class="content"><a class="btn ghost" href="/games/garden">返回花园</a></div>
 {{ footer(user) }}
 {% endblock %}

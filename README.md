@@ -1,6 +1,6 @@
 # QQ家园 — 怀旧平台化复刻
 
-> 版本：**v0.1.3** （2026-08-03 魔法花园对齐新版总纲：订单交易系统/品质5档/统一加成/价值体系）
+> 版本：**v0.1.4** （2026-08-03 魔法花园大全级资料库：作物520/材料1024/配方1536/订单模板3072）
 >
 > 基于 **FastAPI + SQLite + Jinja2(简版 WAP 风)** 实现的怀旧 QQ 家园平台复刻。
 > 严格遵循《怀旧QQ家园平台设计规范》：平台统一、模块自治、旧逻辑优先、一页只做一件事。
@@ -10,6 +10,53 @@
 ---
 
 ## 更新日志
+
+### v0.1.4 （2026-08-03）— 魔法花园大全级资料库（spec 物品体系/订单系统分册落地）
+
+按《QQ家园·魔法花园 新版总纲 + 四大分册》补齐"大全级"资料库样例规模，使体系可无限扩展并闭环跑通。
+
+**超大数据生成器 `app/seed_garden_large.py`（幂等 / 可断点续跑）**
+- 复现：v0.1.3 仅落了公式与少量手写内容（8 花种 / 5 配方），spec 要求"可无限扩展的资料库结构 + 样例规模清单确保闭环跑通"
+- 新增 `GardenOrderTemplate` 表（spec `order_templates` / 订单池按等级分层 `pool(L)`）
+- 按统一价值体系（`value_coin = max(sell,1)*4`，对齐 `item_value_coin` 的 `grow_seconds=0` 分支）批量生成：
+  - **作物 520**（8 tier × 65：`GardenBloom`+`GardenSeed`+`GardenAlbumEntry`+`Item` 各 520 同步）
+    - tier→稀有度：T1-2 普通 / T3-4 稀有 / T5-6 史诗 / T7-8 传说
+    - tier→解锁等级：1/6/11/16/21/31/46/66（对齐段位起始等级）
+    - tier→成长时长：60/90/150/240/360/540/780/1080 秒
+  - **材料 1024**（8 tier × 128，`Item` 字典 `type=material`）
+  - **配方 1536**（`GardenRecipe`，target tier 2-8 循环填满；成功率 `92-(tier-1)*8`；高阶 tier≥6 强制操作锁）
+    - 输入：2-3 个同阶/低阶材料 + 50% 概率 1 个低阶花朵；产出：对应 tier 花种
+  - **订单模板 3072**（`GardenOrderTemplate`，按 tier 权重 20/18/16/14/12/10/6/4 分配；type 比例 normal60%/premium28%/limited12%）
+    - 闭环：需求 item 70% 取花朵（收获产出）/ 30% 取材料（工坊产出），保证 plant→harvest→deliver 主路径
+    - `level_min` = tier 解锁等级，`level_max` = 99（spec `pool(L)` 分层）
+- 幂等：`need = TARGET - current` 填至目标；已达标则 0 新增（重跑验证通过）
+
+**订单实例化改造 `app/routers/garden.py::_ensure_orders`**
+- 优先从模板池实例化（按 `level_min <= 玩家等级 <= level_max` 过滤 + weight 加权抽取）
+- 奖励仍走 `_calc_order_reward` 单一真值源（spec 公式即时计算，模板不存死奖励）
+- 无模板时回退原动态生成（玩家已点亮花谱花朵池，新手 Lv1 野花保底）
+
+**文件变更**
+- 新增 `app/seed_garden_large.py`（生成器，~280 行）
+- `app/models.py`：新增 `GardenOrderTemplate` 表
+- `app/seed.py`：接入 `seed_garden_large(db)`
+- `app/routers/garden.py`：`_ensure_orders` 模板池实例化
+- `app/config.py`：版本号 0.1.3 → 0.1.4
+
+**端到端验证**
+- ✅ 数据量：bloom 531 / seed 528 / album 531 / material 2158 / recipe 1536 / order_template 3072
+- ✅ 闭环：订单模板需求 item 缺失=0；配方材料 item 缺失=0；配方产出 seed 缺失=0
+- ✅ 幂等：重跑 stats 全 0
+- ✅ 订单实例化：`_ensure_orders` 从模板生成 4-6 单，需求 item 全部存在于字典
+- ✅ 交付闭环：给 demo T1 花朵+材料 → 找到可交付订单 → 扣材料发奖励 → `GardenOrderLog` 记录 → API `active_orders`/`total_order_coin` 更新
+- ✅ 页面：`/games/garden/orders` 渲染订单卡（200）；`/api/garden/state` 返回 active_orders=6
+
+**待办（下一版本）**
+- 材料掉落表 `drops`（当前 1024 材料仅字典存在，无 drop 来源；spec `drops` 表族）
+- 工坊制作队列（slot 工作台并行，替代当前即时合成）
+- 环境值 / 装扮系统（env_score + deco + set_bonus + 边际递减 buff）
+
+---
 
 ### v0.1.3 （2026-08-03）— 魔法花园对齐新版总纲（订单/品质/价值/加成）
 
