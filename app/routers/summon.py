@@ -1662,3 +1662,15 @@ async def mainquests_list(request: Request, db: AsyncSession = Depends(get_db)):
         return RedirectResponse("/login", status_code=303)
     st = await get_state(db, user.id)
     return await render(request, "summon/mainquests.html", db, user=user, st=st, quests=D.MAIN_QUESTS)
+
+
+# ---------- v0.2.7 原版规格图鉴 ----------
+@router.get("/guide")
+async def summon_guide(request: Request, db: AsyncSession = Depends(get_db)):
+    """原版规格图鉴页：展示用户提供的《召唤之王完整游戏资料》
+    与现行可玩系统（120 宠/60 技能/战斗/装备）并存的参考层。"""
+    user = await get_current_user(request, db)
+    if not user:
+        return RedirectResponse("/login", status_code=303)
+    st = await get_state(db, user.id)
+    return await render(request, "summon/guide.html", db, user=user, st=st, D=D)

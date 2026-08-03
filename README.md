@@ -1,6 +1,6 @@
 # QQ家园 — 怀旧平台化复刻
 
-> 版本：**v0.2.6** （2026-08-04 全游戏主线任务补全：6 模块新增 MAIN_QUESTS 主线任务链 + 6 路由 + 6 模板 + 首页导航补全）
+> 版本：**v0.2.7** （2026-08-04 召唤之王原版规格图鉴：spec 权威对齐 45 组常量参考层 + /guide 路由 + 模板，与现行 120 宠/60 技能/战斗/装备系统并存）
 >
 > 基于 **FastAPI + SQLite + Jinja2(简版 WAP 风)** 实现的怀旧 QQ 家园平台复刻。
 > 严格遵循《怀旧QQ家园平台设计规范》：平台统一、模块自治、旧逻辑优先、一页只做一件事。
@@ -10,6 +10,61 @@
 ---
 
 ## 更新日志
+
+### v0.2.7 （2026-08-04）— 召唤之王原版规格图鉴（spec 权威对齐 45 组常量参考层 + /guide 路由 + 模板）
+
+以用户提供的《召唤之王完整游戏资料》（原版玩法/数值/系统全解）为权威依据，重新设计召唤之王模块：在**不破坏现行可玩系统**（120 宠/60 技能/战斗/装备/主线任务）的前提下，新增一层"原版规格参考层"，把原版菜单结构、等级解锁、种族阶位、战骨/魔魂/战灵三大装备系统、地图、副本、经验/活力、社交、货币体系、新手路线全量沉淀为静态常量，并通过原版图鉴页集中展示原版风貌。策略与 v0.2.5 精武堂 WAP 原版资料补全一致（保守增量，参考层并存）。
+
+**一、原版规格参考层（summon_data.py +45 组常量，纯静态不入库）**
+
+按资料十三章结构对齐，覆盖原版全部系统：
+
+| 章 | 常量组 | 内容 |
+|----|--------|------|
+| 二、菜单界面 | `MENU_INFO_BAR`（6 项）+ `MENU_STRUCTURE`（16 项菜单，含功能/开放条件） | 主界面信息栏 + 16 项核心功能菜单 |
+| 三、角色系统 | `LEVEL_UNLOCKS_SPEC`（8 段等级表）+ `TALENT_SCHOOLS`（3 流派） | 1~110 级可带幻兽数/魔魂槽位/解锁内容 + 兽王/幻法/暗牧三大天赋 |
+| 四、宠物系统 | `PET_RACES_SPEC`（4 种族）+ `PET_QUALITY_TIERS`（4 阶位）+ `PET_EVAL_DIMENSIONS`（4 维鉴定）+ `PET_PERSONALITIES`（6 性格）+ `SKILLS_SPEC`（8 技能）+ `MAP_PET_RECOMMEND`（5 等级段推荐）+ `PET_CHANGE_STRATEGY` + `CAPTURE_BALLS_SPEC`（3 球）+ `PET_GROWTH_ITEMS`（3 道具） | 兽/虫/羽/水四族 + 黄玄地天四阶 + 成长率/资质/技能/性格四维 + 原版技能表 + 各等级地图推荐 + 换宠策略 + 捕捉/养成道具 |
+| 五、物品与装备 | `BONE_PARTS_SPEC`（7 部位）+ `BONE_GRADES_SPEC`（8 品级）+ `BONE_STRENGTHEN_TIERS`（6 强化阶）+ `BONE_STRENGTHEN_RULES` + `SOUL_GRADES_SPEC`（6 品级）+ `SOUL_AFFIXES_FIXED`/`SOUL_AFFIXES_PERCENT`（天魂极品属性）+ `SOUL_HUNTERS_SPEC`（7 档猎魂师）+ `SOUL_HUNTER_ITEM_PRICES` + `SOUL_XP_SPEC`（升级经验公式表）+ `SPIRIT_SLOTS_SPEC`（6 槽）+ `SPIRIT_QUALITY_TIERS`（4 品质）+ `SPIRIT_RULES` + `OTHER_ITEMS_SPEC` | 战骨 7 部位/8 品级/6 强化阶 + 魔魂 6 品级/天魂极品属性/猎魂师价目表/升级经验表 + 战灵 6 槽/4 品质/洗炼规则 + 其他道具 |
+| 六、地图系统 | `MAPS_SPEC`（7 大地图）+ `MAP_MECHANICS`（天气/昼夜/扫图/修行） | 新手村→清溪→石工矿场/湖里→树藤沼泽→落日荒漠→雪山，含天气昼夜机制 |
+| 七、副本与挑战 | `DUNGEONS_SPEC`（6 玩法）+ `ARENA_TIERS_SPEC`（4 阶擂台）+ `ARENA_TIPS` + `BATTLEFIELD_ZONES`（2 战场分区） | 通天塔/战灵塔/擂台/战场/联盟战/修行 + 黄玄地天四阶 + 猛虎/飞鹤战场 |
+| 八、任务系统 | `NEWBIE_TASKS_SPEC` + `MAIN_TASKS_SPEC` + `DAILY_ACTIVITIES`（6 活动） | 新手任务/主线任务/日常活动表 |
+| 九、经验体系 | `EXP_SOURCES_SPEC`（6 途径）+ `VITALITY_SPEC`（活力值系统） | 六大经验途径 + 活力自动回复/互灌/师徒 4 倍/日常奖励 |
+| 十、战斗规则 | `BATTLE_RULES_SPEC` | 自动文字战报/技能概率/六大属性/速度定序/可重试 |
+| 十一、社交系统 | `ALLIANCE_SPEC` + `MASTER_APPRENTICE_SPEC` + `FRIEND_SPEC` | 联盟捐献/寄存/技能/火能 + 师徒(40 收/30 拜/35 出师/4 倍活力) + 好友互灌/雇佣 |
+| 十二、货币体系 | `CURRENCY_TABLE_SPEC`（8 种货币） | 铜钱/元宝/活力/焚火晶/灵石/声望/桃李值/贡献 |
+| 十三、新手路线 | `NEWBIE_GUIDE`（5 阶段）+ `NEWBIE_PRINCIPLES`（4 原则） | 1-20→20 转折→30 攒资源→40 成型→50+ 终极 + 成长≥3星/技能重质/速度为王/换宠节奏稳 |
+
+> 另含 `SPEC_SECTIONS` 索引常量（13 章分节目录），供图鉴页分节展示。
+
+**二、路由 + 模板（+1 路由 +1 模板 +1 导航）**
+
+| 项 | 路径 | 说明 |
+|----|------|------|
+| 路由 | `GET /games/summon/guide` | 原版规格图鉴页，渲染 guide.html，传入 `D=summon_data` |
+| 模板 | `app/templates/summon/guide.html` | 13 章卡片式展示原版规格，沿用 WAP 层级页风格（tag/card/li/section-title） |
+| 导航 | `summon/home.html` 快捷入口 | 在"图鉴"后新增"原版图鉴"链接 → `/games/summon/guide` |
+
+**三、设计原则：参考层并存，不破坏现行系统**
+
+- 现行可玩系统（120 宠图鉴/60 基础技能×3 阶=180 技能/回合战斗/战骨魔魂战灵装备/8 章主线任务/通天塔/擂台/战场）**完全保留**，未做任何数值改动
+- 新增的 `*_SPEC` 常量为**纯参考层**，仅供 guide 页展示原版风貌，不参与现行战斗/捕捉/装备判定
+- 与现行系统形成对照：如原版 8 技能表（`SKILLS_SPEC`）vs 现行 60 技能库（`SKILLS`）；原版 4 种族（`PET_RACES_SPEC`）vs 现行 6 种族（`RACE_LIST`，含龙/亡灵）。两套并存，玩家可在图鉴页看到原版风貌，在游戏内体验复刻版
+
+**四、闭环验证**
+- ✅ IMPORT OK：`VERSION = 0.2.7`；45 组 spec 常量全部可访问（无 MISSING）
+- ✅ 数据计数校验：MENU 16 / LEVEL 8 / TALENT 3 / RACES 4 / TIERS 4 / SKILLS 8 / MAP_RECOMMEND 5 / BONE_PARTS 7 / BONE_GRADES 8 / BONE_TIERS 6 / SOUL_GRADES 6 / SOUL_HUNTERS 7 / SPIRIT_SLOTS 6 / SPIRIT_QUALITY 4 / MAPS 7 / DUNGEONS 6 / ARENA 4 / BF_ZONES 2 / DAILY 6 / EXP 6 / CURRENCY 8 / NEWBIE_GUIDE 5 / PRINCIPLES 4 —— 全部与原版资料一致
+- ✅ 元组 arity 校验：所有模板解包用的常量字段数与 guide.html 的 `{% for ... in ... %}` 解包完全匹配
+- ✅ 字典校验：`BONE_STRENGTHEN_RULES`/`SPIRIT_RULES`/`MAP_MECHANICS`/`VITALITY_SPEC`/`BATTLE_RULES_SPEC` 为 dict（模板 `.items()` 可用）；`SOUL_XP_SPEC` 含 formula/max_level/table/cumulative_to_max 四键；`ALLIANCE_SPEC`/`MASTER_APPRENTICE_SPEC` 嵌套键齐全
+- ✅ 路由注册：`/games/summon/guide` 已加入 `summon.router`
+
+**文件变更**
+- `app/routers/summon_data.py`：+v0.2.7 原版规格参考层（45 组常量 + SPEC_SECTIONS 索引）
+- `app/routers/summon.py`：+1 路由 `/guide`（`summon_guide` 渲染 guide.html）
+- `app/templates/summon/guide.html`：+1 原版规格图鉴模板（13 章展示）
+- `app/templates/summon/home.html`：快捷入口 +原版图鉴链接
+- `app/config.py`：版本号 0.2.6 → 0.2.7
+
+---
 
 ### v0.2.6 （2026-08-04）— 全游戏主线任务补全 + 导航栏目完善（6 模块 +6 路由 +6 模板）
 

@@ -1,0 +1,321 @@
+{% extends "base.html" %}
+{% from "macros.html" import topbar, footer %}
+{% block title %}召唤之王 · 原版规格图鉴{% endblock %}
+{% block body %}
+{{ topbar("原版规格图鉴", user) }}
+<div class="crumb"><a href="/games/summon">召唤之王</a> › 原版规格图鉴</div>
+<div class="card">
+  <div class="hd">召唤之王原版规格图鉴（v0.2.7）</div>
+  <span class="muted">来源：用户提供的《召唤之王完整游戏资料》。本页为原版规格参考层，展示原版菜单/数值/系统风貌，与现行可玩系统（120 宠/60 技能/战斗/装备）并存。</span>
+</div>
+
+{# 一、主界面信息栏 #}
+<div class="section-title">二、主界面信息栏</div>
+<div class="card">
+  {% for info in D.MENU_INFO_BAR %}
+  <span class="tag">{{ info }}</span>
+  {% endfor %}
+</div>
+
+{# 二、核心功能菜单 16 项 #}
+<div class="section-title">核心功能菜单（16 项）</div>
+<div class="content">
+  {% for no, name, func, cond in D.MENU_STRUCTURE %}
+  <div class="li"><b>{{ no }}.{{ name }}</b> · {{ func }} <span class="tag">{{ cond }}</span></div>
+  {% endfor %}
+</div>
+
+{# 三、等级与功能解锁表 #}
+<div class="section-title">三、等级与功能解锁表</div>
+<div class="content">
+  {% for lv, pets, slots, unlock in D.LEVEL_UNLOCKS_SPEC %}
+  <div class="li"><b>{{ lv }}</b> · 幻兽×{{ pets }} · 魔魂槽{{ slots }} <span class="muted">{{ unlock }}</span></div>
+  {% endfor %}
+</div>
+<div class="card">
+  <div class="hd">幻兽天赋三大流派</div>
+  {% for name, direction, fit in D.TALENT_SCHOOLS %}
+  <div class="li"><b>{{ name }}</b> · {{ direction }} <span class="muted">{{ fit }}</span></div>
+  {% endfor %}
+</div>
+
+{# 四、宠物（幻兽）系统 #}
+<div class="section-title">四、宠物系统 · 四大种族</div>
+<div class="content">
+  {% for race, feat, members in D.PET_RACES_SPEC %}
+  <div class="li"><b>{{ race }}</b> · {{ feat }}<br><span class="muted">{{ members }}</span></div>
+  {% endfor %}
+</div>
+<div class="section-title">四大品质阶位</div>
+<div class="content">
+  {% for tier, lv, pets in D.PET_QUALITY_TIERS %}
+  <div class="li"><b>{{ tier }}</b>（{{ lv }}）<br><span class="muted">{{ pets }}</span></div>
+  {% endfor %}
+</div>
+<div class="card">
+  <div class="hd">鉴定幻兽四大维度</div>
+  {% for dim, desc, prio in D.PET_EVAL_DIMENSIONS %}
+  <div class="li"><b>{{ dim }}</b> · {{ desc }} <span class="tag">{{ prio }}</span></div>
+  {% endfor %}
+</div>
+<div class="card">
+  <div class="hd">性格系统（影响技能爆发率）</div>
+  {% for name, hp_mod, atk_mod, feat in D.PET_PERSONALITIES %}
+  <div class="li"><b>{{ name }}</b> · 生命{{ '%+d'|format(hp_mod*100)|int }}% · 攻击{{ '%+d'|format(atk_mod*100)|int }}% <span class="muted">{{ feat }}</span></div>
+  {% endfor %}
+</div>
+
+{# 四、已知技能列表 #}
+<div class="section-title">已知技能列表（原版 8 技能）</div>
+<div class="content">
+  {% for name, typ, eff, eval in D.SKILLS_SPEC %}
+  <div class="li"><b>{{ name }}</b> <span class="tag">{{ typ }}</span> · {{ eff }} <span class="tag {{ 'green' if eval in ['优秀','血宠必备','攻宠必备','法宠必备'] else 'gray' if eval == '鸡肋' else 'red' if eval == '垃圾技能' else 'blue' }}">{{ eval }}</span></div>
+  {% endfor %}
+</div>
+
+{# 各等级地图推荐幻兽 #}
+<div class="section-title">各等级地图推荐幻兽</div>
+<div class="content">
+  {% for lv, mname, capturable, recommend, must_skill in D.MAP_PET_RECOMMEND %}
+  <div class="card">
+    <div class="hd">{{ lv }} · {{ mname }}</div>
+    可捕捉：{{ capturable }}<br>
+    推荐：<b>{{ recommend }}</b> · 必备技能 <b>{{ must_skill }}</b>
+  </div>
+  {% endfor %}
+</div>
+<div class="card">
+  <div class="hd">换宠策略</div>
+  {{ D.PET_CHANGE_STRATEGY }}
+</div>
+<div class="card">
+  <div class="hd">捕捉系统</div>
+  {% for name, desc in D.CAPTURE_BALLS_SPEC %}
+  <div class="li"><b>{{ name }}</b> · {{ desc }}</div>
+  {% endfor %}
+</div>
+<div class="card">
+  <div class="hd">养成道具</div>
+  {% for name, use, advice in D.PET_GROWTH_ITEMS %}
+  <div class="li"><b>{{ name }}</b> · {{ use }} <span class="muted">{{ advice }}</span></div>
+  {% endfor %}
+</div>
+
+{# 五、战骨系统 #}
+<div class="section-title">五、战骨系统（7 部位 + 8 品级 + 6 强化阶）</div>
+<div class="card">
+  <div class="hd">战骨 7 部位</div>
+  {% for part, attrs, note in D.BONE_PARTS_SPEC %}
+  <div class="li"><b>{{ part }}</b> · {{ attrs }} {% if note %}<span class="tag orange">{{ note }}</span>{% endif %}</div>
+  {% endfor %}
+</div>
+<div class="card">
+  <div class="hd">战骨 8 品级（从高到低）</div>
+  {% for g in D.BONE_GRADES_SPEC %}<span class="tag">{{ g }}</span> {% endfor %}
+</div>
+<div class="card">
+  <div class="hd">战骨 6 强化阶（每10级升一阶）</div>
+  {% for t in D.BONE_STRENGTHEN_TIERS %}<span class="tag blue">{{ t }}</span> {% endfor %}
+</div>
+<div class="card">
+  <div class="hd">强化规则</div>
+  {% for k, v in D.BONE_STRENGTHEN_RULES.items() %}
+  <div class="li"><b>{{ k }}</b>：{{ v }}</div>
+  {% endfor %}
+</div>
+
+{# 五、魔魂系统 #}
+<div class="section-title">五、魔魂系统</div>
+<div class="card">
+  <div class="hd">魔魂 6 品级（效果为天魂的百分比）</div>
+  {% for name, eff, desc in D.SOUL_GRADES_SPEC %}
+  <div class="li"><b>{{ name }}</b> · 效果{{ (eff*100)|int }}% <span class="muted">{{ desc }}</span></div>
+  {% endfor %}
+</div>
+<div class="card">
+  <div class="hd">天魂极品属性 · 固定值类</div>
+  {% for name, eff in D.SOUL_AFFIXES_FIXED %}
+  <div class="li"><b>{{ name }}</b> · {{ eff }}</div>
+  {% endfor %}
+</div>
+<div class="card">
+  <div class="hd">天魂极品属性 · 百分比类</div>
+  {% for name, eff in D.SOUL_AFFIXES_PERCENT %}
+  <div class="li"><b>{{ name }}</b> · {{ eff }}</div>
+  {% endfor %}
+</div>
+<div class="section-title">猎魂师价格表</div>
+<div class="content">
+  {% for hunter, price, output in D.SOUL_HUNTERS_SPEC %}
+  <div class="li"><b>{{ hunter }}</b> · {{ price }} <span class="muted">{{ output }}</span></div>
+  {% endfor %}
+</div>
+<div class="card">
+  <div class="hd">追魂法宝商城价</div>
+  {% for name, price, cur in D.SOUL_HUNTER_ITEM_PRICES %}
+  <div class="li"><b>{{ name }}</b> · {{ price }}{{ cur }}</div>
+  {% endfor %}
+</div>
+<div class="card">
+  <div class="hd">魔魂升级经验（公式 {{ D.SOUL_XP_SPEC.formula }}，最高 {{ D.SOUL_XP_SPEC.max_level }} 级）</div>
+  {% for lv, xp in D.SOUL_XP_SPEC.table.items()|sort %}
+  <div class="li">{{ lv }}→{{ lv+1 }}：{{ xp }} 魂力</div>
+  {% endfor %}
+  <div class="li"><b>1→10 累计约 {{ D.SOUL_XP_SPEC.cumulative_to_max }} 魂力</b></div>
+</div>
+
+{# 五、战灵系统 #}
+<div class="section-title">五、战灵系统（6 槽 + 4 品质）</div>
+<div class="card">
+  <div class="hd">战灵 6 槽位</div>
+  {% for s in D.SPIRIT_SLOTS_SPEC %}<span class="tag">{{ s }}</span> {% endfor %}
+</div>
+<div class="card">
+  <div class="hd">战灵 4 品质</div>
+  {% for q in D.SPIRIT_QUALITY_TIERS %}<span class="tag blue">{{ q }}</span> {% endfor %}
+</div>
+<div class="card">
+  <div class="hd">战灵规则</div>
+  {% for k, v in D.SPIRIT_RULES.items() %}
+  <div class="li"><b>{{ k }}</b>：{{ v }}</div>
+  {% endfor %}
+</div>
+<div class="card">
+  <div class="hd">其他道具</div>
+  {% for name, use, src in D.OTHER_ITEMS_SPEC %}
+  <div class="li"><b>{{ name }}</b> · {{ use }} <span class="muted">{{ src }}</span></div>
+  {% endfor %}
+</div>
+
+{# 六、地图系统 #}
+<div class="section-title">六、地图系统（7 大主题地图）</div>
+<div class="content">
+  {% for mname, lv, monsters, recommend in D.MAPS_SPEC %}
+  <div class="card">
+    <div class="hd">{{ mname }}（Lv{{ lv }}）<span class="tag {{ 'green' if '强烈' in recommend or recommend == '推荐(抓厚甲龟)' or recommend == '终极地图' else 'gray' if '跳过' in recommend else 'blue' }}">{{ recommend }}</span></div>
+    <span class="muted">{{ monsters }}</span>
+  </div>
+  {% endfor %}
+</div>
+<div class="card">
+  <div class="hd">地图机制</div>
+  {% for k, v in D.MAP_MECHANICS.items() %}
+  <div class="li"><b>{{ k }}</b>：{{ v }}</div>
+  {% endfor %}
+</div>
+
+{# 七、副本与挑战 #}
+<div class="section-title">七、副本与挑战系统</div>
+<div class="content">
+  {% for name, cond, content, reward, note in D.DUNGEONS_SPEC %}
+  <div class="card">
+    <div class="hd">{{ name }}</div>
+    进入条件：<b>{{ cond }}</b><br>
+    内容：{{ content }}<br>
+    奖励：{{ reward }} <span class="muted">{{ note }}</span>
+  </div>
+  {% endfor %}
+</div>
+<div class="card">
+  <div class="hd">擂台阶位</div>
+  {% for t in D.ARENA_TIERS_SPEC %}<span class="tag">{{ t }}</span> {% endfor %}
+  <div class="muted" style="margin-top:6px">技巧：{{ D.ARENA_TIPS }}</div>
+</div>
+<div class="card">
+  <div class="hd">战场分区</div>
+  {% for name, cond in D.BATTLEFIELD_ZONES %}
+  <div class="li"><b>{{ name }}</b> · {{ cond }}</div>
+  {% endfor %}
+</div>
+
+{# 八、任务系统 #}
+<div class="section-title">八、任务系统</div>
+<div class="card">
+  <div class="hd">新手任务</div>
+  {{ D.NEWBIE_TASKS_SPEC }}
+</div>
+<div class="card">
+  <div class="hd">主线任务</div>
+  {{ D.MAIN_TASKS_SPEC }}
+</div>
+<div class="section-title">日常活动</div>
+<div class="content">
+  {% for name, cond, reward in D.DAILY_ACTIVITIES %}
+  <div class="li"><b>{{ name }}</b> · {{ cond }} <span class="muted">{{ reward }}</span></div>
+  {% endfor %}
+</div>
+
+{# 九、经验体系 #}
+<div class="section-title">九、经验体系</div>
+<div class="card">
+  <div class="hd">经验获取六大途径</div>
+  {% for name, desc in D.EXP_SOURCES_SPEC %}
+  <div class="li"><b>{{ name }}</b> · {{ desc }}</div>
+  {% endfor %}
+</div>
+<div class="card">
+  <div class="hd">活力值系统</div>
+  {% for k, v in D.VITALITY_SPEC.items() %}
+  <div class="li"><b>{{ k }}</b>：{{ v }}</div>
+  {% endfor %}
+</div>
+
+{# 十、战斗规则 #}
+<div class="section-title">十、战斗规则</div>
+<div class="card">
+  {% for k, v in D.BATTLE_RULES_SPEC.items() %}
+  <div class="li"><b>{{ k }}</b>：{{ v }}</div>
+  {% endfor %}
+</div>
+
+{# 十一、社交系统 #}
+<div class="section-title">十一、社交系统</div>
+<div class="card">
+  <div class="hd">联盟系统</div>
+  捐献：{{ D.ALLIANCE_SPEC.donate }}<br>
+  功能：{% for f in D.ALLIANCE_SPEC.features %}{{ f }}{% if not loop.last %} / {% endif %}{% endfor %}
+</div>
+<div class="card">
+  <div class="hd">师徒系统</div>
+  收徒：{{ D.MASTER_APPRENTICE_SPEC.recruit_min_level }}级以上 · 拜师：{{ D.MASTER_APPRENTICE_SPEC.apprentice_max_level }}级以下 · 出师：{{ D.MASTER_APPRENTICE_SPEC.graduate_level }}级<br>
+  福利：{{ D.MASTER_APPRENTICE_SPEC.benefits }}
+</div>
+<div class="card">
+  <div class="hd">好友系统</div>
+  {{ D.FRIEND_SPEC }}
+</div>
+
+{# 十二、货币体系 #}
+<div class="section-title">十二、货币体系（8 种）</div>
+<div class="content">
+  {% for name, typ, use, src in D.CURRENCY_TABLE_SPEC %}
+  <div class="card">
+    <div class="hd">{{ name }} <span class="tag">{{ typ }}</span></div>
+    用途：{{ use }}<br>
+    获取：{{ src }}
+  </div>
+  {% endfor %}
+</div>
+
+{# 十三、新手路线指南 #}
+<div class="section-title">十三、新手路线指南</div>
+<div class="content">
+  {% for stage, action, note in D.NEWBIE_GUIDE %}
+  <div class="card">
+    <div class="hd">{{ stage }} <span class="tag blue">{{ note }}</span></div>
+    {{ action }}
+  </div>
+  {% endfor %}
+</div>
+<div class="card">
+  <div class="hd">四大核心原则</div>
+  {% for p in D.NEWBIE_PRINCIPLES %}
+  <div class="li">{{ loop.index }}. {{ p }}</div>
+  {% endfor %}
+</div>
+
+<div class="content">
+  <a class="btn ghost" href="/games/summon">返回召唤首页</a>
+</div>
+{{ footer(user) }}
+{% endblock %}
