@@ -1031,6 +1031,23 @@ class SeaEquipSet(Base):
     pieces: Mapped[int] = mapped_column(Integer, default=4)  # 套装件数
 
 
+class SeaEquipPiece(Base):
+    """装备部件件名（spec 全部装备件名清单）
+
+    set_key:   所属套装 key（散件为空）
+    slot:      部位 武器/副手/头盔/衣服/腰带/鞋子/配饰
+    confirmed: 是否官方文本确认件名（False=按命名规律推测）
+    """
+    __tablename__ = "sea_equip_pieces"
+    key: Mapped[str] = mapped_column(String(32), primary_key=True)
+    name: Mapped[str] = mapped_column(String(32))
+    set_key: Mapped[str] = mapped_column(String(32), default="", index=True)  # 所属套装
+    slot: Mapped[str] = mapped_column(String(16))  # 武器/副手/头盔/衣服/腰带/鞋子/配饰
+    level_req: Mapped[int] = mapped_column(Integer, default=1)
+    source: Mapped[str] = mapped_column(String(128), default="")  # 获取方式
+    confirmed: Mapped[bool] = mapped_column(Boolean, default=False)  # 官方确认件名
+
+
 # ============================================================
 # 召唤之王（v0.0.6）：召唤师 + 幻兽 + 战斗 + 日常任务
 # 静态配置（经验表/120图鉴/60技能/属性公式/捕捉公式/掉落表/日常任务）见 routers/summon_data.py
