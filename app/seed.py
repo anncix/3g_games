@@ -15,6 +15,8 @@ from .deps import hash_password
 from .seed_garden_large import seed_garden_large
 from .seed_sea_large import seed_sea_large
 from .seed_sea_equips import seed_sea_equips
+from .seed_farm_large import seed_farm_large
+from .seed_town_large import seed_town_large
 
 
 async def seed():
@@ -484,6 +486,11 @@ async def seed():
         # ---------- v0.1.6：纵横四海装备件名（spec 全部装备件名清单）----------
         # 官方确认件名19 + 命名规律推测件名~55（幂等，confirmed 字段区分确认度）
         await seed_sea_equips(db)
+
+        # ---------- v0.1.7：阳光牧场50作物 + 美味小镇233食材（spec 数据补全）----------
+        # Farm: 50作物（v0.1.6前仅2种）+ Town: 233食材（v0.1.6前仅14种）+ 精武堂15手机版技能（routers/martial_data.py）
+        await seed_farm_large(db)
+        await seed_town_large(db)
 
         print("✅ 种子数据已写入。管理员: admin/admin123  演示: demo/demo123")
 

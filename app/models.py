@@ -389,16 +389,22 @@ class ForumPost(Base):
 # 老味道点：成长计时 / 护理(浇水除虫施肥) / 偷菜互助 / 回访节奏
 # ============================================================
 class Crop(Base):
-    """作物字典"""
+    """作物字典（spec 阳光牧场作物数据表：50作物 × 等级/类型/单价/产量/成熟/再熟/售价）"""
     __tablename__ = "farm_crops"
     key: Mapped[str] = mapped_column(String(32), primary_key=True)
     name: Mapped[str] = mapped_column(String(32))
-    grow_seconds: Mapped[int] = mapped_column(Integer, default=60)  # 总成熟时长
+    grow_seconds: Mapped[int] = mapped_column(Integer, default=60)  # 总成熟时长（秒）
     stages: Mapped[int] = mapped_column(Integer, default=4)  # 阶段数(种子/发芽/生长/成熟)
     seed_item_key: Mapped[str] = mapped_column(String(64))
     harvest_item_key: Mapped[str] = mapped_column(String(64))
     harvest_exp: Mapped[int] = mapped_column(Integer, default=10)
     price: Mapped[int] = mapped_column(Integer, default=50)  # 种子价格
+    # v0.1.7：spec 作物数据表扩展字段（向后兼容，旧作物默认值即可）
+    level_req: Mapped[int] = mapped_column(Integer, default=0)  # 解锁等级
+    crop_type: Mapped[str] = mapped_column(String(16), default="一季")  # 一季/多季/鲜花
+    min_yield: Mapped[int] = mapped_column(Integer, default=25)  # 最低产量
+    regrow_seconds: Mapped[int] = mapped_column(Integer, default=0)  # 再熟间隔(秒)，0=一季
+    sell_price: Mapped[int] = mapped_column(Integer, default=0)  # 果实售价
 
 
 class FarmPlot(Base):

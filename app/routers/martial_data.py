@@ -147,6 +147,25 @@ SKILLS = {
     "SKM_08": ("暴击心法", "passive", "passive", 0, 15, 1200, 1800, "被动：暴击+0.01/级"),
     "SKM_09": ("鹰眼术", "passive", "passive", 0, 12, 1000, 1500, "被动：命中+6/级"),
     "SKM_10": ("吸血功", "passive", "passive", 0, 20, 2000, 2400, "被动：攻击吸血8%/级(上限)"),
+    # v0.1.7：spec 精武堂手机版 15 技能（攻击5/辅助5/特殊5）
+    # 攻击类 5 个
+    "SKM_11": ("剑影留痕", "outer", "active", 1.25, 1, 0, 800, "外功攻击·剑气残影"),
+    "SKM_12": ("御剑通灵", "outer", "active", 1.40, 6, 600, 1200, "外功高伤·御剑术"),
+    "SKM_13": ("剑气凌风", "inner", "active", 1.35, 10, 1000, 1600, "内功攻击·剑风"),
+    "SKM_14": ("人剑合一", "inner", "active", 1.60, 16, 1500, 2200, "内功高伤·人剑合一"),
+    "SKM_15": ("潇湘剑雨", "outer", "active", 1.80, 22, 2000, 2800, "外功终极·剑雨群伤"),
+    # 辅助类 5 个（被动增益）
+    "SKM_16": ("妙手回春", "passive", "passive", 0, 8, 800, 1200, "被动：气血+30/级"),
+    "SKM_17": ("神清气朗", "passive", "passive", 0, 10, 800, 1200, "被动：内息+20/级"),
+    "SKM_18": ("金钟护体", "passive", "passive", 0, 12, 1000, 1500, "被动：外防+8/级"),
+    "SKM_19": ("武神附体", "passive", "passive", 0, 18, 1500, 2000, "被动：外攻+10/级"),
+    "SKM_20": ("五灵归宗", "passive", "passive", 0, 25, 2000, 2400, "被动：全属性+5/级"),
+    # 特殊类 5 个（特殊机制）
+    "SKM_21": ("吸星功法", "inner", "active", 1.10, 12, 1200, 1600, "内功·吸取对方内力"),
+    "SKM_22": ("三清缚影", "inner", "active", 0.90, 14, 1200, 1600, "内功·束缚对方行动"),
+    "SKM_23": ("斗转星移", "outer", "active", 1.00, 16, 1500, 2000, "外功·反弹伤害"),
+    "SKM_24": ("回风扫叶", "outer", "active", 1.45, 18, 1800, 2200, "外功群伤·横扫"),
+    "SKM_25": ("天罗地网", "inner", "active", 1.50, 24, 2200, 2800, "内功终极·困敌群伤"),
 }
 SKILL_MAX_LEVEL = 5
 
@@ -164,6 +183,20 @@ def skill_passive_bonus(skill_id: str, level: int) -> dict:
         bonus["crit"] = round(0.01 * level, 4)
     elif skill_id == "SKM_09":
         bonus["hit"] = 6 * level
+    # v0.1.7：spec 手机版辅助类被动
+    elif skill_id == "SKM_16":
+        bonus["hp"] = 30 * level
+    elif skill_id == "SKM_17":
+        bonus["inner_power"] = 20 * level
+    elif skill_id == "SKM_18":
+        bonus["outer_def"] = 8 * level
+    elif skill_id == "SKM_19":
+        bonus["outer_atk"] = 10 * level
+    elif skill_id == "SKM_20":
+        bonus["outer_atk"] = 5 * level
+        bonus["inner_atk"] = 5 * level
+        bonus["outer_def"] = 5 * level
+        bonus["inner_def"] = 5 * level
     return bonus
 
 
