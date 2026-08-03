@@ -11,7 +11,7 @@ from .database import init_db
 from .routers import (
     auth, profile, lobby, friends, family, forum, chat, city, message,
     activity, ranking, icons, settings as settings_router, support,
-    inventory, shop, farm, town, garden, sea, summon, admin, api,
+    inventory, shop, farm, town, garden, sea, summon, martial, admin, api,
 )
 
 
@@ -36,6 +36,7 @@ routers = [
     ranking.router, icons.router, settings_router.router, support.router,
     inventory.router, shop.router,
     farm.router, town.router, garden.router, sea.router, summon.router,
+    martial.router,
     admin.router, api.router,
 ]
 for r in routers:

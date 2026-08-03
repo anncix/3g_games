@@ -1,0 +1,49 @@
+{% extends "base.html" %}
+{% from "macros.html" import topbar, footer %}
+{% block title %}加点{% endblock %}
+{% block body %}
+{{ topbar("加点", user) }}
+<div class="crumb"><a href="/games/martial">精武堂</a> › 加点</div>
+<div class="card">
+  <div class="hd">属性点</div>
+  可分配：<b>{{ st.attr_points }}</b> 点<br>
+  <span class="muted">每升一级获得 3 点属性点</span>
+</div>
+<div class="section-title">四维属性</div>
+<div class="content">
+  {% set attr_map = {'strength': '力量', 'agility': '敏捷', 'physique': '体魄', 'inner_power': '内息'} %}
+  {% set attr_desc = {'strength': '影响外功攻击', 'agility': '影响命中/闪避/暴击/速度', 'physique': '影响气血/防御', 'inner_power': '影响内功攻击/技能'} %}
+  {% for key in ['strength', 'agility', 'physique', 'inner_power'] %}
+  <div class="card">
+    <div class="hd">{{ attr_map[key] }} <span class="r">当前 {{ st[key] }}</span></div>
+    <div class="muted">{{ attr_desc[key] }}</div>
+    {% if st.attr_points > 0 %}
+    <form method="post" action="/games/martial/attr/add/{{ key }}">
+      <button class="btn" type="submit">+1（剩{{ st.attr_points }}）</button>
+    </form>
+    {% else %}
+    <div class="muted">无可用点数</div>
+    {% endif %}
+  </div>
+  {% endfor %}
+</div>
+<div class="section-title">派生属性</div>
+<div class="card">
+  气血 <b>{{ player.stats.hp }}</b> · 速度 <b>{{ player.stats.speed }}</b><br>
+  外攻 <b>{{ player.stats.outer_atk }}</b> · 内攻 <b>{{ player.stats.inner_atk }}</b><br>
+  外防 <b>{{ player.stats.outer_def }}</b> · 内防 <b>{{ player.stats.inner_def }}</b><br>
+  命中 <b>{{ player.stats.hit }}</b> · 闪避 <b>{{ player.stats.dodge }}</b><br>
+  暴击 <b>{{ (player.stats.crit * 100)|int }}%</b> · 战力 <b>{{ player.power }}</b>
+</div>
+<div class="section-title">洗点</div>
+<div class="content">
+  <form method="post" action="/games/martial/attr/reset">
+    <div class="li">洗点重置全部已分配点数<span class="r">消耗 5000 银两</span></div>
+    <button class="btn danger" type="submit">确认洗点</button>
+  </form>
+</div>
+<div class="content">
+  <a class="btn ghost" href="/games/martial">返回首页</a>
+</div>
+{{ footer(user) }}
+{% endblock %}

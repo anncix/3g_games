@@ -1,0 +1,44 @@
+{% extends "base.html" %}
+{% from "macros.html" import topbar, footer %}
+{% block title %}技能{% endblock %}
+{% block body %}
+{{ topbar("技能", user) }}
+<div class="crumb"><a href="/games/martial">精武堂</a> › 技能</div>
+<div class="card">
+  银两 <b>{{ st.silver }}</b> · 已学 <b>{{ learned|length }}</b> 门武学
+</div>
+<div class="section-title">武学谱</div>
+<div class="content">
+  {% for s in skill_list %}
+  <div class="card">
+    <div class="hd">
+      《{{ s.name }}》
+      {% if s.type == 'active' %}<span class="tag blue">主动</span>{% else %}<span class="tag green">被动</span>{% endif %}
+      {% if s.school == 'outer' %}<span class="tag">外功</span>{% elif s.school == 'inner' %}<span class="tag">内功</span>{% endif %}
+      {% if s.level > 0 %}<span class="tag green">Lv{{ s.level }}</span>{% endif %}
+    </div>
+    <div class="muted">{{ s.desc }}</div>
+    <div>解锁等级 <b>{{ s.unlock_level }}</b> · 系数 <b>{{ s.coef }}</b></div>
+    {% if s.level == 0 %}
+      {% if st.level >= s.unlock_level %}
+      <form method="post" action="/games/martial/skill/learn/{{ s.id }}">
+        <button class="btn" type="submit">学习（{{ s.learn_cost }}银两）</button>
+      </form>
+      {% else %}
+      <div class="muted">{{ s.unlock_level }}级解锁</div>
+      {% endif %}
+    {% elif s.level < 5 %}
+      <form method="post" action="/games/martial/skill/upgrade/{{ s.id }}">
+        <button class="btn green" type="submit">升级到 Lv{{ s.level + 1 }}（{{ s.upgrade_cost }}银两）</button>
+      </form>
+    {% else %}
+      <div class="muted">已满级</div>
+    {% endif %}
+  </div>
+  {% endfor %}
+</div>
+<div class="content">
+  <a class="btn ghost" href="/games/martial">返回首页</a>
+</div>
+{{ footer(user) }}
+{% endblock %}

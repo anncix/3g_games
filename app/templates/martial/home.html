@@ -1,0 +1,52 @@
+{% extends "base.html" %}
+{% from "macros.html" import topbar, footer %}
+{% block title %}精武堂{% endblock %}
+{% block body %}
+{{ topbar("精武堂", user) }}
+<div class="crumb"><a href="/">家园</a> › <a href="/lobby">大厅</a> › 精武堂</div>
+<div class="card">
+  <div class="hd">侠客行</div>
+  Lv<b>{{ st.level }}</b>（经验 {{ st.exp }}/{{ exp_need }}）<br>
+  战力 <b>{{ player.power }}</b> · 银两 <b>{{ st.silver }}</b> · 荣誉 <b>{{ st.honor }}</b><br>
+  {% if st.cultivate_biguan %}<span class="tag red">闭关中</span>{% else %}<span class="tag green">修炼中</span>{% endif %}
+  {% if st.attr_points > 0 %}<span class="tag blue">可加点 {{ st.attr_points }}</span>{% endif %}
+  {% if st.guild_id %}<span class="tag">已入帮派</span>{% endif %}
+  <div class="bar"><i style="width:{{ (st.exp / exp_need * 100)|int if exp_need else 0 }}%"></i></div>
+</div>
+{% if exp_y > 0 or silver_y > 0 %}
+<div class="card">
+  <div class="hd">修炼收益待领取</div>
+  经验 +<b>{{ exp_y }}</b> · 银两 +<b>{{ silver_y }}</b>
+  <form method="post" action="/games/martial/cultivate/claim">
+    <button class="btn green" type="submit">一键领取</button>
+  </form>
+</div>
+{% endif %}
+<div class="section-title">今日待办（{{ todo|length }}）</div>
+<div class="content">
+  {% for name, info, href in todo %}
+  <a class="li" href="{{ href }}"><span>{{ name }}</span><span class="r">{{ info }} ›</span></a>
+  {% endfor %}
+  {% if not todo %}<div class="muted">今日事务已处理完，去比武场打几场？</div>{% endif %}
+</div>
+<div class="section-title">快捷入口</div>
+<div class="grid2">
+  <a href="/games/martial/cultivate">修炼</a>
+  <a href="/games/martial/attrs">加点</a>
+  <a href="/games/martial/skills">技能</a>
+  <a href="/games/martial/equip">装备</a>
+  <a href="/games/martial/arena">比武场</a>
+  <a href="/games/martial/challenge">挑战</a>
+  <a href="/games/martial/tasks">日常任务{% if claimable > 0 %}（{{ claimable }}可领）{% endif %}</a>
+  <a href="/games/martial/guild">帮派</a>
+  <a href="/inventory?m=martial">背包</a>
+  <a href="/ranking?m=martial&metric=power">排行</a>
+  <a href="/games/martial/rules">规则</a>
+  <a href="/lobby">返回大厅</a>
+</div>
+<div class="content">
+  <a class="btn ghost" href="/lobby">返回大厅</a>
+  <a class="btn ghost" href="/">返回家园</a>
+</div>
+{{ footer(user) }}
+{% endblock %}

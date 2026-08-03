@@ -1,4 +1,5 @@
 """依赖注入：当前用户 / 数据库会话 / 模板"""
+import json
 import secrets
 from datetime import datetime, timedelta
 
@@ -12,6 +13,21 @@ from .database import get_db, SessionLocal
 from . import models
 
 templates = Jinja2Templates(directory=str(config.BASE_DIR / "app" / "templates"))
+
+
+# 注册通用 Jinja2 过滤器：解析 JSON 字符串为 dict/list
+def _from_json(value):
+    if not value:
+        return {}
+    if isinstance(value, (dict, list)):
+        return value
+    try:
+        return json.loads(value)
+    except (json.JSONDecodeError, TypeError):
+        return {}
+
+
+templates.env.filters["from_json"] = _from_json
 
 
 async def get_current_user(

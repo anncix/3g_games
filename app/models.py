@@ -851,3 +851,104 @@ class SummonPet(Base):
     skills: Mapped[str] = mapped_column(Text, default="[]")             # JSON: [skill_id,...]
     team_slot: Mapped[int] = mapped_column(Integer, default=-1)         # -1=未上阵, 0-3=出战位
     captured_at: Mapped[datetime] = mapped_column(DateTime, default=_now)
+
+
+# ============================================================
+# 模块6：精武堂 Martial（v0.1.0）
+# 老味道点：人物养成 / 修炼挂机 / 加点流派 / 装备强化 / 比武对抗 / 帮派社交
+# 静态配置（公式/技能/装备/日常任务/活跃奖励）见 routers/martial_data.py
+# ============================================================
+class MartialState(Base):
+    """精武堂玩家状态：等级/经验/银两/荣誉/四维属性/修炼/比武/日常"""
+    __tablename__ = "martial_state"
+    user_id: Mapped[int] = mapped_column(ForeignKey("users.id", ondelete="CASCADE"), primary_key=True)
+    level: Mapped[int] = mapped_column(Integer, default=1)
+    exp: Mapped[int] = mapped_column(Integer, default=0)
+    silver: Mapped[int] = mapped_column(Integer, default=2000)        # 银两（模块货币）
+    honor: Mapped[int] = mapped_column(Integer, default=0)            # 荣誉（PVP 货币）
+    attr_points: Mapped[int] = mapped_column(Integer, default=0)      # 可分配属性点
+    strength: Mapped[int] = mapped_column(Integer, default=5)
+    agility: Mapped[int] = mapped_column(Integer, default=5)
+    physique: Mapped[int] = mapped_column(Integer, default=5)
+    inner_power: Mapped[int] = mapped_column(Integer, default=5)
+    # 修炼
+    cultivate_started_at: Mapped[datetime] = mapped_column(DateTime, default=_now)
+    cultivate_biguan: Mapped[bool] = mapped_column(Boolean, default=False)  # 是否闭关中
+    # 比武
+    arena_score: Mapped[int] = mapped_column(Integer, default=1000)
+    arena_wins: Mapped[int] = mapped_column(Integer, default=0)
+    # 帮派
+    guild_id: Mapped[int] = mapped_column(Integer, default=0)
+    contribution: Mapped[int] = mapped_column(Integer, default=0)     # 帮派贡献
+    # 日常
+    daily_log_date: Mapped[str] = mapped_column(String(10), default="")
+    daily_counters: Mapped[str] = mapped_column(Text, default="{}")   # JSON: {metric: 今日次数}
+    daily_tasks: Mapped[str] = mapped_column(Text, default="{}")      # JSON: {task_id: 已领奖}
+    daily_activity: Mapped[str] = mapped_column(Text, default="{}")   # JSON: {point: 已领奖}
+    daily_activity_point: Mapped[int] = mapped_column(Integer, default=0)
+    last_battle_at: Mapped[datetime] = mapped_column(DateTime, default=_now)
+
+
+class MartialEquip(Base):
+    """玩家装备实例"""
+    __tablename__ = "martial_equips"
+    id: Mapped[int] = mapped_column(Integer, primary_key=True)
+    user_id: Mapped[int] = mapped_column(ForeignKey("users.id", ondelete="CASCADE"), index=True)
+    slot: Mapped[str] = mapped_column(String(16))                     # 部位
+    quality: Mapped[str] = mapped_column(String(16), default="white") # white/green/blue/purple/orange
+    strengthen: Mapped[int] = mapped_column(Integer, default=0)       # 强化等级 0-10
+    stats: Mapped[str] = mapped_column(Text, default="{}")            # JSON: 基础属性
+    equipped: Mapped[bool] = mapped_column(Boolean, default=False)
+    created_at: Mapped[datetime] = mapped_column(DateTime, default=_now)
+
+
+class MartialSkill(Base):
+    """玩家已学技能"""
+    __tablename__ = "martial_skills"
+    id: Mapped[int] = mapped_column(Integer, primary_key=True)
+    user_id: Mapped[int] = mapped_column(ForeignKey("users.id", ondelete="CASCADE"), index=True)
+    skill_id: Mapped[str] = mapped_column(String(16), index=True)
+    level: Mapped[int] = mapped_column(Integer, default=1)
+    __table_args__ = (UniqueConstraint("user_id", "skill_id", name="uq_martial_skill"),)
+
+
+class MartialStageLog(Base):
+    """PVE 关卡通关记录"""
+    __tablename__ = "martial_stage_logs"
+    id: Mapped[int] = mapped_column(Integer, primary_key=True)
+    user_id: Mapped[int] = mapped_column(ForeignKey("users.id", ondelete="CASCADE"), index=True)
+    stage_id: Mapped[str] = mapped_column(String(16))
+    cleared: Mapped[bool] = mapped_column(Boolean, default=False)
+    created_at: Mapped[datetime] = mapped_column(DateTime, default=_now)
+
+
+class MartialArenaLog(Base):
+    """比武战报"""
+    __tablename__ = "martial_arena_logs"
+    id: Mapped[int] = mapped_column(Integer, primary_key=True)
+    attacker_id: Mapped[int] = mapped_column(ForeignKey("users.id", ondelete="CASCADE"), index=True)
+    defender_id: Mapped[int] = mapped_column(Integer, index=True)
+    win: Mapped[bool] = mapped_column(Boolean, default=False)
+    score_delta: Mapped[int] = mapped_column(Integer, default=0)
+    battle_log: Mapped[str] = mapped_column(Text, default="[]")       # JSON 战报
+    created_at: Mapped[datetime] = mapped_column(DateTime, default=_now)
+
+
+class MartialGuild(Base):
+    """帮派（门派）"""
+    __tablename__ = "martial_guilds"
+    id: Mapped[int] = mapped_column(Integer, primary_key=True)
+    name: Mapped[str] = mapped_column(String(32), unique=True)
+    leader_id: Mapped[int] = mapped_column(ForeignKey("users.id", ondelete="CASCADE"))
+    notice: Mapped[str] = mapped_column(String(255), default="振兴武林，广纳英豪")
+    created_at: Mapped[datetime] = mapped_column(DateTime, default=_now)
+
+
+class MartialGuildMember(Base):
+    """帮派成员"""
+    __tablename__ = "martial_guild_members"
+    id: Mapped[int] = mapped_column(Integer, primary_key=True)
+    guild_id: Mapped[int] = mapped_column(ForeignKey("martial_guilds.id", ondelete="CASCADE"), index=True)
+    user_id: Mapped[int] = mapped_column(ForeignKey("users.id", ondelete="CASCADE"), unique=True)
+    contribution: Mapped[int] = mapped_column(Integer, default=0)
+    joined_at: Mapped[datetime] = mapped_column(DateTime, default=_now)

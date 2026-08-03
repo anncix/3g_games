@@ -38,6 +38,7 @@ async def seed():
             ("garden", "魔法花园", "合成花种点亮花谱，偷花送花", "/games/garden", 3, True),
             ("sea", "纵横四海", "城市航线推进，任务遭遇装备成长", "/games/sea", 4, True),
             ("summon", "召唤之王", "图鉴抓捕回合战斗，种族克制段位推进", "/games/summon", 5, True),
+            ("martial", "精武堂", "修炼加点装备强化，比武对抗帮派社交", "/games/martial", 6, True),
         ]
         for key, name, intro, entry, sort, en in modules:
             m = await db.get(models.Module, key)
@@ -112,6 +113,20 @@ async def seed():
         await goods.ensure_item(db, "BOX_KILL", "杀戮礼包", "box", "summon", True, 80, "战场击杀奖励")
         await goods.ensure_item(db, "BOX_ARENA", "擂台宝箱", "box", "summon", True, 60, "擂台奖励")
         await goods.ensure_item(db, "BOX_BF", "战场宝箱", "box", "summon", True, 70, "战场奖励")
+
+        # 精武堂道具（v0.1.0：强化/打造/精炼/洗点/比武/帮派材料）
+        await goods.ensure_item(db, "MT_STRENGTH_STONE", "强化石", "material", "martial", True, 20, "装备强化材料")
+        await goods.ensure_item(db, "MT_IRON_ESSENCE", "玄铁精华", "material", "martial", True, 50, "装备打造材料")
+        await goods.ensure_item(db, "MT_REFINE_STONE", "精炼石", "material", "martial", True, 80, "高级强化材料")
+        await goods.ensure_item(db, "MT_BONE_POWDER", "骨粉", "material", "martial", True, 60, "精英挑战掉落")
+        await goods.ensure_item(db, "MT_RESET_TOKEN_FRAG", "洗点碎片", "material", "martial", True, 40, "洗点道具碎片")
+        await goods.ensure_item(db, "MT_RESET_TOKEN", "洗点丹", "material", "martial", True, 200, "BOSS掉落洗点道具")
+        await goods.ensure_item(db, "MT_SMALL_PILL", "小还丹", "prop", "martial", True, 30, "日常回复道具")
+        await goods.ensure_item(db, "MT_ARENA_TICKET", "比武券", "prop", "martial", True, 50, "比武场挑战券")
+        await goods.ensure_item(db, "MT_ARENA_MEDAL", "比武勋章", "material", "martial", True, 100, "比武荣誉象征")
+        await goods.ensure_item(db, "MT_BOUNTY_TOKEN", "悬赏令", "prop", "martial", True, 60, "悬赏任务凭证")
+        await goods.ensure_item(db, "MT_GUILD_CONTRIB_BOX", "帮派贡献箱", "prop", "martial", True, 80, "帮派贡献奖励")
+        await goods.ensure_item(db, "MT_GUILD_TOKEN", "帮派令", "material", "martial", True, 70, "帮派任务凭证")
 
         # ---------- 作物字典 ----------
         crops = [
@@ -342,6 +357,20 @@ async def seed():
                     aptitudes=_json.dumps(aptitudes, ensure_ascii=False),
                     skills=_json.dumps(["SK_001", "SK_003"]), **stats)
                 db.add(starter)
+            # 精武堂：给 demo 初始强化石 + 玄铁精华，便于体验强化与打造
+            await goods.add_item(db, demo_user.id, "MT_STRENGTH_STONE", "martial", 5)
+            await goods.add_item(db, demo_user.id, "MT_IRON_ESSENCE", "martial", 3)
+            await goods.add_item(db, demo_user.id, "MT_SMALL_PILL", "martial", 2)
+            # 给 demo 一件初始白品质武器便于上手
+            from .routers import martial_data as MD
+            import json as _mjson
+            existing_weapon = (await db.execute(select(models.MartialEquip).where(
+                models.MartialEquip.user_id == demo_user.id,
+                models.MartialEquip.slot == "weapon"))).scalar_one_or_none()
+            if not existing_weapon:
+                db.add(models.MartialEquip(
+                    user_id=demo_user.id, slot="weapon", quality="white", strengthen=0,
+                    stats=_mjson.dumps(MD.gen_equip_stats("weapon", "white")), equipped=True))
         await db.commit()
 
         # ---------- 城市 / 航线 ----------
@@ -383,6 +412,7 @@ async def seed():
             ("icon_chef", "星级大厨", "餐厅达到3星", "town", "town_stars>=3"),
             ("icon_gardener", "花谱收藏家", "点亮3种花", "garden", "flower_lit>=3"),
             ("icon_captain", "航海家", "航海等级达到5", "sea", "sea_level>=5"),
+            ("icon_martial", "武林高手", "精武堂达到10级", "martial", "martial_level>=10"),
             ("icon_family", "家族之光", "加入家族", "platform", "join_family"),
             ("icon_forum", "论坛达人", "论坛发帖5次", "platform", "forum_post>=5"),
             ("icon_signin", "签到达人", "累计签到", "platform", "signin"),
@@ -397,6 +427,8 @@ async def seed():
             ("achv_flower_master", "花谱大师", "点亮全部花谱", 2, 200, "garden"),
             ("achv_explorer", "远航者", "到达商旅之城", 1, 150, "sea"),
             ("achv_social", "广交好友", "添加3位好友", 3, 60, "platform"),
+            ("achv_martial_arena", "比武新秀", "比武场获胜3场", 3, 100, "martial"),
+            ("achv_martial_master", "一代宗师", "精武堂达到30级", 1, 300, "martial"),
         ]
         for key, name, desc, target, reward, source in achv_defs:
             await icons.ensure_achievement(db, key, name, desc, target, reward, source)

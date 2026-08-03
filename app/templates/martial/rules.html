@@ -1,0 +1,92 @@
+{% extends "base.html" %}
+{% from "macros.html" import topbar, footer %}
+{% block title %}精武堂规则{% endblock %}
+{% block body %}
+{{ topbar("规则", user) }}
+<div class="crumb"><a href="/games/martial">精武堂</a> › 规则</div>
+<div class="content">
+  <div class="card">
+    <div class="hd">核心定位</div>
+    以<b>人物养成、修炼推进、比武对抗、装备成长、帮派社交</b>为核心的文字页战斗模块。<br>
+    主循环：修炼/任务 → 获得经验资源 → 升级加点 → 换装强化 → 比武/挑战 → 继续养成
+  </div>
+  <div class="card">
+    <div class="hd">人物成长线</div>
+    <b>等级</b>（1-80）：决定属性成长/装备门槛/玩法解锁<br>
+    <b>属性点</b>：每级 +3 点，自由分配四维<br>
+    <b>装备</b>：8 部位 × 5 品质，可强化 +0~+10<br>
+    <b>技能</b>：主动/被动，最高 5 级
+  </div>
+  <div class="card">
+    <div class="hd">四维属性</div>
+    <b>力量</b>：影响外功攻击（×3）<br>
+    <b>敏捷</b>：影响命中(×2)/闪避(×1.5)/暴击(×0.0004)/速度(×2)<br>
+    <b>体魄</b>：影响气血(×20)/外防(×2)/内防(×1)<br>
+    <b>内息</b>：影响内功攻击(×3)/内防(×2)
+  </div>
+  <div class="card">
+    <div class="hd">经验公式</div>
+    升级所需经验：<b>need(L) = 120 + 80×L</b>（方案A，平台统一）
+  </div>
+  <div class="card">
+    <div class="hd">修炼系统</div>
+    普通修炼：每小时 200 经验 / 120 银两<br>
+    闭关修炼：经验×2.0 / 银两×1.5，消耗 20 荣誉，日限 2 次<br>
+    离线收益上限 <b>12 小时</b>
+  </div>
+  <div class="card">
+    <div class="hd">战斗结算（半自动回合制）</div>
+    出手顺序：速度高者先手<br>
+    命中率 = clamp(hit / (hit + dodge), 0.25, 0.95)<br>
+    暴击率 = clamp(crit, 0.05, 0.60) · 暴击 ×1.5<br>
+    外功伤害 = atk×技能系数 × (1 - def/(def+200+lv×20)) × 暴击 × 随机<br>
+    内功伤害同上（取较高者结算）<br>
+    最多 12 回合，超时比剩余血量
+  </div>
+  <div class="card">
+    <div class="hd">战力公式</div>
+    power = hp×0.20 + 外攻×1.8 + 内攻×1.8 + 外防×1.3 + 内防×1.3<br>
+    + 命中×0.8 + 闪避×0.8 + 速度×1.2 + 技能分 + 装备分
+  </div>
+  <div class="card">
+    <div class="hd">装备系统</div>
+    8 部位：武器/衣服/护腕/腰带/鞋子/项链/戒指/秘籍<br>
+    5 品质：白(1.0)/绿(1.3)/蓝(1.6)/紫(2.0)/橙(2.5)<br>
+    强化 +1~+10：成功率 100%→30%，消耗银两+强化石<br>
+    打造：12级开启，消耗 3 玄铁精华 + 500 银两，随机品质
+  </div>
+  <div class="card">
+    <div class="hd">比武场（PVP）</div>
+    每日免费 10 次，额外次数 5 荣誉/次<br>
+    胜利：+12 比武分 +5 荣誉<br>
+    失败：-4 比武分（不低于0） +1 荣誉
+  </div>
+  <div class="card">
+    <div class="hd">挑战关卡（PVE）</div>
+    每日 10 次，9 个阶梯关卡（木人桩→武林盟主）<br>
+    奖励银两/经验/材料（强化石/玄铁精华/精炼石/洗点碎片）
+  </div>
+  <div class="card">
+    <div class="hd">日常任务 + 活跃奖励</div>
+    12 项日常任务（修炼/挑战/强化/打造/比武/帮派等）<br>
+    活跃度档位：20/40/60/80/100，对应递增奖励
+  </div>
+  <div class="card">
+    <div class="hd">帮派系统</div>
+    创建消耗 10000 银两<br>
+    捐献：银两/荣誉 → 贡献（日限 3 次）<br>
+    商店：贡献兑换强化石/玄铁精华/精炼石/洗点碎片/小还丹
+  </div>
+  <div class="card">
+    <div class="hd">加点洗点</div>
+    洗点消耗 5000 银两，归还全部已分配点数
+  </div>
+  <div class="card">
+    <div class="hd">技能列表</div>
+    主动：劈山掌/连环腿/烈焰掌/冰心诀（外功/内功，1-12级解锁）<br>
+    被动：踏雪无痕(速度)/铁布衫(外防)/金钟罩(内防)/暴击心法/鹰眼术(命中)/吸血功
+  </div>
+</div>
+<div class="content"><a class="btn" href="/games/martial">返回首页</a></div>
+{{ footer(user) }}
+{% endblock %}
