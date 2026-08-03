@@ -10,7 +10,7 @@ from ..deps import get_current_user
 from ..platform import events, log
 from .views import render
 
-router = APIRouter(prefix="/forum")
+router = APIRouter(prefix="/forum", tags=["论坛"])
 
 
 @router.get("")

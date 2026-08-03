@@ -8,7 +8,7 @@ from ..deps import get_current_user
 from ..platform import goods, locks
 from .views import render
 
-router = APIRouter(prefix="/inventory")
+router = APIRouter(prefix="/inventory", tags=["背包"])
 
 MODULES = [("platform", "平台"), ("farm", "农场"), ("town", "小镇"), ("garden", "花园"), ("sea", "航海")]
 

@@ -10,7 +10,7 @@ from ..deps import get_current_user
 from ..platform import locks
 from .views import render
 
-router = APIRouter(prefix="/settings")
+router = APIRouter(prefix="/settings", tags=["设置"])
 
 
 async def _get_settings(db: AsyncSession, user_id: int) -> models.Settings:

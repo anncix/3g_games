@@ -39,7 +39,7 @@ from ..deps import get_current_user
 from ..platform import goods, events, locks, friends as fsvc, log
 from .views import render
 
-router = APIRouter(prefix="/games/town")
+router = APIRouter(prefix="/games/town", tags=["美味小镇"])
 MODULE_KEY = "town"
 
 # ============================================================

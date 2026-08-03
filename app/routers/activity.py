@@ -11,7 +11,7 @@ from ..deps import get_current_user
 from ..platform import events, goods, log
 from .views import render
 
-router = APIRouter(prefix="/activity")
+router = APIRouter(prefix="/activity", tags=["活动"])
 
 
 # 限时活动（内联定义，不入库）：key/name/desc/active/type

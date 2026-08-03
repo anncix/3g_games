@@ -9,7 +9,7 @@ from ..database import get_db
 from ..deps import get_current_user
 from .views import render
 
-router = APIRouter(prefix="/ranking")
+router = APIRouter(prefix="/ranking", tags=["排行"])
 
 
 # 多榜配置：metric -> 中文名。对应 State 表直查，Top 10

@@ -9,7 +9,7 @@ from ..database import get_db
 from ..deps import get_current_user, create_session, destroy_session, hash_password, verify_password, templates
 from .views import render
 
-router = APIRouter()
+router = APIRouter(tags=["账号"])
 
 
 @router.get("/")

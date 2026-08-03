@@ -10,7 +10,7 @@ from ..deps import get_current_user
 from ..platform import goods, log
 from .views import render
 
-router = APIRouter(prefix="/shop")
+router = APIRouter(prefix="/shop", tags=["商店"])
 
 
 @router.get("")

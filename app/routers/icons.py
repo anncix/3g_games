@@ -9,7 +9,7 @@ from ..database import get_db
 from ..deps import get_current_user
 from .views import render
 
-router = APIRouter(prefix="/icons")
+router = APIRouter(prefix="/icons", tags=["图标"])
 
 
 @router.get("")

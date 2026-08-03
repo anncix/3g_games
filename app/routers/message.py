@@ -9,7 +9,7 @@ from ..database import get_db
 from ..deps import get_current_user
 from .views import render
 
-router = APIRouter(prefix="/messages")
+router = APIRouter(prefix="/messages", tags=["消息"])
 
 
 @router.get("")

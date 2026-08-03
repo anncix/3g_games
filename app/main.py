@@ -55,6 +55,6 @@ async def not_found(request: Request, exc):
     return await render(request, "result.html", db=None, user=user, ok=False, msg="页面不存在 (404)", back_href="/", back_text="回首页")
 
 
-@app.get("/health")
+@app.get("/health", tags=["健康检查"])
 async def health():
     return {"status": "ok", "app": "qq_home", "version": config.VERSION}

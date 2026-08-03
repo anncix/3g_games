@@ -19,7 +19,7 @@ from ..database import get_db
 from ..deps import hash_password, verify_password, create_session
 from ..platform import friends as fsvc, goods, icons, events, locks, ranking, log
 
-router = APIRouter(prefix="/api")
+router = APIRouter(prefix="/api", tags=["API"])
 
 
 def ok(data: Any = None, msg: str = "ok"):

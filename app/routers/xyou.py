@@ -22,7 +22,7 @@ from ..platform import goods, events, log
 from .views import render
 from . import xyou_data as XY
 
-router = APIRouter(prefix="/games/xyou")
+router = APIRouter(prefix="/games/xyou", tags=["幻想西游"])
 MODULE_KEY = "xyou"
 
 # 修炼基础收益（每小时）

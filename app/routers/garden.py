@@ -32,7 +32,7 @@ from ..platform import goods, events, locks, friends as fsvc, log
 from .garden_data import QUEST_CHAIN, QUEST_CHAIN_REWARD_CHARM
 from .views import render
 
-router = APIRouter(prefix="/games/garden")
+router = APIRouter(prefix="/games/garden", tags=["魔法花园"])
 MODULE_KEY = "garden"
 
 # 阶段名称（索引 1..stages）

@@ -17,7 +17,7 @@ from ..deps import get_current_user
 from ..platform import goods, icons, events, log
 from .views import render
 
-router = APIRouter(prefix="/games/sea")
+router = APIRouter(prefix="/games/sea", tags=["纵横四海"])
 MODULE_KEY = "sea"
 
 

@@ -10,7 +10,7 @@ from ..deps import get_current_user
 from ..platform import locks
 from .views import render
 
-router = APIRouter(prefix="/city")
+router = APIRouter(prefix="/city", tags=["同城"])
 
 
 @router.get("")

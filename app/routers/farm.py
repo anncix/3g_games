@@ -17,7 +17,7 @@ from ..deps import get_current_user
 from ..platform import goods, icons, events, locks, friends as fsvc, log, ranking
 from .views import render
 
-router = APIRouter(prefix="/games/farm")
+router = APIRouter(prefix="/games/farm", tags=["阳光农场"])
 MODULE_KEY = "farm"
 
 # v0.2.1：土地等级系统（spec：普通→红→金→黑土地，来源 baike.com 红土地百科 + youxiabc.com 攻略）

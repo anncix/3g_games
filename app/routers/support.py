@@ -10,7 +10,7 @@ from ..deps import get_current_user
 from ..platform import log
 from .views import render
 
-router = APIRouter(prefix="/support")
+router = APIRouter(prefix="/support", tags=["客服"])
 
 FAQ = [
     ("如何防止被偷？", "在物品锁管理或地块详情中给资源上锁，上锁后禁止被翻/偷/消耗/出售。"),

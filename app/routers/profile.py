@@ -11,7 +11,7 @@ from ..deps import get_current_user, require_user, templates
 from ..platform import friends as friend_svc, locks, icons, log
 from .views import render
 
-router = APIRouter()
+router = APIRouter(tags=["个人主页"])
 
 
 @router.get("/my")

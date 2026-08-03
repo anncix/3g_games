@@ -22,7 +22,7 @@ from ..platform import goods, events, log
 from .views import render
 from . import martial_data as D
 
-router = APIRouter(prefix="/games/martial")
+router = APIRouter(prefix="/games/martial", tags=["精武堂"])
 MODULE_KEY = "martial"
 
 

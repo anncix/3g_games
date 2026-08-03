@@ -19,7 +19,7 @@ from ..platform import goods, events, log
 from .views import render
 from . import summon_data as D
 
-router = APIRouter(prefix="/games/summon")
+router = APIRouter(prefix="/games/summon", tags=["召唤之王"])
 MODULE_KEY = "summon"
 
 

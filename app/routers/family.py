@@ -10,7 +10,7 @@ from ..deps import get_current_user
 from ..platform import icons, events, log
 from .views import render
 
-router = APIRouter(prefix="/family")
+router = APIRouter(prefix="/family", tags=["家族"])
 
 
 @router.get("")

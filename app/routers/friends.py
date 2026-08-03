@@ -10,7 +10,7 @@ from ..deps import get_current_user
 from ..platform import friends as svc
 from .views import render
 
-router = APIRouter(prefix="")
+router = APIRouter(prefix="", tags=["好友"])
 
 
 @router.get("/friends")

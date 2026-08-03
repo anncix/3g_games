@@ -10,7 +10,7 @@ from ..deps import get_current_user
 from ..platform import locks, friends as fsvc, log
 from .views import render
 
-router = APIRouter(prefix="/chat")
+router = APIRouter(prefix="/chat", tags=["聊天"])
 
 
 @router.get("")

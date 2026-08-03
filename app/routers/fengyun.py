@@ -21,7 +21,7 @@ from ..platform import goods, events, log
 from .views import render
 from . import fengyun_data as FY
 
-router = APIRouter(prefix="/games/fengyun")
+router = APIRouter(prefix="/games/fengyun", tags=["风云三国"])
 MODULE_KEY = "fengyun"
 
 # 演武基础收益（每小时）

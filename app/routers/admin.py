@@ -14,7 +14,7 @@ from ..deps import get_current_user, require_admin
 from ..platform import log
 from .views import render
 
-router = APIRouter(prefix="/admin")
+router = APIRouter(prefix="/admin", tags=["管理"])
 
 
 @router.get("")

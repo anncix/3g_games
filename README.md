@@ -1,6 +1,6 @@
 # QQ家园 — 怀旧平台化复刻
 
-> 版本：**v0.2.3** （2026-08-03 幻想西游全网检索补全：14药品完整参数/19高级升级材料/12长安城坐标/8副本BOSS掉落/自动战斗挂机/5新路由5新模板）
+> 版本：**v0.2.4** （2026-08-03 路由结构整理：26 个路由文件全部加 tags 分组 / Swagger 文档 27 分组 / 322 路由冒烟通过）
 >
 > 基于 **FastAPI + SQLite + Jinja2(简版 WAP 风)** 实现的怀旧 QQ 家园平台复刻。
 > 严格遵循《怀旧QQ家园平台设计规范》：平台统一、模块自治、旧逻辑优先、一页只做一件事。
@@ -10,6 +10,70 @@
 ---
 
 ## 更新日志
+
+### v0.2.4 （2026-08-03）— 路由结构整理（26 个 router 加 tags 分组 / Swagger 文档可读性）
+
+对全平台路由结构做"验证 + 分析 + 整理使程序合理"。结合全网检索的原版玩法与 FastAPI 路由规范（`https://fastapi.tiangolo.com/tutorial/bigger-applications/`）逐一核对后，确认 8 个游戏模块 + 18 个平台模块共 **322 个路由结构清晰**（`/games/*` 游戏命名空间 + 平台裸路径 + `/api/*` JSON 接口），此前分析中"四海仅 8 路由 / 召唤 8 大系统 0 路由"的判断系基于过时数据——实际 sea 已 21 路由（ships/dungeons/trade/pets/gems/cards/holymarks/equipsets/mainquests 全覆盖）、summon 已 37 路由（bone/soul/spirit/arena/battlefield/alliance/mentor/tower 全覆盖）、garden 已 35 路由（含 quest 任务链）。
+
+唯一确凿且全平台一致的结构性缺口是：**26 个路由文件全部未设 `tags`，导致 Swagger 文档 322 个接口堆在 default 分组下不可读**。本次按 FastAPI 大型项目规范为全部 router 补 tags 分组，零行为变更、零 URL 变更。
+
+**一、tags 分组方案（27 分组）**
+
+| 分组 | 路由数 | 涉及文件 |
+|---|---|---|
+| 美味小镇 | 37 | town.py |
+| 召唤之王 | 37 | summon.py |
+| 魔法花园 | 35 | garden.py |
+| 精武堂 | 34 | martial.py |
+| 幻想西游 | 31 | xyou.py |
+| 纵横四海 | 21 | sea.py |
+| 风云三国 | 21 | fengyun.py |
+| API | 17 | api.py |
+| 阳光农场 | 15 | farm.py |
+| 管理 | 12 | admin.py |
+| 好友 | 8 | friends.py |
+| 账号 | 6 | auth.py |
+| 个人主页 | 6 | profile.py |
+| 论坛 | 6 | forum.py |
+| 设置 | 6 | settings.py |
+| 聊天 | 5 | chat.py |
+| 家族 | 4 | family.py |
+| 活动 | 4 | activity.py |
+| 客服 | 4 | support.py |
+| 消息 | 3 | message.py |
+| 背包 | 3 | inventory.py |
+| 商店 | 2 | shop.py |
+| 大厅 | 1 | lobby.py |
+| 同城 | 1 | city.py |
+| 排行 | 1 | ranking.py |
+| 图标 | 1 | icons.py |
+| 健康检查 | 1 | main.py（`/health`） |
+
+**二、整理要点**
+- 8 游戏模块 tags：阳光农场 / 美味小镇 / 魔法花园 / 纵横四海 / 召唤之王 / 精武堂 / 风云三国 / 幻想西游
+- 18 平台模块 tags：账号 / 大厅 / 个人主页 / 好友 / 家族 / 论坛 / 聊天 / 同城 / 消息 / 活动 / 排行 / 图标 / 设置 / 客服 / 背包 / 商店 / 管理 / API
+- `/health` 健康检查端点补 `tags=["健康检查"]`
+- **零 URL 变更、零行为变更**：仅给 `APIRouter(...)` / `@app.get(...)` 增加 `tags=` 参数，不改动 prefix、不改路由路径、不改业务逻辑
+- 平台裸路径（`/my`、`/lobby`、`/friends` 等）保持不变，避免破坏前端链接与已发布 URL
+
+**三、闭环验证**
+- ✅ IMPORT OK：`VERSION = 0.2.4`；app 正常初始化
+- ✅ OpenAPI schema：322 路由全部带 tags，27 个分组（26 模块 + 健康检查），无 tag 路由 = 0
+- ✅ HTTP 冒烟（demo 登录）：31 路由全 200——8 游戏首页 + summon 8 子系统（bone/arena/tower/soul/spirit/alliance/mentor/battlefield）+ sea 9 子系统（ships/trade/dungeons/pets/gems/cards/holymarks/equipsets/mainquests）+ xyou 5 新页（materials/coords/autobattle/roadmap/dungeon_bosses）+ `/docs` Swagger 页
+- ✅ Swagger 文档 `/docs` 200，27 分组按字母与规模有序排列，可读性显著提升
+
+**四、路由结构现状结论（验证后）**
+- 平台模块（无 `/games` 前缀）：auth/lobby/profile/friends/family/forum/chat/city/messages/activity/ranking/icons/settings/support/inventory/shop/admin — 共 60 路由
+- 游戏模块（`/games/*`）：farm/town/garden/sea/summon/martial/fengyun/xyou — 共 231 路由，8 模块均完整覆盖原版核心玩法
+- JSON API（`/api/*`）：认证 + 各模块状态快照 — 17 路由
+- 全平台 322 路由，结构清晰，无孤儿数据表、无重复路由、无缺失入口
+
+**文件变更**
+- 26 个路由文件：`APIRouter(prefix=..., tags=[...])` 各加 tags 参数
+- `app/main.py`：`/health` 端点加 `tags=["健康检查"]`
+- `app/config.py`：版本号 0.2.3 → 0.2.4
+
+---
 
 ### v0.2.3 （2026-08-03）— 幻想西游全网检索补全（参数补全 + 自动战斗挂机 + 5 新路由）
 
