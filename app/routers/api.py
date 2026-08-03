@@ -227,8 +227,28 @@ async def api_town_state(request: Request, db: AsyncSession = Depends(get_db)):
     user = await _auth(request, db)
     st = await db.get(models.TownState, user.id)
     if not st:
-        return ok({"stars": 1, "oil": 100, "dishes_served": 0, "level": 1})
-    return ok({"stars": st.stars, "oil": st.oil, "dishes_served": st.dishes_served, "level": st.level})
+        return ok({"stars": 0, "oil": 3000, "oil_cap": 3000, "coins": 10000,
+                   "dishes_served": 0, "level": 1, "exp": 0, "exp_needed": 200,
+                   "total_service": 0, "total_revenue": 0, "fame": 0, "table_count": 3})
+    from ..routers.town import exp_needed, star_info, calc_serving_tables, get_active_waiters, get_active_cockroaches
+    waiters = await get_active_waiters(db, user.id)
+    roaches = await get_active_cockroaches(db, user.id)
+    table_cap, waiter_total, cabinet_cap, facility_slots, picky_pct, rare_pct, revenue_coef = star_info(st.stars)
+    serving_tables = calc_serving_tables(st.table_count, len(waiters) + 1, len(roaches))
+    return ok({
+        "stars": st.stars, "level": st.level, "exp": st.exp,
+        "exp_needed": exp_needed(st.level),
+        "oil": st.oil, "oil_cap": st.oil_cap,
+        "coins": st.coins, "dishes_served": st.dishes_served,
+        "total_service": st.total_service, "total_revenue": st.total_revenue,
+        "fame": st.fame, "table_count": st.table_count,
+        "table_cap": table_cap, "waiter_total": waiter_total,
+        "cabinet_cap": cabinet_cap, "facility_slots": facility_slots,
+        "picky_pct": picky_pct, "rare_pct": rare_pct,
+        "revenue_coef": revenue_coef, "serving_tables": serving_tables,
+        "active_waiters": len(waiters), "active_roaches": len(roaches),
+        "oil_pct": int(st.oil / st.oil_cap * 100) if st.oil_cap > 0 else 0,
+    })
 
 
 @router.get("/garden/state")

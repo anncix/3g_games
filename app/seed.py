@@ -53,12 +53,38 @@ async def seed():
         await goods.ensure_item(db, "farm_radish", "萝卜", "crop", "farm", True, 10, "收获物")
         await goods.ensure_item(db, "farm_seed_tomato", "番茄种子", "crop", "farm", True, 20, "种下120秒成熟")
         await goods.ensure_item(db, "farm_tomato", "番茄", "crop", "farm", True, 25, "收获物")
-        # 小镇食材
-        await goods.ensure_item(db, "town_ingredient_rice", "大米", "ingredient", "town", True, 5, "基础食材")
-        await goods.ensure_item(db, "town_ingredient_meat", "猪肉", "ingredient", "town", True, 8, "基础食材")
-        await goods.ensure_item(db, "town_ingredient_oil", "食用油", "ingredient", "town", True, 6, "添油用")
-        await goods.ensure_item(db, "town_dish_fried_rice", "蛋炒饭", "ingredient", "town", True, 30, "招牌菜")
-        await goods.ensure_item(db, "town_dish_red_cook", "红烧肉", "ingredient", "town", True, 60, "高星菜")
+        # 小镇食材（按 6 级食材等级，对齐菜谱级别 1-6）
+        # 1级食材（Lv1 解锁）
+        await goods.ensure_item(db, "town_ing_rice", "大米", "ingredient", "town", True, 5, "1级食材·基础主食")
+        await goods.ensure_item(db, "town_ing_egg", "鸡蛋", "ingredient", "town", True, 6, "1级食材·基础辅料")
+        await goods.ensure_item(db, "town_ing_veg", "青菜", "ingredient", "town", True, 4, "1级食材·基础蔬菜")
+        # 2级食材（Lv10 解锁）
+        await goods.ensure_item(db, "town_ing_meat", "猪肉", "ingredient", "town", True, 8, "2级食材·常见荤料")
+        await goods.ensure_item(db, "town_ing_tofu", "豆腐", "ingredient", "town", True, 7, "2级食材·豆制品")
+        await goods.ensure_item(db, "town_ing_noodle", "面条", "ingredient", "town", True, 9, "2级食材·主食")
+        # 3级食材（Lv20 解锁）
+        await goods.ensure_item(db, "town_ing_chicken", "鸡肉", "ingredient", "town", True, 12, "3级食材·禽类")
+        await goods.ensure_item(db, "town_ing_fish", "鲜鱼", "ingredient", "town", True, 14, "3级食材·水产")
+        await goods.ensure_item(db, "town_ing_mushroom", "香菇", "ingredient", "town", True, 10, "3级食材·菌菇")
+        # 4级食材（Lv35 解锁）
+        await goods.ensure_item(db, "town_ing_beef", "牛肉", "ingredient", "town", True, 18, "4级食材·高级荤料")
+        await goods.ensure_item(db, "town_ing_shrimp", "大虾", "ingredient", "town", True, 20, "4级食材·高档水产")
+        # 5级食材（Lv50 解锁）
+        await goods.ensure_item(db, "town_ing_crab", "膏蟹", "ingredient", "town", True, 28, "5级食材·珍稀水产")
+        await goods.ensure_item(db, "town_ing_truffle", "松露", "ingredient", "town", True, 32, "5级食材·珍稀食材")
+        # 6级食材/神秘食材（Lv65 解锁）
+        await goods.ensure_item(db, "town_ing_abalone", "鲍鱼", "ingredient", "town", True, 45, "6级食材·海味珍品")
+        await goods.ensure_item(db, "town_ing_mystery", "神秘食材", "ingredient", "town", True, 50, "6级食材·活动限定")
+        # 成品菜（按 6 级菜谱对应）
+        await goods.ensure_item(db, "town_dish_lv1", "蛋炒饭", "ingredient", "town", True, 18, "1级菜成品")
+        await goods.ensure_item(db, "town_dish_lv2", "红烧肉", "ingredient", "town", True, 36, "2级菜成品")
+        await goods.ensure_item(db, "town_dish_lv3", "香菇鸡", "ingredient", "town", True, 68, "3级菜成品")
+        await goods.ensure_item(db, "town_dish_lv4", "葱爆牛肉", "ingredient", "town", True, 118, "4级菜成品")
+        await goods.ensure_item(db, "town_dish_lv5", "松露膏蟹", "ingredient", "town", True, 198, "5级菜成品")
+        await goods.ensure_item(db, "town_dish_lv6", "鲍鱼盛宴", "ingredient", "town", True, 320, "6级菜成品·名菜")
+        # 升级材料
+        await goods.ensure_item(db, "town_dish_fragment", "菜谱碎片", "material", "town", True, 15, "升极品/金牌材料")
+        await goods.ensure_item(db, "town_special_condiment", "特殊调料", "material", "town", True, 40, "升金牌专用材料")
         # 花园物品字典已在下方"花种/花朵/花谱"小节统一注册
         # 航海装备
         await goods.ensure_item(db, "sea_equip_sail", "船帆", "equip", "sea", False, 50, "提升战力")
@@ -76,16 +102,45 @@ async def seed():
                                    seed_item_key=seed, harvest_item_key=harvest, harvest_exp=exp, price=price))
         await db.commit()
 
-        # ---------- 菜谱字典 ----------
+        # ---------- 菜谱字典（v0.0.4：6级菜 × 3品质，按方案C定版数值） ----------
+        # (key, name, recipe_level, ingredients_json, cook_seconds, output_item_key,
+        #  base_price, base_exp, base_oil, unlock_level)
+        # 数值对齐 RECIPE_LEVEL_TABLE：1级(Lv1,18,2,30s,8油) ... 6级(Lv65,320,24,180s,50油)
         recipes = [
-            ("fried_rice", "蛋炒饭", json.dumps({"town_ingredient_rice": 2}), 30, "town_dish_fried_rice", 20, 1),
-            ("red_cook", "红烧肉", json.dumps({"town_ingredient_meat": 2, "town_ingredient_oil": 1}), 60, "town_dish_red_cook", 50, 2),
+            # 1级菜（Lv1 解锁，1级食材）
+            ("fried_rice", "蛋炒饭", 1, json.dumps({"town_ing_rice": 2, "town_ing_egg": 1}), 30, "town_dish_lv1", 18, 2, 8, 1),
+            ("veg_noodle", "青菜面", 1, json.dumps({"town_ing_noodle": 1, "town_ing_veg": 2}), 30, "town_dish_lv1", 18, 2, 8, 1),
+            # 2级菜（Lv10 解锁，1-2级食材）
+            ("red_cook", "红烧肉", 2, json.dumps({"town_ing_meat": 2, "town_ing_tofu": 1}), 45, "town_dish_lv2", 36, 4, 12, 10),
+            ("egg_noodle", "鸡蛋面", 2, json.dumps({"town_ing_noodle": 1, "town_ing_egg": 2}), 45, "town_dish_lv2", 36, 4, 12, 10),
+            # 3级菜（Lv20 解锁，2-3级食材）
+            ("mushroom_chicken", "香菇鸡", 3, json.dumps({"town_ing_chicken": 1, "town_ing_mushroom": 2}), 60, "town_dish_lv3", 68, 7, 18, 20),
+            ("fish_tofu", "鱼香豆腐", 3, json.dumps({"town_ing_fish": 1, "town_ing_tofu": 2}), 60, "town_dish_lv3", 68, 7, 18, 20),
+            # 4级菜（Lv35 解锁，3-4级食材）
+            ("beef_burst", "葱爆牛肉", 4, json.dumps({"town_ing_beef": 1, "town_ing_mushroom": 1}), 90, "town_dish_lv4", 118, 11, 26, 35),
+            ("shrimp_noodle", "大虾面", 4, json.dumps({"town_ing_shrimp": 2, "town_ing_noodle": 1}), 90, "town_dish_lv4", 118, 11, 26, 35),
+            # 5级菜（Lv50 解锁，4-5级食材）
+            ("truffle_crab", "松露膏蟹", 5, json.dumps({"town_ing_crab": 1, "town_ing_truffle": 1}), 120, "town_dish_lv5", 198, 16, 36, 50),
+            # 6级菜（Lv65 解锁，5-6级/神秘食材）
+            ("abalone_feast", "鲍鱼盛宴", 6, json.dumps({"town_ing_abalone": 2, "town_ing_mystery": 1}), 180, "town_dish_lv6", 320, 24, 50, 65),
         ]
-        for key, name, ing, cs, out, price, stars in recipes:
+        for key, name, rlev, ing, cs, out, bp, be, bo, ul in recipes:
             r = await db.get(models.TownRecipe, key)
             if not r:
-                db.add(models.TownRecipe(key=key, name=name, ingredients=ing, cook_seconds=cs,
-                                         output_item_key=out, price=price, unlock_stars=stars))
+                db.add(models.TownRecipe(key=key, name=name, recipe_level=rlev, ingredients=ing,
+                                          cook_seconds=cs, output_item_key=out,
+                                          base_price=bp, base_exp=be, base_oil=bo, unlock_level=ul,
+                                          price=bp, unlock_stars=0))
+            else:
+                # 升级旧记录到新结构
+                r.recipe_level = rlev
+                r.cook_seconds = cs
+                r.output_item_key = out
+                r.base_price = bp
+                r.base_exp = be
+                r.base_oil = bo
+                r.unlock_level = ul
+                r.ingredients = ing
         await db.commit()
 
         # ---------- 花种/花朵/花谱 三概念分离（魔法花园 v0.0.3） ----------
@@ -227,6 +282,27 @@ async def seed():
             await goods.add_item(db, demo_user.id, "garden_petal_purple", "garden", 2)
             await goods.add_item(db, demo_user.id, "garden_dust", "garden", 3)
             await goods.add_item(db, demo_user.id, "garden_essence", "garden", 2)
+            # 小镇初始食材（1级食材，便于烹饪 1 级菜）
+            await goods.add_item(db, demo_user.id, "town_ing_rice", "town", 6)
+            await goods.add_item(db, demo_user.id, "town_ing_egg", "town", 4)
+            await goods.add_item(db, demo_user.id, "town_ing_veg", "town", 4)
+            await goods.add_item(db, demo_user.id, "town_ing_meat", "town", 2)
+            await goods.add_item(db, demo_user.id, "town_ing_noodle", "town", 2)
+            # 给 lily 也一些食材，便于 demo 去翻橱柜
+            lily_user = (await db.execute(select(models.User).where(models.User.username == "lily"))).scalar_one_or_none()
+            if lily_user:
+                await goods.add_item(db, lily_user.id, "town_ing_rice", "town", 5)
+                await goods.add_item(db, lily_user.id, "town_ing_meat", "town", 3)
+                await goods.add_item(db, lily_user.id, "town_ing_mushroom", "town", 2)
+                # demo ↔ lily 互为好友，便于体验翻柜/雇佣
+                f1 = (await db.execute(select(models.Friend).where(
+                    models.Friend.user_id == demo_user.id, models.Friend.friend_id == lily_user.id))).scalar_one_or_none()
+                if not f1:
+                    db.add(models.Friend(user_id=demo_user.id, friend_id=lily_user.id))
+                f2 = (await db.execute(select(models.Friend).where(
+                    models.Friend.user_id == lily_user.id, models.Friend.friend_id == demo_user.id))).scalar_one_or_none()
+                if not f2:
+                    db.add(models.Friend(user_id=lily_user.id, friend_id=demo_user.id))
         await db.commit()
 
         # ---------- 城市 / 航线 ----------

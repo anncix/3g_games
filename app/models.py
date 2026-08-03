@@ -435,33 +435,147 @@ class FarmStealLog(Base):
 
 
 # ============================================================
-# 模块2：美味小镇 Town
-# 老味道点：食材短缺驱动互动 / 翻好友橱柜 / 添油维持营业 / 升星与挑剔客人
+# 模块2：美味小镇 Town（v0.0.4 怀旧版完整设计规范）
+# 双主轴：餐厅星级(规模) + 菜谱等级(内容)
+# 老味道点：翻橱柜/添油/合菜/雇服务员/挑剔客人/蟑螂
 # ============================================================
 class TownRecipe(Base):
-    """菜谱字典"""
+    """菜谱字典（6 级菜 × 3 品质：普通/极品/金牌）
+
+    recipe_level: 1-6（菜谱级别，对应解锁等级 Lv1/10/20/35/50/65）
+    base_price: 基础售价（品质系数单独乘算：普通1.0/极品1.25/金牌1.55）
+    base_exp: 顾客消费基础经验（品质不提升经验，保留旧逻辑）
+    base_oil: 单次开灶耗油
+    cook_seconds: 制作时间
+    """
     __tablename__ = "town_recipes"
     key: Mapped[str] = mapped_column(String(32), primary_key=True)
     name: Mapped[str] = mapped_column(String(32))
-    ingredients: Mapped[str] = mapped_column(String(255))  # JSON: {item_key: qty}
+    recipe_level: Mapped[int] = mapped_column(Integer, default=1)  # 1-6 级菜
+    ingredients: Mapped[str] = mapped_column(Text)  # JSON: {item_key: qty}
     cook_seconds: Mapped[int] = mapped_column(Integer, default=30)
     output_item_key: Mapped[str] = mapped_column(String(64))
-    price: Mapped[int] = mapped_column(Integer, default=20)  # 单份售价
-    unlock_stars: Mapped[int] = mapped_column(Integer, default=1)
+    base_price: Mapped[int] = mapped_column(Integer, default=18)  # 基础售价
+    base_exp: Mapped[int] = mapped_column(Integer, default=2)  # 顾客消费基础经验
+    base_oil: Mapped[int] = mapped_column(Integer, default=8)  # 开灶耗油
+    unlock_level: Mapped[int] = mapped_column(Integer, default=1)  # 解锁等级
+    # 旧字段兼容（保留以便平滑迁移）
+    price: Mapped[int] = mapped_column(Integer, default=20)
+    unlock_stars: Mapped[int] = mapped_column(Integer, default=0)
+
+
+class TownRecipeProgress(Base):
+    """玩家菜谱进度（熟练度 + 品质 + 上架）
+
+    proficiency: 熟练度（做一次+1）
+    quality: 普通/极品/金牌
+    on_shelf: 是否上架营业（0/1）
+    """
+    __tablename__ = "town_recipe_progress"
+    id: Mapped[int] = mapped_column(Integer, primary_key=True)
+    user_id: Mapped[int] = mapped_column(ForeignKey("users.id", ondelete="CASCADE"), index=True)
+    recipe_key: Mapped[str] = mapped_column(ForeignKey("town_recipes.key", ondelete="CASCADE"))
+    learned: Mapped[bool] = mapped_column(Boolean, default=False)
+    proficiency: Mapped[int] = mapped_column(Integer, default=0)
+    quality: Mapped[str] = mapped_column(String(8), default="普通")  # 普通/极品/金牌
+    on_shelf: Mapped[bool] = mapped_column(Boolean, default=False)
+    __table_args__ = (UniqueConstraint("user_id", "recipe_key", name="uq_town_recipe_progress"),)
 
 
 class TownState(Base):
-    """餐厅状态"""
+    """餐厅状态（v0.0.4 完整字段）
+
+    stars: 0-5 星（0星=Lv1起步，5星=Lv70满阶）
+    oil / oil_cap: 当前油量 / 油壶容量（初始 3000，可扩到 8000）
+    coins: 模块金币（独立于平台 user.coins，开局 10000）
+    total_revenue: 累计营收（升星条件）
+    total_service: 累计营业次数（升星条件）
+    fame: 人气（被翻+1，雇佣等）
+    last_service_at: 上次营业结算时间（顾客周期 180 秒）
+    last_oil_drain: 上次油量自然消耗时间
+    """
     __tablename__ = "town_state"
     user_id: Mapped[int] = mapped_column(ForeignKey("users.id", ondelete="CASCADE"), primary_key=True)
     level: Mapped[int] = mapped_column(Integer, default=1)
-    stars: Mapped[int] = mapped_column(Integer, default=1)  # 1-5 星
-    oil: Mapped[int] = mapped_column(Integer, default=100)  # 油量 0-100
-    dishes_served: Mapped[int] = mapped_column(Integer, default=0)
     exp: Mapped[int] = mapped_column(Integer, default=0)
+    stars: Mapped[int] = mapped_column(Integer, default=0)  # 0-5 星
+    oil: Mapped[int] = mapped_column(Integer, default=3000)  # 当前油量
+    oil_cap: Mapped[int] = mapped_column(Integer, default=3000)  # 油壶容量
+    coins: Mapped[int] = mapped_column(Integer, default=10000)  # 模块金币（开局 10000）
+    dishes_served: Mapped[int] = mapped_column(Integer, default=0)  # 兼容旧字段
+    total_revenue: Mapped[int] = mapped_column(Integer, default=0)
+    total_service: Mapped[int] = mapped_column(Integer, default=0)
+    fame: Mapped[int] = mapped_column(Integer, default=0)
+    table_count: Mapped[int] = mapped_column(Integer, default=3)  # 已摆桌位数
     cooking_recipe: Mapped[str] = mapped_column(String(32), default="")
     cooking_started_at: Mapped[datetime] = mapped_column(DateTime, nullable=True)
+    last_service_at: Mapped[datetime] = mapped_column(DateTime, default=_now)
     last_oil_drain: Mapped[datetime] = mapped_column(DateTime, default=_now)
+
+
+class TownDailyLog(Base):
+    """小镇日限计数（翻柜/丢蟑螂/被翻补偿）
+
+    按 (user_id, date) 唯一
+    flip_total: 今日翻柜总次数（上限 15）
+    roach_throw: 今日丢蟑螂次数（上限 2）
+    """
+    __tablename__ = "town_daily_logs"
+    id: Mapped[int] = mapped_column(Integer, primary_key=True)
+    user_id: Mapped[int] = mapped_column(ForeignKey("users.id", ondelete="CASCADE"), index=True)
+    date: Mapped[str] = mapped_column(String(10))  # YYYY-MM-DD
+    flip_total: Mapped[int] = mapped_column(Integer, default=0)
+    roach_throw: Mapped[int] = mapped_column(Integer, default=0)
+    __table_args__ = (UniqueConstraint("user_id", "date", name="uq_town_daily"),)
+
+
+class TownFlipLog(Base):
+    """翻柜互动记录（同好友每日上限 3 + 10 分钟冷却 + 衰减）
+
+    thief_id: 翻取者
+    host_id: 被翻者
+    times_today: 对该好友今日第几次（1/2/3，第4次起收益0）
+    """
+    __tablename__ = "town_flip_logs"
+    id: Mapped[int] = mapped_column(Integer, primary_key=True)
+    thief_id: Mapped[int] = mapped_column(ForeignKey("users.id", ondelete="CASCADE"), index=True)
+    host_id: Mapped[int] = mapped_column(ForeignKey("users.id", ondelete="CASCADE"), index=True)
+    item_key: Mapped[str] = mapped_column(String(64))
+    times_today: Mapped[int] = mapped_column(Integer, default=1)
+    created_at: Mapped[datetime] = mapped_column(DateTime, default=_now)
+
+
+class TownWaiter(Base):
+    """服务员（雇好友，12 小时）
+
+    bonus_type: coins/satisfaction/speed（金币+3%/满意度+2%/速度-5%制作时间）
+    """
+    __tablename__ = "town_waiters"
+    id: Mapped[int] = mapped_column(Integer, primary_key=True)
+    user_id: Mapped[int] = mapped_column(ForeignKey("users.id", ondelete="CASCADE"), index=True)  # 雇主
+    friend_id: Mapped[int] = mapped_column(ForeignKey("users.id", ondelete="CASCADE"))  # 服务员
+    bonus_type: Mapped[str] = mapped_column(String(16), default="coins")
+    hired_at: Mapped[datetime] = mapped_column(DateTime, default=_now)
+    expire_at: Mapped[datetime] = mapped_column(DateTime)
+
+
+class TownCockroach(Base):
+    """蟑螂（封 1 桌，15 分钟自动消失，单餐厅上限 3 只）"""
+    __tablename__ = "town_cockroaches"
+    id: Mapped[int] = mapped_column(Integer, primary_key=True)
+    user_id: Mapped[int] = mapped_column(ForeignKey("users.id", ondelete="CASCADE"), index=True)  # 被丢者
+    thrower_id: Mapped[int] = mapped_column(ForeignKey("users.id", ondelete="CASCADE"))  # 丢蟑螂者
+    created_at: Mapped[datetime] = mapped_column(DateTime, default=_now)
+    expire_at: Mapped[datetime] = mapped_column(DateTime)
+
+
+class TownFacility(Base):
+    """设施（24 小时生效）：奖杯/海报/保鲜柜/省油灶/卫生香氛"""
+    __tablename__ = "town_facilities"
+    id: Mapped[int] = mapped_column(Integer, primary_key=True)
+    user_id: Mapped[int] = mapped_column(ForeignKey("users.id", ondelete="CASCADE"), index=True)
+    facility_key: Mapped[str] = mapped_column(String(32))  # trophy/poster/fresh_cabinet/oil_stove/sanitizer
+    expire_at: Mapped[datetime] = mapped_column(DateTime)
 
 
 # ============================================================

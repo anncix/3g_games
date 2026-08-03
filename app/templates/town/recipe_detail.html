@@ -1,0 +1,62 @@
+{% extends "base.html" %}
+{% from "macros.html" import topbar, footer %}
+{% block title %}{{ r.name }}{% endblock %}
+{% block body %}
+{{ topbar(r.name, user) }}
+<div class="crumb"><a href="/games/town">小镇</a> › <a href="/games/town/recipes">菜谱</a> › {{ r.name }}</div>
+<div class="card">
+  <div class="hd">{{ r.name }} <span class="tag">{{ r.recipe_level }}级菜</span></div>
+  {% if p.learned %}
+    品质 <b>{{ p.quality }}</b> · 熟练度 <b>{{ p.proficiency }}</b><br>
+    {% if p.on_shelf %}<span class="tag green">已上架营业</span>{% endif %}
+  {% else %}
+    <span class="muted">未学习</span>
+  {% endif %}
+  <hr>
+  解锁等级 <b>Lv{{ r.unlock_level }}</b><br>
+  基础售价 <b>{{ r.base_price }}金</b>{% if p.learned %}（{{ p.quality }}系数 {{ {'普通':1.0,'极品':1.25,'金牌':1.55}.get(p.quality, 1.0) }}x）{% endif %}<br>
+  顾客经验 <b>{{ r.base_exp }}</b> · 制作时间 <b>{{ r.cook_seconds }}秒</b> · 耗油 <b>{{ r.base_oil }}</b>
+</div>
+<div class="section-title">所需食材</div>
+<div class="content">
+  {% for i in ings %}
+  <div class="li">{{ i.name }} ×{{ i.need }}<span class="r">{% if i.have>=i.need %}<span class="tag green">有{{ i.have }}</span>{% else %}<span class="tag red">缺({{ i.have }})</span>{% endif %}</span></div>
+  {% endfor %}
+  <a class="li" href="/shop?m=town"><span class="tag blue">买</span> 去食材商店<span class="r">›</span></a>
+</div>
+{% if not p.learned %}
+<div class="section-title">学菜</div>
+<div class="content">
+  <div class="muted">费用：{{ 50*r.recipe_level }}金币 · 解锁后获得经验 {{ 5*r.recipe_level }}</div>
+  {% if st.level < r.unlock_level %}
+    <span class="tag red">需 Lv{{ r.unlock_level }}（当前 Lv{{ st.level }}）</span>
+  {% else %}
+  <form method="post" action="/games/town/learn/{{ r.key }}"><button class="btn green" type="submit">学菜（{{ 50*r.recipe_level }}金）</button></form>
+  {% endif %}
+</div>
+{% else %}
+<div class="section-title">操作</div>
+<div class="content">
+  <form method="post" action="/games/town/cook/{{ r.key }}" style="display:inline"><button class="btn green" type="submit">烹饪</button></form>
+  <form method="post" action="/games/town/shelf/{{ r.key }}" style="display:inline">
+    <button class="btn {% if p.on_shelf %}ghost{% else %}blue{% endif %}" type="submit">{% if p.on_shelf %}下架{% else %}上架{% endif %}</button>
+  </form>
+</div>
+{% if upgrade %}
+<div class="section-title">升级品质 → {{ upgrade.target }}</div>
+<div class="card">
+  熟练度 <b>{{ upgrade.proficiency_have }}/{{ upgrade.proficiency_need }}</b>
+  <div class="bar"><i style="width:{{ (upgrade.proficiency_have/upgrade.proficiency_need*100)|int if upgrade.proficiency_need else 0 }}%"></i></div>
+  金币 <b>{{ upgrade.gold_need }}</b>（当前 {{ st.coins }}）<br>
+  菜谱碎片 <b>{{ upgrade.mat_have }}/{{ upgrade.mat_need }}</b>
+  {% if 'special_need' in upgrade %}<br>特殊调料 <b>{{ upgrade.special_have }}/{{ upgrade.special_need }}</b>{% endif %}
+  <hr>
+  {% if upgrade.proficiency_have >= upgrade.proficiency_need and st.coins >= upgrade.gold_need and upgrade.mat_have >= upgrade.mat_need and ('special_need' not in upgrade or upgrade.special_have >= upgrade.special_need) %}
+  <form method="post" action="/games/town/upgrade/{{ r.key }}"><button class="btn green" type="submit">升级为{{ upgrade.target }}</button></form>
+  {% else %}<span class="muted">条件未满足</span>{% endif %}
+</div>
+{% endif %}
+{% endif %}
+<div class="content"><a class="btn ghost" href="/games/town/recipes">返回菜谱</a></div>
+{{ footer(user) }}
+{% endblock %}

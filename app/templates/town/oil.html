@@ -1,0 +1,36 @@
+{% extends "base.html" %}
+{% from "macros.html" import topbar, footer %}
+{% block title %}油量管理{% endblock %}
+{% block body %}
+{{ topbar("油量管理", user) }}
+<div class="crumb"><a href="/games/town">小镇</a> › 油量管理</div>
+<div class="card">
+  <div class="hd">当前油量</div>
+  <b>{{ st.oil }}/{{ st.oil_cap }}</b>（{{ oil_pct }}%）
+  <div class="bar"><i style="width:{{ oil_pct }}%; background:{{ '#c0392b' if oil_pct<15 else '#e67e22' if oil_pct<40 else '#2e8b57' }}"></i></div>
+  {% if oil_pct < 15 %}<span class="tag red">告急</span>{% elif oil_pct < 40 %}<span class="tag orange">偏低</span>{% else %}<span class="tag green">充足</span>{% endif %}
+  {% if st.oil <= 0 %}<span class="tag red">已停业</span>{% endif %}
+</div>
+<div class="section-title">补油包</div>
+<div class="content">
+  {% for k, (oil_gain, price) in oil_packs.items() %}
+  <div class="li">{{ {'small':'小油包','medium':'中油包','large':'大油包'}.get(k,k) }} +{{ oil_gain }}油<span class="r">{{ price }}金
+    {% if st.coins >= price %}
+    <form method="post" action="/games/town/oil/buy/{{ k }}" style="display:inline"><button class="btn" type="submit">购买</button></form>
+    {% else %}<span class="tag red">金币不足</span>{% endif %}
+  </span></div>
+  {% endfor %}
+</div>
+<div class="section-title">油壶扩容</div>
+<div class="card">
+  当前档位：<b>{{ st.oil_cap }}</b> 容量（第 {{ pot_index + 1 }} 档）<br>
+  {% if next_pot %}
+  下一档：<b>{{ next_pot[0] }}</b> 容量 · 费用 <b>{{ next_pot[1] }}</b> 金币<br>
+  {% if st.coins >= next_pot[1] %}
+  <form method="post" action="/games/town/oil/expand"><button class="btn green" type="submit">扩容至 {{ next_pot[0] }}</button></form>
+  {% else %}<span class="tag red">金币不足（{{ st.coins }}/{{ next_pot[1] }}）</span>{% endif %}
+  {% else %}<span class="tag blue">已达最高档（白金油壶）</span>{% endif %}
+</div>
+<div class="content"><a class="btn ghost" href="/games/town">返回首页</a></div>
+{{ footer(user) }}
+{% endblock %}
