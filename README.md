@@ -1,6 +1,6 @@
 # QQ家园 — 怀旧平台化复刻
 
-> 版本：**v0.0.6** （2026-08-03 召唤之王复刻定版 v1.0 可跑服参数落地）
+> 版本：**v0.0.7** （2026-08-03 召唤之王全量配表定版：补齐战骨/魔魂/战灵/擂台/战场/联盟/师徒/商店全表）
 >
 > 基于 **FastAPI + SQLite + Jinja2(简版 WAP 风)** 实现的怀旧 QQ 家园平台复刻。
 > 严格遵循《怀旧QQ家园平台设计规范》：平台统一、模块自治、旧逻辑优先、一页只做一件事。
@@ -10,6 +10,59 @@
 ---
 
 ## 更新日志
+
+### v0.0.7 （2026-08-03）— 召唤之王全量配表定版
+
+按用户提供的完整 CSV 配表包，补齐 v0.0.6 中缺失的高级系统参数表，修正规则页错误，去除 v1.0 冗余标记，整理去重使整个程序合理。
+
+**补齐的配表（21 张全量）**
+- `cfg_skill_base`（60 条）：对齐 notes 字段（降DEF_PHY / DEF_MAG%提升 / 对应天魂模板 等）
+- `cfg_pet_species`（120 只）+ `cfg_pet_skill_pool`（120 映射）：已与 v0.0.6 一致，校验通过
+- `cfg_bone_parts`（7 部位）：扩展为 `BONE_PARTS` 字典含 stats 字段（头骨→HP|DEF_MAG 等）
+- `cfg_bone_upgrade`（100 级）：公式化去重 → `bone_upgrade_cost(level)` 函数，coin=200+60×lv / stone=1+floor((lv-1)/5)
+- `cfg_soul_rarity`（6 阶）：补齐 `GOD` 神魂阶（v0.0.6 仅 5 阶缺失神魂）
+- `cfg_soul_hunt`（7 档猎魂师）：新增 `SOUL_HUNT` 表（艾米→凯文高级，铜钱/追魂法宝双货币）
+- `cfg_soul_xp`（9 级）：新增 `SOUL_XP` 表（2000→512000 递增）
+- `cfg_soul_feed`（5 阶）：新增 `SOUL_FEED` 表（黄50/玄100/地200/天400/神1000）
+- `cfg_spirit_slots`（6 槽）：扩展为 `SPIRIT_SLOTS` 字典含 slot→element
+- `cfg_spirit_quality_weights`（4 品质）：新增 `SPIRIT_QUALITY_WEIGHTS`（普通/精良/优秀/传奇）
+- `cfg_spirit_affixes`（16 词条）：新增 `SPIRIT_AFFIXES`（flat/pct/special 三系）
+- `cfg_arena`（10 参数）：新增 `ARENA` 字典（日10免费/胜12声望+18擂台币/赛季7天/Top100奖）
+- `cfg_battlefield`（10 参数）：新增 `BATTLEFIELD` 字典（06:00-24:00/40分线/日5场/胜30声望+35战场币）
+- `cfg_kill_box_drops`（6 项）：新增 `KILL_BOX_DROPS` 掉落池
+- `cfg_alliance_donation`（3 项）：新增 `ALLIANCE_DONATION`（焚火晶1/金袋10/内丹10）
+- `cfg_alliance_skills`（4 技能）：新增 `ALLIANCE_SKILLS`（HP/ATK/DEF/SPD 各10级）
+- `cfg_alliance_storage`（2 参数）：新增 `ALLIANCE_STORAGE`（日1免费/额外15贡献）
+- `cfg_master_apprentice`（7 参数）：新增 `MASTER_APPRENTICE` 字典（40收徒/徒≤30/35出师/4倍互灌/出师奖）
+- `cfg_shop`（26 条）：扩展为 8 字段格式（shop/slot/item_id/price_currency/price_amount/limit_daily/limit_weekly/notes）
+
+**修正的错误**
+- `rules.html` 抓捕日限 30→60（实际 `DAILY_LIMITS["capture"]=60`）
+- `rules.html` 抓捕公式 旧"0.6×球倍率-稀有度难度"→ 正确"基础率×球倍率+级差+保底"
+- `rules.html` 魔魂 5阶→6阶（补齐神魂）
+- `rules.html` 高级系统区补充：战骨强化公式/猎魂师7档/吞噬收益/擂台赛季/战场分线时间/杀戮礼包/联盟4技能/师徒出师奖
+
+**去除冗余与整理**
+- 清理所有 "v1.0" 标记（文件头/属性生成注释/捕捉系统注释/docstring）
+- `summon.py` 文件头 "v1.0 新增" 行移除
+- 战骨强化 100 行重复表 → 公式函数 `bone_upgrade_cost()` 去重
+- `SHOP` 5 字段 → 8 字段，同步更新 `summon.py` 3 处迭代解包
+- 保留 `BONE_PART_NAMES`/`SOUL_RARITY_NAMES`/`SPIRIT_ELEMENTS`/`ARENA_DAILY_FREE` 等向后兼容别名
+
+**文件变更**
+- `app/routers/summon_data.py`：SKILLS notes 对齐 + SHOP 8字段 + 新增 21 张配表 + 清理 v1.0
+- `app/routers/summon.py`：适配 SHOP 8字段迭代（shop_view / shop_buy）+ 文件头清理
+- `app/templates/summon/rules.html`：修正抓捕日限/公式/魔魂阶数 + 补齐高级系统详情
+- `app/config.py`：版本号 0.0.6 → 0.0.7
+
+**端到端验证**
+- ✅ 导入校验：SKILLS 60 / PETS 120 / PET_SKILL_POOL 120 / SKILL_POOLS 18 / SHOP 26 全量
+- ✅ 新增表校验：BONE_PARTS 7 / SOUL_RARITY 6(含GOD) / SOUL_HUNT 7 / SOUL_XP 9 / SOUL_FEED 5 / SPIRIT_AFFIXES 16 / KILL_BOX_DROPS 6 / ALLIANCE_SKILLS 4
+- ✅ SHOP 8字段迭代：shop_view / shop_buy 路由正常
+- ✅ 战骨公式：bone_upgrade_cost(1)=(260,1) / bone_upgrade_cost(50)=(3200,11) / bone_upgrade_cost(100)=(6200,21)
+- ✅ HTTP 冒烟：首页/商店/规则页全 200
+
+---
 
 ### v0.0.6 （2026-08-03）— 召唤之王复刻定版 v1.0 可跑服参数落地
 

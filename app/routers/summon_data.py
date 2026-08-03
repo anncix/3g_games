@@ -1,4 +1,4 @@
-"""召唤之王静态配置包（v0.0.6 / v1.0 可跑服定版）
+"""召唤之王静态配置包（v0.0.7 全量配表定版）
 
 来源说明：
 - 战骨/魔魂/战灵槽位、魔魂魂力表、战场时间、联盟/师徒规则 = 公开资料对齐的结构信息
@@ -138,35 +138,35 @@ ITEMS = {
 
 
 # ============================================================
-# cfg_shop 商城/兑换（shop, item_id, currency, price, daily_limit）
+# cfg_shop 商城/兑换（shop, slot, item_id, price_currency, price_amount, limit_daily, limit_weekly, notes）
 # ============================================================
 SHOP = [
-    ("shop_general", "IT_BALL_N", "coins", 80, 30),
-    ("shop_general", "IT_BALL_S", "coins", 300, 20),
-    ("shop_general", "IT_BALL_U", "coins", 900, 10),
-    ("shop_general", "IT_STONE", "coins", 500, 20),
-    ("shop_general", "IT_SOUL_POWDER_1", "coins", 200, 20),
-    ("shop_general", "IT_SOUL_POWDER_2", "coins", 600, 15),
-    ("shop_general", "IT_SOUL_POWDER_3", "coins", 1600, 10),
-    ("shop_general", "IT_SOUL_POWDER_4", "coins", 4200, 5),
-    ("shop_general", "IT_SPIRIT_KEY", "arena_coin", 80, 3),
-    ("shop_cash", "IT_REBIRTH", "gems", 120, 1),
-    ("shop_cash", "IT_SPIRIT_KEY", "gems", 30, 5),
-    ("shop_cash", "IT_SOUL_CHARM", "gems", 100, 0),
-    ("shop_arena", "IT_STONE", "arena_coin", 20, 30),
-    ("shop_arena", "IT_SPIRIT_KEY", "arena_coin", 80, 3),
-    ("shop_arena", "IT_SOUL_BOX_G", "arena_coin", 120, 2),
-    ("shop_arena", "BOX_ARENA", "arena_coin", 60, 5),
-    ("shop_bf", "IT_SOUL_POWDER_3", "bf_coin", 25, 20),
-    ("shop_bf", "IT_SOUL_POWDER_4", "bf_coin", 60, 10),
-    ("shop_bf", "IT_SPIRIT_DUST", "bf_coin", 15, 50),
-    ("shop_bf", "BOX_BF", "bf_coin", 40, 5),
-    ("shop_guild", "IT_STONE", "guild", 5, 50),
-    ("shop_guild", "IT_BALL_S", "guild", 4, 20),
-    ("shop_guild", "IT_SOUL_CHARM", "guild", 60, 1),
-    ("shop_mentor", "IT_REBIRTH_S", "mentor", 10, 30),
-    ("shop_mentor", "IT_SOUL_CHARM", "mentor", 80, 1),
-    ("shop_mentor", "IT_SPIRIT_KEY", "mentor", 25, 2),
+    ("shop_general", 1, "IT_BALL_N", "coins", 80, 30, 0, "普通球"),
+    ("shop_general", 2, "IT_BALL_S", "coins", 300, 20, 0, "强力球"),
+    ("shop_general", 3, "IT_BALL_U", "coins", 900, 10, 0, "超级球"),
+    ("shop_general", 4, "IT_STONE", "coins", 500, 20, 0, "灵石"),
+    ("shop_general", 5, "IT_SPIRIT_KEY", "arena_coin", 80, 3, 0, "钥匙（用擂台币换）"),
+    ("shop_general", 6, "IT_SOUL_POWDER_1", "coins", 200, 20, 0, "黄魂粉"),
+    ("shop_general", 7, "IT_SOUL_POWDER_2", "coins", 600, 15, 0, "玄魂粉"),
+    ("shop_general", 8, "IT_SOUL_POWDER_3", "coins", 1600, 10, 0, "地魂粉"),
+    ("shop_general", 9, "IT_SOUL_POWDER_4", "coins", 4200, 5, 0, "天魂粉"),
+    ("shop_cash", 1, "IT_SOUL_CHARM", "gems", 100, 0, 0, "追魂法宝"),
+    ("shop_cash", 2, "IT_REBIRTH", "gems", 120, 1, 0, "重生丹"),
+    ("shop_cash", 3, "IT_SPIRIT_KEY", "gems", 30, 5, 0, "战灵钥匙"),
+    ("shop_arena", 1, "IT_STONE", "arena_coin", 20, 30, 0, "擂台换灵石"),
+    ("shop_arena", 2, "IT_SPIRIT_KEY", "arena_coin", 80, 3, 0, "擂台换钥匙"),
+    ("shop_arena", 3, "IT_SOUL_BOX_G", "arena_coin", 120, 2, 0, "擂台换地魂箱"),
+    ("shop_arena", 4, "BOX_ARENA", "arena_coin", 60, 5, 0, "擂台换擂台箱"),
+    ("shop_bf", 1, "IT_SOUL_POWDER_3", "bf_coin", 25, 20, 0, "战场换地魂粉"),
+    ("shop_bf", 2, "IT_SOUL_POWDER_4", "bf_coin", 60, 10, 0, "战场换天魂粉"),
+    ("shop_bf", 3, "IT_SPIRIT_DUST", "bf_coin", 15, 50, 0, "战场换灵力"),
+    ("shop_bf", 4, "BOX_BF", "bf_coin", 40, 5, 0, "战场换战场箱"),
+    ("shop_guild", 1, "IT_STONE", "guild", 5, 50, 0, "联盟换灵石"),
+    ("shop_guild", 2, "IT_BALL_S", "guild", 4, 20, 0, "联盟换强力球"),
+    ("shop_guild", 3, "IT_SOUL_CHARM", "guild", 60, 1, 0, "联盟换追魂法宝"),
+    ("shop_mentor", 1, "IT_REBIRTH_S", "mentor", 10, 30, 0, "桃李换重生碎片"),
+    ("shop_mentor", 2, "IT_SOUL_CHARM", "mentor", 80, 1, 0, "桃李换追魂法宝"),
+    ("shop_mentor", 3, "IT_SPIRIT_KEY", "mentor", 25, 2, 0, "桃李换钥匙"),
 ]
 
 SHOP_NAMES = {
@@ -197,26 +197,26 @@ SKILL_RANK = {1: (1.00, 0.00, 0), 2: (1.35, 0.05, 0), 3: (1.75, 0.10, 1)}
 # skill_id → (name, type, school, coef_or_value, cooldown, notes)
 SKILLS = {
     "SK_001": ("利爪斩", "active", "PHY", 1.10, 1, "单体物伤"),
-    "SK_002": ("破甲击", "active", "PHY", 0.95, 2, "降物防"),
+    "SK_002": ("破甲击", "active", "PHY", 0.95, 2, "降DEF_PHY"),
     "SK_003": ("撕裂", "active", "PHY", 0.90, 2, "流血2回合"),
     "SK_004": ("连环突袭", "active", "PHY", 0.65, 3, "随机2-3段"),
     "SK_005": ("斩杀线", "passive", "PHY", 0.20, 0, "目标低血增伤"),
     "SK_006": ("反击姿态", "passive", "TANK", 0.18, 0, "受击反击概率"),
-    "SK_007": ("坚甲", "passive", "TANK", 0.12, 0, "物防%提升"),
-    "SK_008": ("法抗", "passive", "TANK", 0.12, 0, "魔防%提升"),
+    "SK_007": ("坚甲", "passive", "TANK", 0.12, 0, "DEF_PHY%提升"),
+    "SK_008": ("法抗", "passive", "TANK", 0.12, 0, "DEF_MAG%提升"),
     "SK_009": ("护盾术", "active", "TANK", 0.18, 3, "按HP生成盾"),
     "SK_010": ("嘲讽", "active", "TANK", 0, 4, "强制目标1回合"),
     "SK_011": ("潮汐箭", "active", "MAG", 1.10, 1, "单体法伤"),
     "SK_012": ("冰封", "active", "CTRL", 0, 4, "冻结1回合"),
     "SK_013": ("寒潮", "active", "MAG", 0.85, 3, "群体法伤"),
-    "SK_014": ("法穿印记", "active", "MAG", 0, 3, "降魔防"),
+    "SK_014": ("法穿印记", "active", "MAG", 0, 3, "降DEF_MAG"),
     "SK_015": ("灼烧", "active", "MAG", 0.70, 2, "灼烧2回合"),
     "SK_016": ("雷击", "active", "CTRL", 0.95, 2, "小概率麻痹"),
     "SK_017": ("加速", "active", "CTRL", 0, 3, "己方速度提升"),
     "SK_018": ("减速", "active", "CTRL", 0, 2, "敌方速度下降"),
     "SK_019": ("沉默咒", "active", "CTRL", 0, 4, "沉默1回合"),
     "SK_020": ("驱散", "active", "CTRL", 0, 4, "驱散1个减益"),
-    "SK_021": ("吸血咒", "active", "CURSE", 0.80, 2, "伤害并回血"),
+    "SK_021": ("吸血咒", "active", "CURSE", 0.80, 2, "造成伤害并回血"),
     "SK_022": ("诅咒", "active", "CURSE", 0, 3, "受伤加深"),
     "SK_023": ("中毒", "active", "CURSE", 0.65, 2, "毒2回合"),
     "SK_024": ("腐蚀", "active", "CURSE", 0, 3, "降双防"),
@@ -252,9 +252,9 @@ SKILLS = {
     "SK_054": ("怒火连击", "active", "PHY", 0.60, 4, "三段随机"),
     "SK_055": ("风暴降临", "active", "MAG", 0.80, 4, "群体+降速"),
     "SK_056": ("绝对零度", "active", "CTRL", 0, 6, "冻结+降防"),
-    "SK_057": ("天魔降伏", "passive", "PHY", 120, 0, "天魂模板"),
-    "SK_058": ("守护之魂", "passive", "TANK", 150, 0, "天魂模板"),
-    "SK_059": ("蹑影逐日", "passive", "CTRL", 8, 0, "天魂模板"),
+    "SK_057": ("天魔降伏", "passive", "PHY", 120, 0, "对应天魂模板"),
+    "SK_058": ("守护之魂", "passive", "TANK", 150, 0, "对应天魂模板"),
+    "SK_059": ("蹑影逐日", "passive", "CTRL", 8, 0, "对应天魂模板"),
     "SK_060": ("极寿无疆", "passive", "TANK", 0.064, 0, "HP%提升"),
 }
 
@@ -578,7 +578,7 @@ def pet_skill_pool_info(species_id: str) -> dict:
 
 
 # ============================================================
-# 属性生成（v1.0 公式化：段位基础范围 + 定位系数 + 成长步长 + 资质）
+# 属性生成（公式化：段位基础范围 + 定位系数 + 成长步长 + 资质）
 # ============================================================
 # tier → (hp_min, hp_max, atk_min, atk_max, def_min, def_max, spd_min, spd_max)
 TIER_BASE_RANGES = {
@@ -620,7 +620,7 @@ def roll_aptitudes() -> dict:
 
 def roll_pet_stats(species_id: str, level: int = 1, growth_stars: int = 3,
                    aptitudes: dict | None = None) -> dict:
-    """v1.0 公式生成个体属性
+    """公式生成个体属性
     BaseStat = Uniform(range_min..range_max) × aptitude × role_coef
     Stat(L) = floor(BaseStat + (L-1) × StepStat)
     StepStat = StepBase × rarity_mul × growth_star_mul
@@ -711,7 +711,7 @@ def roll_wild_pet(tier: str) -> dict:
 
 
 # ============================================================
-# 捕捉系统（v1.0 公式：基础率 × 球倍率 + 级差 + 保底）
+# 捕捉系统（公式：基础率 × 球倍率 + 级差 + 保底）
 # ============================================================
 CAPTURE_BASE_RATE = {"N": 0.35, "R": 0.22, "E": 0.12, "L": 0.06}
 CAPTURE_BALL_MUL = {"IT_BALL_N": 1.0, "IT_BALL_S": 1.5, "IT_BALL_U": 2.2}
@@ -910,21 +910,73 @@ def parse_reward(reward_str: str) -> list[tuple[str, int]]:
 
 
 # ============================================================
-# 高级系统规则（战骨/魔魂/战灵/塔/战场/联盟/师徒）
-# 仅作规则展示与解锁节点，核心循环先跑通
+# 战骨系统（cfg_bone_parts + cfg_bone_upgrade）
 # ============================================================
-BONE_PARTS = ["头骨", "胸骨", "臂骨", "腿骨", "手骨", "尾骨", "元魂"]
-SOUL_RARITY = {"废魂": 0, "黄魂": 0.125, "玄魂": 0.25, "地魂": 0.5, "天魂": 1.0}
+# part_id → (name, stats列表)
+BONE_PARTS = {
+    "BONE_HEAD": ("头骨", ["HP", "DEF_MAG"]),
+    "BONE_CHEST": ("胸骨", ["DEF_PHY", "DEF_MAG"]),
+    "BONE_ARM": ("臂骨", ["ATK_PHY", "ATK_MAG"]),
+    "BONE_LEG": ("腿骨", ["DEF_PHY", "SPD"]),
+    "BONE_HAND": ("手骨", ["ATK_PHY", "ATK_MAG"]),
+    "BONE_TAIL": ("尾骨", ["SPD"]),
+    "BONE_CORE": ("元魂", ["ATK_PHY", "ATK_MAG", "HP"]),
+}
+BONE_PART_NAMES = ["头骨", "胸骨", "臂骨", "腿骨", "手骨", "尾骨", "元魂"]  # 向后兼容
+
+# 战骨强化公式（100 级，规律化去重）
+# coin_cost = 200 + 60×level
+# stone_cost = 1 + floor(level/5)
+# atk_pct=0.008 / def_pct=0.007 / hp_pct=0.007 / spd_flat=0.4（恒定）
+BONE_UPGRADE_BONUS = {"atk_pct": 0.008, "def_pct": 0.007, "hp_pct": 0.007, "spd_flat": 0.4}
+
+
+def bone_upgrade_cost(level: int) -> tuple[int, int]:
+    """战骨强化消耗 (coin, stone)"""
+    coin = 200 + 60 * level
+    stone = 1 + level // 5
+    return coin, stone
+
+
+# ============================================================
+# 魔魂系统（cfg_soul_rarity + cfg_soul_hunt + cfg_soul_slots + cfg_soul_xp + cfg_soul_feed）
+# ============================================================
+# tier → (name, coef_vs_tian)
+SOUL_RARITY = {
+    "WASTE": ("废魂", 0),
+    "YELLOW": ("黄魂", 0.125),
+    "MYSTIC": ("玄魂", 0.25),
+    "EARTH": ("地魂", 0.5),
+    "HEAVEN": ("天魂", 1.0),
+    "GOD": ("神魂", 0),
+}
+SOUL_RARITY_NAMES = ["废魂", "黄魂", "玄魂", "地魂", "天魂"]  # 向后兼容（不含神魂特殊）
+
+# 猎魂师：(hunter_name, price_coin, price_charm, outputs列表)
+SOUL_HUNT = [
+    ("艾米", 8000, 0, ["WASTE", "YELLOW"]),
+    ("科科", 10000, 0, ["WASTE", "YELLOW", "MYSTIC"]),
+    ("波尔", 20000, 0, ["WASTE", "YELLOW", "MYSTIC", "EARTH"]),
+    ("沃特", 40000, 0, ["WASTE", "YELLOW", "MYSTIC", "EARTH"]),
+    ("凯文", 60000, 0, ["WASTE", "YELLOW", "MYSTIC", "EARTH", "HEAVEN"]),
+    ("沃特(高级)", 0, 4, ["EARTH", "GOD"]),
+    ("凯文(高级)", 0, 6, ["EARTH", "HEAVEN", "GOD"]),
+]
+
+# 魔魂槽位：30级起3槽，每10级+1，最多8槽
 SOUL_SLOTS = {30: 3, 40: 4, 50: 5, 60: 6, 70: 7, 80: 8}
-SPIRIT_SLOTS = ["水", "土", "火", "木", "金", "神"]
-TONGTIAN_TOWER_FLOORS = 50
-SPIRIT_TOWER_FLOORS = 30
-ARENA_DAILY_FREE = 10
-BATTLEFIELD_LOW_MAX = 39
-BATTLEFIELD_HIGH_MIN = 40
-MASTER_MIN_LEVEL = 40
-APPRENTICE_MAX_LEVEL = 30
-GRADUATE_LEVEL = 35
+
+# 魔魂升级魂力（from_lvl → to_lvl → need_soul_xp）
+SOUL_XP = {
+    (1, 2): 2000, (2, 3): 4000, (3, 4): 8000, (4, 5): 16000,
+    (5, 6): 32000, (6, 7): 64000, (7, 8): 128000,
+    (8, 9): 256000, (9, 10): 512000,
+}
+
+# 吞噬收益：tier → feed_xp
+SOUL_FEED = {
+    "YELLOW": 50, "MYSTIC": 100, "EARTH": 200, "HEAVEN": 400, "GOD": 1000,
+}
 
 
 def soul_slots_for_level(level: int) -> int:
@@ -932,3 +984,136 @@ def soul_slots_for_level(level: int) -> int:
     if level < 30:
         return 0
     return min(8, 3 + (level - 30) // 10)
+
+
+# ============================================================
+# 战灵系统（cfg_spirit_slots + cfg_spirit_quality_weights + cfg_spirit_affixes）
+# ============================================================
+# slot → element
+SPIRIT_SLOTS = {1: "水", 2: "土", 3: "火", 4: "木", 5: "金", 6: "神"}
+SPIRIT_ELEMENTS = ["水", "土", "火", "木", "金", "神"]  # 向后兼容
+
+# 品质权重：quality → (fixed_w, pct_w, special_w)
+SPIRIT_QUALITY_WEIGHTS = {
+    "普通": (1.00, 0.00, 0.00),
+    "精良": (0.80, 0.20, 0.00),
+    "优秀": (0.50, 0.45, 0.05),
+    "传奇": (0.25, 0.60, 0.15),
+}
+
+# 词条池：affix_id → (name, type, stat, min, max)
+SPIRIT_AFFIXES = {
+    "AF_001": ("生命", "flat", "HP", 30, 90),
+    "AF_002": ("物攻", "flat", "ATK_PHY", 5, 18),
+    "AF_003": ("魔攻", "flat", "ATK_MAG", 5, 18),
+    "AF_004": ("物防", "flat", "DEF_PHY", 4, 14),
+    "AF_005": ("魔防", "flat", "DEF_MAG", 4, 14),
+    "AF_006": ("速度", "flat", "SPD", 1, 4),
+    "AF_101": ("生命%", "pct", "HP%", 0.02, 0.06),
+    "AF_102": ("物攻%", "pct", "ATK_PHY%", 0.02, 0.06),
+    "AF_103": ("魔攻%", "pct", "ATK_MAG%", 0.02, 0.06),
+    "AF_104": ("物防%", "pct", "DEF_PHY%", 0.02, 0.06),
+    "AF_105": ("魔防%", "pct", "DEF_MAG%", 0.02, 0.06),
+    "AF_106": ("速度%", "pct", "SPD%", 0.02, 0.06),
+    "AF_201": ("暴击%", "special", "CRIT%", 0.02, 0.06),
+    "AF_202": ("抗暴%", "special", "ANTI_CRIT%", 0.02, 0.06),
+    "AF_203": ("命中%", "special", "HIT%", 0.02, 0.06),
+    "AF_204": ("闪避%", "special", "DODGE%", 0.02, 0.06),
+}
+
+
+# ============================================================
+# 擂台（cfg_arena）
+# ============================================================
+ARENA = {
+    "daily_free": 10,
+    "daily_extra_cost_energy": 2,
+    "win_prestige": 12,
+    "win_arena_coin": 18,
+    "loss_prestige": 4,
+    "loss_arena_coin": 8,
+    "daily_first_win_bonus": "BOX_ARENA",
+    "season_days": 7,
+    "season_reward_top100_prestige": 800,
+    "season_reward_top100_arena_coin": 1200,
+    "season_reward_top100_box": 1,
+}
+ARENA_DAILY_FREE = 10  # 向后兼容
+
+
+# ============================================================
+# 战场（cfg_battlefield + cfg_kill_box_drops）
+# ============================================================
+BATTLEFIELD = {
+    "open_time": "06:00-24:00",
+    "low_level_max": 39,
+    "high_level_min": 40,
+    "daily_join_limit": 5,
+    "win_prestige": 30,
+    "win_bf_coin": 35,
+    "loss_prestige": 12,
+    "loss_bf_coin": 18,
+    "kill_box_item": "BOX_KILL",
+    "kill_box_daily_cap": 30,
+}
+BATTLEFIELD_LOW_MAX = 39    # 向后兼容
+BATTLEFIELD_HIGH_MIN = 40   # 向后兼容
+
+# 杀戮礼包掉落池：(item_id, weight, min, max)
+KILL_BOX_DROPS = [
+    ("CUR_COIN", 50, 800, 1800),
+    ("IT_STONE", 18, 1, 3),
+    ("IT_SOUL_POWDER_1", 14, 1, 3),
+    ("IT_SOUL_POWDER_2", 10, 1, 2),
+    ("IT_SPIRIT_DUST", 6, 30, 80),
+    ("IT_SPIRIT_KEY", 2, 1, 1),
+]
+
+
+# ============================================================
+# 联盟（cfg_alliance_donation + cfg_alliance_skills + cfg_alliance_storage）
+# ============================================================
+# 捐献：item_id → contribution
+ALLIANCE_DONATION = {
+    "IT_BURN_CRYSTAL": 1,
+    "IT_GOLD_BAG": 10,
+    "IT_INNER_PILL": 10,
+}
+
+# 联盟技能：skill_id → (name, max_level, per_level_bonus, cost_contrib_base, cost_contrib_step)
+ALLIANCE_SKILLS = {
+    "GSK_HP": ("联盟生命", 10, 0.01, 20, 10),
+    "GSK_ATK": ("联盟攻击", 10, 0.01, 20, 10),
+    "GSK_DEF": ("联盟防御", 10, 0.01, 20, 10),
+    "GSK_SPD": ("联盟速度", 10, 0.01, 20, 10),
+}
+
+# 联盟寄存室
+ALLIANCE_STORAGE = {
+    "free_store_times_daily": 1,
+    "extra_store_cost_contrib": 15,
+}
+
+
+# ============================================================
+# 师徒（cfg_master_apprentice）
+# ============================================================
+MASTER_APPRENTICE = {
+    "master_min_level": 40,
+    "apprentice_max_level": 30,
+    "graduate_level": 35,
+    "mentor_refill_multiplier": 4,
+    "graduate_reward_mentor_value": 120,
+    "graduate_reward_prestige": 60,
+    "graduate_reward_box": "BOX_ARENA",
+}
+MASTER_MIN_LEVEL = 40        # 向后兼容
+APPRENTICE_MAX_LEVEL = 30    # 向后兼容
+GRADUATE_LEVEL = 35          # 向后兼容
+
+
+# ============================================================
+# 塔楼层
+# ============================================================
+TONGTIAN_TOWER_FLOORS = 50
+SPIRIT_TOWER_FLOORS = 30

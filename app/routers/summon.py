@@ -1,8 +1,7 @@
-"""召唤之王模块（v0.0.6 / v1.0 可跑服定版）
+"""召唤之王模块（v0.0.7 全量配表定版）
 
 老味道点：图鉴收集 / 抓捕幻兽 / 回合战斗 / 种族克制 / 段位推进 / 组队成长
 核心循环：进地图 → 刷关卡(遭遇战) → 抓捕幻兽 → 组队 → 升级 → 解锁高段位
-v1.0 新增：公式化属性生成 / 捕捉保底 / 技能池 / 4 套掉落 / 日常任务
 """
 import json
 import random
@@ -768,14 +767,15 @@ async def shop_view(request: Request, db: AsyncSession = Depends(get_db)):
         return RedirectResponse("/login", status_code=303)
     st = await get_state(db, user.id)
     grouped = {}
-    for shop_key, iid, cur, price, limit in D.SHOP:
+    for shop_key, slot, iid, cur, price, limit_d, limit_w, notes in D.SHOP:
         item_info = D.ITEMS.get(iid, (iid, "", "", 0))
         cur_field, cur_name = D.CURRENCY_FIELD.get(cur, (cur, cur))
         affordable = getattr(st, cur_field, 0) >= price
         grouped.setdefault(shop_key, []).append({
             "iid": iid, "name": item_info[0], "type": item_info[1],
             "desc": item_info[2], "cur": cur, "cur_name": cur_name,
-            "price": price, "limit": limit, "affordable": affordable,
+            "price": price, "limit": limit_d, "affordable": affordable,
+            "notes": notes,
         })
     shop_list = [{"shop_key": k, "shop_name": D.SHOP_NAMES.get(k, k), "goods": v}
                  for k, v in grouped.items()]
@@ -791,13 +791,13 @@ async def shop_buy(item_id: str, request: Request, db: AsyncSession = Depends(ge
     reset_daily(st)
     entry = None
     for s in D.SHOP:
-        if s[1] == item_id:
+        if s[2] == item_id:
             entry = s
             break
     if not entry:
         return await render(request, "result.html", db, user=user, ok=False,
                             msg="商品不存在", back_href="/games/summon/shop", back_text="返回商店")
-    _, iid, cur, price, _ = entry
+    _, _, iid, cur, price, _, _, _ = entry
     cur_field, cur_name = D.CURRENCY_FIELD.get(cur, (cur, cur))
     balance = getattr(st, cur_field, 0)
     if balance < price:
