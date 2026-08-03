@@ -90,7 +90,7 @@ async def seed():
         # 航海装备
         await goods.ensure_item(db, "sea_equip_sail", "船帆", "equip", "sea", False, 50, "提升战力")
         await goods.ensure_item(db, "sea_equip_cannon", "火炮", "equip", "sea", False, 80, "大幅战力")
-        # 召唤之王道具（捕捉球/材料/重生丹）
+        # 召唤之王道具（v1.0 全量：捕捉球/材料/重生丹/魂系/战灵/联盟捐献/礼包）
         await goods.ensure_item(db, "IT_BALL_N", "普通捕捉球", "consumable", "summon", True, 40, "捕捉倍率x1.0")
         await goods.ensure_item(db, "IT_BALL_S", "强力捕捉球", "consumable", "summon", True, 150, "捕捉倍率x1.5")
         await goods.ensure_item(db, "IT_BALL_U", "超级捕捉球", "consumable", "summon", True, 450, "捕捉倍率x2.2")
@@ -101,6 +101,17 @@ async def seed():
         await goods.ensure_item(db, "IT_SOUL_POWDER_4", "魂粉(天)", "material", "summon", True, 2100, "魂力材料")
         await goods.ensure_item(db, "IT_SPIRIT_KEY", "战灵钥匙", "consumable", "summon", True, 30, "战灵开孔")
         await goods.ensure_item(db, "IT_REBIRTH", "重生丹", "consumable", "summon", True, 120, "重生幻兽")
+        await goods.ensure_item(db, "IT_REBIRTH_S", "重生丹碎片", "material", "summon", True, 40, "合成重生丹")
+        await goods.ensure_item(db, "IT_SOUL_CHARM", "追魂法宝", "consumable", "summon", True, 100, "高级猎魂")
+        await goods.ensure_item(db, "IT_SOUL_BOX_G", "地魂宝箱", "box", "summon", True, 200, "开地魂材料")
+        await goods.ensure_item(db, "IT_SOUL_BOX_T", "天魂宝箱", "box", "summon", True, 500, "开天魂材料")
+        await goods.ensure_item(db, "IT_SPIRIT_DUST", "灵力", "material", "summon", True, 50, "战灵洗炼材料")
+        await goods.ensure_item(db, "IT_BURN_CRYSTAL", "焚火晶", "material", "summon", True, 60, "通天塔产出/联盟捐献")
+        await goods.ensure_item(db, "IT_GOLD_BAG", "金袋", "material", "summon", True, 100, "联盟捐献")
+        await goods.ensure_item(db, "IT_INNER_PILL", "内丹", "material", "summon", True, 100, "联盟捐献")
+        await goods.ensure_item(db, "BOX_KILL", "杀戮礼包", "box", "summon", True, 80, "战场击杀奖励")
+        await goods.ensure_item(db, "BOX_ARENA", "擂台宝箱", "box", "summon", True, 60, "擂台奖励")
+        await goods.ensure_item(db, "BOX_BF", "战场宝箱", "box", "summon", True, 70, "战场奖励")
 
         # ---------- 作物字典 ----------
         crops = [
@@ -324,9 +335,11 @@ async def seed():
                 from .routers import summon_data as SD
                 import json as _json
                 stats = SD.roll_pet_stats("SZW_0004", 1, 3)
+                aptitudes = stats.pop("aptitudes")  # dict → 转 JSON 字符串
                 starter = models.SummonPet(
                     user_id=demo_user.id, species_id="SZW_0004", nickname="小狼",
                     level=1, exp=0, growth_stars=3, team_slot=0,
+                    aptitudes=_json.dumps(aptitudes, ensure_ascii=False),
                     skills=_json.dumps(["SK_001", "SK_003"]), **stats)
                 db.add(starter)
         await db.commit()

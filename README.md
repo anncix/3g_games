@@ -1,6 +1,6 @@
 # QQ家园 — 怀旧平台化复刻
 
-> 版本：**v0.0.5** （2026-08-03 召唤之王图鉴抓捕回合战斗模块上线）
+> 版本：**v0.0.6** （2026-08-03 召唤之王复刻定版 v1.0 可跑服参数落地）
 >
 > 基于 **FastAPI + SQLite + Jinja2(简版 WAP 风)** 实现的怀旧 QQ 家园平台复刻。
 > 严格遵循《怀旧QQ家园平台设计规范》：平台统一、模块自治、旧逻辑优先、一页只做一件事。
@@ -10,6 +10,78 @@
 ---
 
 ## 更新日志
+
+### v0.0.6 （2026-08-03）— 召唤之王复刻定版 v1.0 可跑服参数落地
+
+按《召唤之王复刻定版 v1.0（可跑服、参数不缺）》重构召唤之王模块：把所有玩法改为"可配表参数"，去重并整理，确保整条核心循环（生成/捕捉/掉落/日常）全部可跑、参数齐全无省略号。
+
+**属性生成公式化（不再手写每只宠数值）**
+- 段位基础范围 `TIER_BASE_RANGES`：T1–T8 各给 hp/atk/def/spd 的 min–max
+- 定位系数 `ROLE_COEF`：TANK/PHY/MAG/CTRL/CURSE 五职业 6 维系数
+- 每级成长步长 `STEP_BASE`：HP=6 / ATK=0.9 / DEF=0.7 / SPD=0.06
+- 公式：`BaseStat = Uniform(min..max) × aptitude × role_coef`，`Stat(L) = floor(Base + (L-1) × Step)`，`Step = StepBase × rarity_mul × growth_star_mul`
+- 6 维资质 0.85–1.15，成长星 1–5（倍率 1.0–1.25），稀有度 N1.0/R1.08/E1.16/L1.25
+
+**捕捉系统（成功率+球倍率+级差+保底，全参数）**
+- 同级基础率：N0.35 / R0.22 / E0.12 / L0.06
+- 球倍率：普通×1.0 / 强力×1.5 / 超级×2.2
+- 级差加成：玩家高于宠物 +0.01~+0.10，低于 -0.02~-0.20
+- 连续失败保底：N8/R10/E12/L15 次触发 +0.08~0.10，上限 +0.16~0.20
+- 最终公式：`p = clamp(base × ball_mul + level_diff + pity, 0.01, 0.95)`
+
+**技能池系统（120 只图鉴全量映射）**
+- 12 主池 `PM_*`（按种族×职业）+ 6 稀有池 `PR_*`（OFFENSE/CONTROL/SURVIVE/CURSE/DRAGON/SOUL）
+- `PET_SKILL_POOL` 120 行全量映射：每只宠 → (签名技能, 主池, 稀有池)
+- 抽取规则：槽1签名(Lv1) / 槽2主池(Lv1) / 槽3主池(Lv10) / 槽4稀有池(Lv30)
+- 技能槽解锁：slot1=1 / slot2=1 / slot3=10 / slot4=30
+
+**4 套掉落表（普通/精英/副本/BOSS，完全可跑）**
+- `DROP_NORMAL`：铜钱60-120 / 普通球 / 灵石 / 黄魂粉
+- `DROP_ELITE`：铜钱120-220 / 强力球 / 灵石 / 黄玄魂粉
+- `DROP_DUNGEON`：铜钱220-380 / 超级球 / 灵石 / 玄地魂粉 / 灵力
+- `DROP_BOSS`：铜钱380-650 / 地天魂粉 / 战灵钥匙 / 追魂法宝 / 擂台战场宝箱
+- 段位加成 `tier_mul`：影响铜钱数量，不影响掉落概率
+
+**每日副本路由（新）**
+- `/games/summon/dungeon`：每日 5 次上限，耗活力 6，使用 `DROP_DUNGEON`
+- 新增 `summon/dungeon.html` 模板
+
+**日常任务系统（12 项，全参数奖励）**
+- D001–D012：普通关/精英关/副本/擂台/战骨/通天塔/猎魂/战灵塔/战场/联盟捐献/师徒/捕捉
+- 每日 0 点重置进度与领奖状态，未实现功能显示"即将开放"
+- 当前已实现指标：`stage_normal_win` / `stage_elite_win` / `dungeon_win` / `capture_success`
+- 新增 `summon/tasks.html` 模板 + 首页"可领"徽标
+
+**幻兽培养完善**
+- 资质 6 维显示（pet_detail.html）：HP/物攻/魔攻/物防/魔防/速度 各 0.85–1.15
+- 技能槽位显示：`skills|length / skill_slots`
+- 技能池映射展示：签名池 + 稀有池
+- 重生入口：消耗重生丹重洗成长星/资质/技能（保留等级），持有数实时显示
+
+**修复与整理**
+- 修复 `battle.html` 引用未传入的 `coin_reward` 字段，改用 `drop_text` + `leveled` 标记
+- `seed.py` 补齐 11 个缺失 v1.0 道具：重生丹碎片/追魂法宝/地天魂宝箱/灵力/焚火晶/金袋/内丹/杀戮礼包/擂台宝箱/战场宝箱
+- `SummonState` 新增字段：`capture_pity` / `daily_counters` / `daily_tasks`（JSON 存储保底与日限）
+- `SummonPet` 新增字段：`aptitudes`（6 维资质 JSON）
+- 升级时按公式重算属性（保留资质），重生时重洗资质+成长星+技能
+
+**文件变更**
+- `app/routers/summon_data.py`：补齐 `SKILL_POOLS`(18池) / `PET_SKILL_POOL`(120映射) / `TIER_BASE_RANGES` / `ROLE_COEF` / `STEP_BASE` / 捕捉公式 / 4 套掉落表 / `DAILY_TASKS` / `IMPLEMENTED_METRICS`
+- `app/routers/summon.py`：新增 `/dungeon` `/dungeon/battle` `/tasks` `/tasks/claim/{id}` `/pet/{id}/rebirth` 路由
+- `app/templates/summon/`：新增 `tasks.html` `dungeon.html`，更新 `home/battle/pet_detail.html`
+- `app/models.py`：`SummonState` / `SummonPet` 扩展新字段
+- `app/seed.py`：召唤之王道具字典补齐至 21 项
+- `app/config.py`：版本号 0.0.5 → 0.0.6
+
+**端到端验证**
+- ✅ 属性生成：段位范围 × 资质 × 定位系数 × 成长步长（含升级重算）
+- ✅ 捕捉公式：基础率 × 球倍率 + 级差 + 保底，失败累计保底，成功重置
+- ✅ 技能池抽取：按图鉴池映射 + 宠物等级解锁槽位
+- ✅ 4 套掉落：普通/精英/副本/BOSS 按权重抽取
+- ✅ 日常任务：进度计数 + 领奖 + 首页徽标
+- ✅ 副本路由：日限 5 次 + 耗活力 6 + 副本掉落表
+
+---
 
 ### v0.0.5 （2026-08-03）— 召唤之王图鉴抓捕回合战斗模块上线
 

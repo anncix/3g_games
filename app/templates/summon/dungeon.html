@@ -1,0 +1,33 @@
+{% extends "base.html" %}
+{% from "macros.html" import topbar, footer %}
+{% block title %}每日副本{% endblock %}
+{% block body %}
+{{ topbar("每日副本", user) }}
+<div class="crumb"><a href="/games/summon">召唤之王</a> › 每日副本</div>
+<div class="card">
+  <div class="hd">副本（{{ st.current_map }} 段）</div>
+  消耗活力 <b>{{ cost }}</b>（当前 {{ st.energy }}）<br>
+  今日已完成 <b>{{ done_today }}/{{ limit }}</b> 次<br>
+  副本掉落：超级球 / 灵石 / 玄地魂粉 / 灵力
+</div>
+<div class="card">
+  <div class="hd">我方队伍（{{ team|length }}只）</div>
+  {% for p in team %}
+  <div class="li">{{ p.nickname or p.species_id }} <span class="tag">Lv{{ p.level }}</span><span class="r">HP{{ p.hp }} 速{{ p.spd }}</span></div>
+  {% endfor %}
+  {% if not team %}<div class="muted red">队伍为空！先去幻兽列表上阵</div>{% endif %}
+</div>
+<div class="content">
+  {% if can_battle %}
+  <form method="post" action="/games/summon/dungeon/battle"><button class="btn green" type="submit">挑战副本（耗{{ cost }}活力）</button></form>
+  {% else %}
+    {% if not team %}<a class="btn" href="/games/summon/pets">去上阵幻兽</a>
+    {% elif done_today >= limit %}<span class="tag red">今日副本已打满</span>
+    {% else %}<span class="tag red">活力不足，等待恢复</span>{% endif %}
+  {% endif %}
+</div>
+<div class="content">
+  <a class="btn ghost" href="/games/summon">返回首页</a>
+</div>
+{{ footer(user) }}
+{% endblock %}

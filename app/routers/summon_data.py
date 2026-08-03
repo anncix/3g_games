@@ -1,12 +1,14 @@
-"""召唤之王静态配置包（v0.0.5 可跑服定版）
+"""召唤之王静态配置包（v0.0.6 / v1.0 可跑服定版）
 
 来源说明：
 - 战骨/魔魂/战灵槽位、魔魂魂力表、战场时间、联盟/师徒规则 = 公开资料对齐的结构信息
-- 经验曲线/120图鉴/技能库/地图掉落与商店 = 复刻定版（可上线），非原版数据库
+- 经验曲线/120图鉴/技能库/属性生成公式/捕捉公式/掉落表/日常任务 = 复刻定版（可上线）
 
 本文件为纯静态常量，路由层直接 import 使用，不入库。
 """
 from __future__ import annotations
+
+import random
 
 # ============================================================
 # cfg_constants 常量与枚举
@@ -24,38 +26,51 @@ RACE_BONUS_ADV = 0.12               # 克制方伤害 +12%
 RACE_BONUS_DISADV = -0.10           # 被克方伤害 -10%
 TEAM_SIZE_DEFAULT = 3
 TEAM_SIZE_UNLOCK_4 = 60             # Lv60 解锁第 4 出战位（复刻定版）
+PET_SKILL_SLOTS = 4                 # 每只宠最大技能槽
+PET_SKILL_SLOT_UNLOCK = {1: 1, 2: 1, 3: 10, 4: 30}  # 槽位 → 宠物等级
 PET_STORAGE_BASE = 50
 PET_STORAGE_ADD_PER_10LVL = 10
+
+# 战斗判定基础值
+CRIT_BASE = 0.05
+CRIT_DMG = 1.50
+HIT_BASE = 0.95
+DODGE_BASE = 0.05
+RACE_COEF_ADV = 1.12
+RACE_COEF_DISADV = 0.90
+RACE_COEF_NEUTRAL = 1.00
 
 # 活力
 ENERGY_CAP = 120
 ENERGY_REGEN_PER_MIN = 0.2          # 每 5 分钟 +1
 FRIEND_REFILL_AMOUNT = 10
 FRIEND_REFILL_DAILY_CAP = 5
+MENTOR_REFILL_AMOUNT = 40           # 师徒互灌 4 倍
+MENTOR_REFILL_DAILY_CAP = 3
 COST_STAGE_NORMAL = 2
 COST_STAGE_ELITE = 4
+COST_DUNGEON = 6
 COST_ARENA = 2
+COST_BATTLEFIELD = 0                # 战场用结算场次限制
 
-# 战斗公式定版
-CRIT_BASE = 0.05
-CRIT_DMG = 1.50
-HIT_BASE = 0.95
-DODGE_BASE = 0.05
-
-# 抓捕球倍率
-BALL_MULTIPLIER = {"IT_BALL_N": 1.0, "IT_BALL_S": 1.5, "IT_BALL_U": 2.2}
-CAPTURE_DAILY_LIMIT = 30            # 每日抓捕上限
+# 每日上限（cfg_daily_limits）
+DAILY_LIMITS = {
+    "trial_each": 5,
+    "tongtian_floor": 20,
+    "spirit_tower_floor": 15,
+    "arena_free": 10,
+    "battlefield_settle": 5,
+    "boss": 3,
+    "capture": 60,
+}
 
 # 段位解锁等级（T1-T8 每 10 级一段）
 TIER_UNLOCK_LEVEL = {f"T{i}": (i - 1) * 10 + 1 for i in range(1, 9)}
-# 每段地图关卡数
-STAGES_PER_TIER = 15
 
 
 # ============================================================
 # cfg_level_xp（1–80 经验表，方案A）
-# need_xp: 升到下一级所需；cum_to_level: 到达该级累计；cum_to_next: 升到下一级累计
-# 公式：need(L)=120+80*L（对齐平台方案A）
+# 公式：need(L)=120+80*L
 # ============================================================
 def exp_needed(level: int) -> int:
     """L→L+1 所需经验"""
@@ -71,11 +86,8 @@ def exp_cumulative(level: int) -> int:
     return 40 * level * level + 80 * level - 120
 
 
-# ============================================================
-# cfg_level_unlocks 等级解锁
-# ============================================================
 LEVEL_UNLOCKS = {
-    1: "世界地图/捕捉/幻兽列表",
+    1: "世界地图/捕捉/幻兽列表/商城/背包",
     10: "擂台 / 战骨入口",
     20: "T2 段位（厚甲龟/采矿猴/吞岩兽）",
     30: "魔魂系统（3 槽起始，每 10 级 +1）",
@@ -99,7 +111,7 @@ CURRENCIES = {
     "CUR_MENTOR": ("桃李值", "师徒资源"),
 }
 
-# 平台物品字典 key（seed 注册用）
+# 平台物品字典 key（seed 注册用）：id → (name, type, desc, base_price)
 ITEMS = {
     "IT_BALL_N": ("普通捕捉球", "consumable", "捕捉倍率x1.0", 80),
     "IT_BALL_S": ("强力捕捉球", "consumable", "捕捉倍率x1.5", 300),
@@ -111,29 +123,78 @@ ITEMS = {
     "IT_SOUL_POWDER_3": ("魂粉(地)", "material", "魂力材料", 800),
     "IT_SOUL_POWDER_4": ("魂粉(天)", "material", "魂力材料", 2100),
     "IT_REBIRTH": ("重生丹", "consumable", "重生幻兽", 120),
+    "IT_REBIRTH_S": ("重生丹碎片", "material", "合成重生丹", 40),
+    "IT_SOUL_CHARM": ("追魂法宝", "consumable", "高级猎魂", 100),
+    "IT_SOUL_BOX_G": ("地魂宝箱", "box", "开地魂材料", 200),
+    "IT_SOUL_BOX_T": ("天魂宝箱", "box", "开天魂材料", 500),
+    "IT_SPIRIT_DUST": ("灵力", "material", "战灵洗炼材料", 50),
+    "IT_BURN_CRYSTAL": ("焚火晶", "material", "通天塔产出/联盟捐献", 60),
+    "IT_GOLD_BAG": ("金袋", "material", "联盟捐献", 100),
+    "IT_INNER_PILL": ("内丹", "material", "联盟捐献", 100),
+    "BOX_KILL": ("杀戮礼包", "box", "战场击杀奖励", 80),
+    "BOX_ARENA": ("擂台宝箱", "box", "擂台奖励", 60),
+    "BOX_BF": ("战场宝箱", "box", "战场奖励", 70),
 }
 
 
 # ============================================================
-# cfg_shop 商城/兑换
+# cfg_shop 商城/兑换（shop, item_id, currency, price, daily_limit）
 # ============================================================
-# (shop, item_id, currency, price, daily_limit)
 SHOP = [
     ("shop_general", "IT_BALL_N", "coins", 80, 30),
     ("shop_general", "IT_BALL_S", "coins", 300, 20),
     ("shop_general", "IT_BALL_U", "coins", 900, 10),
     ("shop_general", "IT_STONE", "coins", 500, 20),
     ("shop_general", "IT_SOUL_POWDER_1", "coins", 200, 20),
-    ("shop_cash", "IT_BALL_U", "gems", 30, 5),
+    ("shop_general", "IT_SOUL_POWDER_2", "coins", 600, 15),
+    ("shop_general", "IT_SOUL_POWDER_3", "coins", 1600, 10),
+    ("shop_general", "IT_SOUL_POWDER_4", "coins", 4200, 5),
+    ("shop_general", "IT_SPIRIT_KEY", "arena_coin", 80, 3),
     ("shop_cash", "IT_REBIRTH", "gems", 120, 1),
+    ("shop_cash", "IT_SPIRIT_KEY", "gems", 30, 5),
+    ("shop_cash", "IT_SOUL_CHARM", "gems", 100, 0),
+    ("shop_arena", "IT_STONE", "arena_coin", 20, 30),
+    ("shop_arena", "IT_SPIRIT_KEY", "arena_coin", 80, 3),
+    ("shop_arena", "IT_SOUL_BOX_G", "arena_coin", 120, 2),
+    ("shop_arena", "BOX_ARENA", "arena_coin", 60, 5),
+    ("shop_bf", "IT_SOUL_POWDER_3", "bf_coin", 25, 20),
+    ("shop_bf", "IT_SOUL_POWDER_4", "bf_coin", 60, 10),
+    ("shop_bf", "IT_SPIRIT_DUST", "bf_coin", 15, 50),
+    ("shop_bf", "BOX_BF", "bf_coin", 40, 5),
+    ("shop_guild", "IT_STONE", "guild", 5, 50),
+    ("shop_guild", "IT_BALL_S", "guild", 4, 20),
+    ("shop_guild", "IT_SOUL_CHARM", "guild", 60, 1),
+    ("shop_mentor", "IT_REBIRTH_S", "mentor", 10, 30),
+    ("shop_mentor", "IT_SOUL_CHARM", "mentor", 80, 1),
+    ("shop_mentor", "IT_SPIRIT_KEY", "mentor", 25, 2),
 ]
+
+SHOP_NAMES = {
+    "shop_general": "通用商店",
+    "shop_cash": "元宝商店",
+    "shop_arena": "擂台兑换",
+    "shop_bf": "战场兑换",
+    "shop_guild": "联盟兑换",
+    "shop_mentor": "师徒兑换",
+}
+
+# 货币字段名映射
+CURRENCY_FIELD = {
+    "coins": ("coins", "铜钱"),
+    "gems": ("gems", "元宝"),
+    "prestige": ("prestige", "声望"),
+    "arena_coin": ("arena_coin", "擂台币"),
+    "bf_coin": ("bf_coin", "战场币"),
+    "guild": ("guild_coin", "贡献"),
+    "mentor": ("mentor_coin", "桃李值"),
+}
 
 
 # ============================================================
 # cfg_skill_base（60 基础技能，rank 规则生成 180 技能）
 # ============================================================
 SKILL_RANK = {1: (1.00, 0.00, 0), 2: (1.35, 0.05, 0), 3: (1.75, 0.10, 1)}
-# skill_id, name, type, school, coef_or_value, cooldown, notes
+# skill_id → (name, type, school, coef_or_value, cooldown, notes)
 SKILLS = {
     "SK_001": ("利爪斩", "active", "PHY", 1.10, 1, "单体物伤"),
     "SK_002": ("破甲击", "active", "PHY", 0.95, 2, "降物防"),
@@ -200,6 +261,10 @@ SKILLS = {
 
 def skill_info(skill_id: str, rank: int = 1) -> dict:
     """生成指定阶的技能信息（rank 1-3）"""
+    if skill_id not in SKILLS:
+        return {"skill_id": skill_id, "name": "未知", "type": "passive",
+                "school": "PHY", "coef": 1.0, "cooldown": 0, "notes": "",
+                "rank": rank, "proc_add": 0, "ctrl_bonus": 0}
     name, stype, school, coef, cd, notes = SKILLS[skill_id]
     rank_mul, proc_add, ctrl_bonus = SKILL_RANK.get(rank, (1.00, 0.00, 0))
     return {
@@ -209,9 +274,169 @@ def skill_info(skill_id: str, rank: int = 1) -> dict:
     }
 
 
+# 技能学习/替换/升阶成本
+SKILL_LEARN_COST_COIN = 600
+SKILL_REPLACE_COST_COIN = 300
+SKILL_RANKUP_COST_COIN = 800
+SKILL_RANKUP_NEED_SHARDS = {2: 12, 3: 30}
+
+
+# ============================================================
+# cfg_skill_pools 技能池内容表（PM_* 主池 / PR_* 稀有池）
+# ============================================================
+SKILL_POOLS = {
+    "PM_W_TANK": ["SK_007", "SK_008", "SK_009", "SK_010", "SK_031", "SK_050", "SK_052", "SK_018"],
+    "PM_W_MAG": ["SK_011", "SK_013", "SK_014", "SK_012", "SK_032", "SK_033", "SK_017", "SK_020"],
+    "PM_B_PHY": ["SK_001", "SK_002", "SK_003", "SK_034", "SK_035", "SK_005", "SK_027", "SK_041"],
+    "PM_B_TANK": ["SK_006", "SK_007", "SK_036", "SK_010", "SK_050", "SK_052", "SK_018", "SK_030"],
+    "PM_I_CURSE": ["SK_023", "SK_024", "SK_037", "SK_038", "SK_021", "SK_022", "SK_018", "SK_019"],
+    "PM_I_CTRL": ["SK_039", "SK_018", "SK_019", "SK_016", "SK_028", "SK_020", "SK_017", "SK_026"],
+    "PM_F_PHY": ["SK_040", "SK_041", "SK_004", "SK_027", "SK_017", "SK_018", "SK_029", "SK_026"],
+    "PM_F_CTRL": ["SK_017", "SK_018", "SK_042", "SK_016", "SK_019", "SK_028", "SK_029", "SK_026"],
+    "PM_D_MAG": ["SK_044", "SK_015", "SK_051", "SK_043", "SK_017", "SK_014", "SK_011", "SK_020"],
+    "PM_D_PHY": ["SK_001", "SK_002", "SK_043", "SK_005", "SK_041", "SK_034", "SK_027", "SK_030"],
+    "PM_U_CURSE": ["SK_046", "SK_047", "SK_048", "SK_021", "SK_022", "SK_019", "SK_024", "SK_025"],
+    "PM_U_TANK": ["SK_007", "SK_008", "SK_052", "SK_050", "SK_030", "SK_019", "SK_020", "SK_025"],
+    "PR_OFFENSE": ["SK_004", "SK_054", "SK_053", "SK_051", "SK_056"],
+    "PR_CONTROL": ["SK_056", "SK_012", "SK_019", "SK_049", "SK_032"],
+    "PR_SURVIVE": ["SK_052", "SK_009", "SK_036", "SK_050", "SK_060"],
+    "PR_CURSE": ["SK_048", "SK_053", "SK_024", "SK_025", "SK_046"],
+    "PR_DRAGON": ["SK_043", "SK_044", "SK_045", "SK_047", "SK_056"],
+    "PR_SOUL": ["SK_057", "SK_058", "SK_059", "SK_060", "SK_033"],
+}
+
+
+# ============================================================
+# cfg_pet_skill_pool 120 只技能池映射
+# species_id → (signature_skill, pool_main, pool_rare)
+# ============================================================
+PET_SKILL_POOL = {
+    "SZW_0001": ("SK_018", "PM_W_MAG", "PR_CONTROL"),
+    "SZW_0002": ("SK_031", "PM_W_TANK", "PR_SURVIVE"),
+    "SZW_0003": ("SK_011", "PM_W_MAG", "PR_CONTROL"),
+    "SZW_0004": ("SK_003", "PM_B_PHY", "PR_OFFENSE"),
+    "SZW_0005": ("SK_007", "PM_B_TANK", "PR_SURVIVE"),
+    "SZW_0006": ("SK_004", "PM_B_PHY", "PR_OFFENSE"),
+    "SZW_0007": ("SK_023", "PM_I_CURSE", "PR_CURSE"),
+    "SZW_0008": ("SK_007", "PM_I_CURSE", "PR_SURVIVE"),
+    "SZW_0009": ("SK_028", "PM_I_CTRL", "PR_CONTROL"),
+    "SZW_0010": ("SK_017", "PM_F_CTRL", "PR_CONTROL"),
+    "SZW_0011": ("SK_040", "PM_F_PHY", "PR_OFFENSE"),
+    "SZW_0012": ("SK_042", "PM_F_CTRL", "PR_CONTROL"),
+    "SZW_0013": ("SK_015", "PM_D_MAG", "PR_DRAGON"),
+    "SZW_0014": ("SK_021", "PM_U_CURSE", "PR_CURSE"),
+    "SZW_0015": ("SK_025", "PM_U_CURSE", "PR_SOUL"),
+    "SZW_0016": ("SK_007", "PM_W_TANK", "PR_SURVIVE"),
+    "SZW_0017": ("SK_012", "PM_W_MAG", "PR_CONTROL"),
+    "SZW_0018": ("SK_031", "PM_W_TANK", "PR_SURVIVE"),
+    "SZW_0019": ("SK_001", "PM_B_PHY", "PR_OFFENSE"),
+    "SZW_0020": ("SK_010", "PM_B_TANK", "PR_SURVIVE"),
+    "SZW_0021": ("SK_002", "PM_B_PHY", "PR_OFFENSE"),
+    "SZW_0022": ("SK_006", "PM_B_TANK", "PR_SURVIVE"),
+    "SZW_0023": ("SK_023", "PM_I_CURSE", "PR_CURSE"),
+    "SZW_0024": ("SK_008", "PM_I_CURSE", "PR_SURVIVE"),
+    "SZW_0025": ("SK_021", "PM_I_CURSE", "PR_CURSE"),
+    "SZW_0026": ("SK_017", "PM_F_CTRL", "PR_CONTROL"),
+    "SZW_0027": ("SK_041", "PM_F_PHY", "PR_OFFENSE"),
+    "SZW_0028": ("SK_016", "PM_F_CTRL", "PR_CONTROL"),
+    "SZW_0029": ("SK_044", "PM_D_MAG", "PR_DRAGON"),
+    "SZW_0030": ("SK_019", "PM_U_TANK", "PR_CONTROL"),
+    "SZW_0031": ("SK_011", "PM_W_MAG", "PR_OFFENSE"),
+    "SZW_0032": ("SK_031", "PM_W_TANK", "PR_SURVIVE"),
+    "SZW_0033": ("SK_003", "PM_B_PHY", "PR_OFFENSE"),
+    "SZW_0034": ("SK_010", "PM_B_TANK", "PR_SURVIVE"),
+    "SZW_0035": ("SK_003", "PM_B_PHY", "PR_OFFENSE"),
+    "SZW_0036": ("SK_003", "PM_B_PHY", "PR_OFFENSE"),
+    "SZW_0037": ("SK_039", "PM_I_CTRL", "PR_CONTROL"),
+    "SZW_0038": ("SK_023", "PM_I_CURSE", "PR_CURSE"),
+    "SZW_0039": ("SK_023", "PM_I_CURSE", "PR_CURSE"),
+    "SZW_0040": ("SK_042", "PM_F_CTRL", "PR_CONTROL"),
+    "SZW_0041": ("SK_040", "PM_F_PHY", "PR_OFFENSE"),
+    "SZW_0042": ("SK_040", "PM_F_PHY", "PR_OFFENSE"),
+    "SZW_0043": ("SK_043", "PM_D_PHY", "PR_DRAGON"),
+    "SZW_0044": ("SK_021", "PM_U_CURSE", "PR_CURSE"),
+    "SZW_0045": ("SK_048", "PM_U_CURSE", "PR_SOUL"),
+    "SZW_0046": ("SK_031", "PM_W_TANK", "PR_SURVIVE"),
+    "SZW_0047": ("SK_031", "PM_W_TANK", "PR_SURVIVE"),
+    "SZW_0048": ("SK_011", "PM_W_MAG", "PR_OFFENSE"),
+    "SZW_0049": ("SK_003", "PM_B_PHY", "PR_OFFENSE"),
+    "SZW_0050": ("SK_010", "PM_B_TANK", "PR_SURVIVE"),
+    "SZW_0051": ("SK_003", "PM_B_PHY", "PR_OFFENSE"),
+    "SZW_0052": ("SK_002", "PM_I_CURSE", "PR_OFFENSE"),
+    "SZW_0053": ("SK_023", "PM_I_CURSE", "PR_CURSE"),
+    "SZW_0054": ("SK_039", "PM_I_CTRL", "PR_CONTROL"),
+    "SZW_0055": ("SK_042", "PM_F_CTRL", "PR_CONTROL"),
+    "SZW_0056": ("SK_040", "PM_F_PHY", "PR_OFFENSE"),
+    "SZW_0057": ("SK_042", "PM_F_CTRL", "PR_CONTROL"),
+    "SZW_0058": ("SK_044", "PM_D_MAG", "PR_DRAGON"),
+    "SZW_0059": ("SK_052", "PM_U_TANK", "PR_SURVIVE"),
+    "SZW_0060": ("SK_052", "PM_U_TANK", "PR_SOUL"),
+    "SZW_0061": ("SK_011", "PM_W_MAG", "PR_OFFENSE"),
+    "SZW_0062": ("SK_031", "PM_W_TANK", "PR_SURVIVE"),
+    "SZW_0063": ("SK_032", "PM_W_MAG", "PR_CONTROL"),
+    "SZW_0064": ("SK_003", "PM_B_PHY", "PR_OFFENSE"),
+    "SZW_0065": ("SK_010", "PM_B_TANK", "PR_SURVIVE"),
+    "SZW_0066": ("SK_023", "PM_I_CURSE", "PR_CURSE"),
+    "SZW_0067": ("SK_039", "PM_I_CTRL", "PR_CONTROL"),
+    "SZW_0068": ("SK_023", "PM_I_CURSE", "PR_CURSE"),
+    "SZW_0069": ("SK_042", "PM_F_CTRL", "PR_CONTROL"),
+    "SZW_0070": ("SK_040", "PM_F_PHY", "PR_OFFENSE"),
+    "SZW_0071": ("SK_040", "PM_F_PHY", "PR_OFFENSE"),
+    "SZW_0072": ("SK_044", "PM_D_MAG", "PR_DRAGON"),
+    "SZW_0073": ("SK_043", "PM_D_PHY", "PR_DRAGON"),
+    "SZW_0074": ("SK_019", "PM_U_TANK", "PR_CONTROL"),
+    "SZW_0075": ("SK_048", "PM_U_CURSE", "PR_SOUL"),
+    "SZW_0076": ("SK_031", "PM_W_TANK", "PR_SURVIVE"),
+    "SZW_0077": ("SK_011", "PM_W_MAG", "PR_OFFENSE"),
+    "SZW_0078": ("SK_011", "PM_W_MAG", "PR_OFFENSE"),
+    "SZW_0079": ("SK_003", "PM_B_PHY", "PR_OFFENSE"),
+    "SZW_0080": ("SK_010", "PM_B_TANK", "PR_SURVIVE"),
+    "SZW_0081": ("SK_003", "PM_B_PHY", "PR_OFFENSE"),
+    "SZW_0082": ("SK_023", "PM_I_CURSE", "PR_CURSE"),
+    "SZW_0083": ("SK_002", "PM_I_CURSE", "PR_OFFENSE"),
+    "SZW_0084": ("SK_039", "PM_I_CTRL", "PR_CONTROL"),
+    "SZW_0085": ("SK_042", "PM_F_CTRL", "PR_CONTROL"),
+    "SZW_0086": ("SK_040", "PM_F_PHY", "PR_OFFENSE"),
+    "SZW_0087": ("SK_042", "PM_F_CTRL", "PR_CONTROL"),
+    "SZW_0088": ("SK_044", "PM_D_MAG", "PR_DRAGON"),
+    "SZW_0089": ("SK_043", "PM_D_PHY", "PR_SOUL"),
+    "SZW_0090": ("SK_052", "PM_U_TANK", "PR_SURVIVE"),
+    "SZW_0091": ("SK_031", "PM_W_TANK", "PR_SURVIVE"),
+    "SZW_0092": ("SK_011", "PM_W_MAG", "PR_OFFENSE"),
+    "SZW_0093": ("SK_031", "PM_W_TANK", "PR_SOUL"),
+    "SZW_0094": ("SK_003", "PM_B_PHY", "PR_OFFENSE"),
+    "SZW_0095": ("SK_010", "PM_B_TANK", "PR_SURVIVE"),
+    "SZW_0096": ("SK_003", "PM_B_PHY", "PR_OFFENSE"),
+    "SZW_0097": ("SK_023", "PM_I_CURSE", "PR_CURSE"),
+    "SZW_0098": ("SK_039", "PM_I_CTRL", "PR_CONTROL"),
+    "SZW_0099": ("SK_023", "PM_I_CURSE", "PR_CURSE"),
+    "SZW_0100": ("SK_042", "PM_F_CTRL", "PR_CONTROL"),
+    "SZW_0101": ("SK_040", "PM_F_PHY", "PR_OFFENSE"),
+    "SZW_0102": ("SK_042", "PM_F_CTRL", "PR_CONTROL"),
+    "SZW_0103": ("SK_043", "PM_D_PHY", "PR_DRAGON"),
+    "SZW_0104": ("SK_044", "PM_D_MAG", "PR_DRAGON"),
+    "SZW_0105": ("SK_052", "PM_U_TANK", "PR_SURVIVE"),
+    "SZW_0106": ("SK_031", "PM_W_TANK", "PR_SURVIVE"),
+    "SZW_0107": ("SK_011", "PM_W_MAG", "PR_OFFENSE"),
+    "SZW_0108": ("SK_032", "PM_W_MAG", "PR_CONTROL"),
+    "SZW_0109": ("SK_003", "PM_B_PHY", "PR_OFFENSE"),
+    "SZW_0110": ("SK_010", "PM_B_TANK", "PR_SURVIVE"),
+    "SZW_0111": ("SK_023", "PM_I_CURSE", "PR_CURSE"),
+    "SZW_0112": ("SK_039", "PM_I_CTRL", "PR_CONTROL"),
+    "SZW_0113": ("SK_023", "PM_I_CURSE", "PR_CURSE"),
+    "SZW_0114": ("SK_042", "PM_F_CTRL", "PR_CONTROL"),
+    "SZW_0115": ("SK_040", "PM_F_PHY", "PR_OFFENSE"),
+    "SZW_0116": ("SK_042", "PM_F_CTRL", "PR_CONTROL"),
+    "SZW_0117": ("SK_043", "PM_D_PHY", "PR_DRAGON"),
+    "SZW_0118": ("SK_044", "PM_D_MAG", "PR_DRAGON"),
+    "SZW_0119": ("SK_043", "PM_D_PHY", "PR_SOUL"),
+    "SZW_0120": ("SK_048", "PM_U_CURSE", "PR_SOUL"),
+}
+
+
 # ============================================================
 # cfg_pet_species（120 图鉴）
-# id, name, race, tier, rarity, role, pool, signature
+# id → (name, race, tier, rarity, role, pool, signature_desc)
 # ============================================================
 PETS = {
     "SZW_0001": ("潮芽鱼", "水", "T1", "N", "CTRL", "WC", "减速"),
@@ -344,23 +569,233 @@ def pet_info(species_id: str) -> dict:
             "rarity": rarity, "role": role, "pool": pool, "signature": sig}
 
 
+def pet_skill_pool_info(species_id: str) -> dict:
+    """技能池映射信息"""
+    if species_id not in PET_SKILL_POOL:
+        return {"signature": "SK_001", "pool_main": "PM_B_PHY", "pool_rare": "PR_OFFENSE"}
+    sig, pm, pr = PET_SKILL_POOL[species_id]
+    return {"signature": sig, "pool_main": pm, "pool_rare": pr}
+
+
 # ============================================================
-# cfg_pet_skill_pool 种族/职业 → 技能池映射（生成个体技能用）
+# 属性生成（v1.0 公式化：段位基础范围 + 定位系数 + 成长步长 + 资质）
 # ============================================================
-ROLE_SKILL_POOL = {
-    "PHY": ["SK_001", "SK_002", "SK_003", "SK_004", "SK_027"],
-    "TANK": ["SK_006", "SK_007", "SK_008", "SK_009", "SK_030"],
-    "MAG": ["SK_011", "SK_013", "SK_014", "SK_015", "SK_033"],
-    "CTRL": ["SK_012", "SK_016", "SK_017", "SK_018", "SK_028"],
-    "CURSE": ["SK_021", "SK_022", "SK_023", "SK_024", "SK_025"],
+# tier → (hp_min, hp_max, atk_min, atk_max, def_min, def_max, spd_min, spd_max)
+TIER_BASE_RANGES = {
+    "T1": (180, 260, 18, 28, 10, 18, 10, 16),
+    "T2": (260, 360, 28, 40, 18, 26, 14, 20),
+    "T3": (360, 480, 40, 56, 26, 36, 18, 24),
+    "T4": (480, 620, 56, 76, 36, 48, 22, 28),
+    "T5": (620, 780, 76, 100, 48, 62, 26, 32),
+    "T6": (780, 960, 100, 128, 62, 78, 30, 36),
+    "T7": (960, 1160, 128, 160, 78, 96, 34, 40),
+    "T8": (1160, 1400, 160, 200, 96, 118, 38, 44),
+}
+
+# role → (HP, ATK_PHY, ATK_MAG, DEF_PHY, DEF_MAG, SPD) 系数
+ROLE_COEF = {
+    "TANK": (1.25, 0.85, 0.85, 1.15, 1.15, 0.95),
+    "PHY": (0.95, 1.22, 0.70, 0.95, 0.95, 1.05),
+    "MAG": (0.92, 0.70, 1.22, 0.95, 0.95, 1.00),
+    "CTRL": (0.92, 0.85, 0.85, 0.92, 0.92, 1.20),
+    "CURSE": (1.05, 1.05, 1.05, 1.00, 1.00, 0.95),
+}
+
+# 每级成长步长基数
+STEP_BASE = {"HP": 6, "ATK": 0.9, "DEF": 0.7, "SPD": 0.06}
+
+# 资质区间
+APTITUDE_MIN = 0.85
+APTITUDE_MAX = 1.15
+GROWTH_STAR_MIN = 1
+GROWTH_STAR_MAX = 5
+RECOMMEND_KEEP_GROWTH_STAR = 3
+
+
+def roll_aptitudes() -> dict:
+    """生成 6 维资质（0.85–1.15）"""
+    return {s: round(random.uniform(APTITUDE_MIN, APTITUDE_MAX), 3)
+            for s in ["hp", "atk_phy", "atk_mag", "def_phy", "def_mag", "spd"]}
+
+
+def roll_pet_stats(species_id: str, level: int = 1, growth_stars: int = 3,
+                   aptitudes: dict | None = None) -> dict:
+    """v1.0 公式生成个体属性
+    BaseStat = Uniform(range_min..range_max) × aptitude × role_coef
+    Stat(L) = floor(BaseStat + (L-1) × StepStat)
+    StepStat = StepBase × rarity_mul × growth_star_mul
+    """
+    info = pet_info(species_id)
+    tr = TIER_BASE_RANGES[info["tier"]]
+    rc = ROLE_COEF[info["role"]]
+    rg = RARITY_GROWTH[info["rarity"]]
+    sg = GROWTH_STAR_MUL.get(growth_stars, 1.12)
+    if aptitudes is None:
+        aptitudes = roll_aptitudes()
+    # 基础值（段位范围 × 资质 × 定位系数）
+    hp_base = random.uniform(tr[0], tr[1]) * aptitudes["hp"] * rc[0]
+    atk_phy_base = random.uniform(tr[2], tr[3]) * aptitudes["atk_phy"] * rc[1]
+    atk_mag_base = random.uniform(tr[2], tr[3]) * aptitudes["atk_mag"] * rc[2]
+    def_phy_base = random.uniform(tr[4], tr[5]) * aptitudes["def_phy"] * rc[3]
+    def_mag_base = random.uniform(tr[4], tr[5]) * aptitudes["def_mag"] * rc[4]
+    spd_base = random.uniform(tr[6], tr[7]) * aptitudes["spd"] * rc[5]
+    # 每级成长步长
+    step_hp = STEP_BASE["HP"] * rg * sg
+    step_atk = STEP_BASE["ATK"] * rg * sg
+    step_def = STEP_BASE["DEF"] * rg * sg
+    step_spd = STEP_BASE["SPD"] * rg * sg
+    L = level
+    hp = int(hp_base + (L - 1) * step_hp)
+    atk_phy = max(1, int(atk_phy_base + (L - 1) * step_atk))
+    atk_mag = max(1, int(atk_mag_base + (L - 1) * step_atk))
+    def_phy = max(1, int(def_phy_base + (L - 1) * step_def))
+    def_mag = max(1, int(def_mag_base + (L - 1) * step_def))
+    spd = max(1, int(spd_base + (L - 1) * step_spd))
+    crit = round(CRIT_BASE + (0.02 if info["rarity"] in ("E", "L") else 0), 3)
+    return {"hp": hp, "atk_phy": atk_phy, "atk_mag": atk_mag,
+            "def_phy": def_phy, "def_mag": def_mag, "spd": spd, "crit": crit,
+            "aptitudes": aptitudes}
+
+
+def pet_skill_slots_for_level(pet_level: int) -> int:
+    """宠物可用技能槽位数（槽4需 Lv30）"""
+    n = 0
+    for slot, need_lv in PET_SKILL_SLOT_UNLOCK.items():
+        if pet_level >= need_lv:
+            n += 1
+    return min(PET_SKILL_SLOTS, n)
+
+
+def roll_pet_skills(species_id: str, pet_level: int = 1) -> list:
+    """按图鉴技能池 + 宠物等级抽取技能
+    槽1: 签名技能（Lv1）
+    槽2: 主池随机（Lv1）
+    槽3: 主池随机（Lv10）
+    槽4: 稀有池随机（Lv30）
+    """
+    spi = pet_skill_pool_info(species_id)
+    skills = [spi["signature"]]
+    main_pool = SKILL_POOLS.get(spi["pool_main"], [])
+    rare_pool = SKILL_POOLS.get(spi["pool_rare"], [])
+    # 槽2（Lv1）
+    if pet_level >= PET_SKILL_SLOT_UNLOCK[2]:
+        candidates = [s for s in main_pool if s not in skills]
+        if candidates:
+            skills.append(random.choice(candidates))
+    # 槽3（Lv10）
+    if pet_level >= PET_SKILL_SLOT_UNLOCK[3] and len(skills) < 3:
+        candidates = [s for s in main_pool if s not in skills]
+        if candidates:
+            skills.append(random.choice(candidates))
+    # 槽4（Lv30）
+    if pet_level >= PET_SKILL_SLOT_UNLOCK[4] and len(skills) < 4:
+        candidates = [s for s in rare_pool if s not in skills]
+        if candidates:
+            skills.append(random.choice(candidates))
+    return skills
+
+
+def roll_wild_pet(tier: str) -> dict:
+    """生成一个野生遭遇幻兽（含等级/属性/技能/资质）"""
+    tier_pets = pets_in_tier(tier)
+    species_id = random.choice(tier_pets)
+    info = pet_info(species_id)
+    tier_num = int(tier[1])
+    lvl = random.randint(tier_num * 10 - 9, tier_num * 10)
+    stars = random.choices([1, 2, 3, 4, 5], weights=[30, 30, 25, 10, 5])[0]
+    aptitudes = roll_aptitudes()
+    stats = roll_pet_stats(species_id, lvl, stars, aptitudes)
+    skills = roll_pet_skills(species_id, lvl)
+    return {"species_id": species_id, "level": lvl, "growth_stars": stars,
+            "aptitudes": aptitudes, "skills": skills, **stats, "info": info}
+
+
+# ============================================================
+# 捕捉系统（v1.0 公式：基础率 × 球倍率 + 级差 + 保底）
+# ============================================================
+CAPTURE_BASE_RATE = {"N": 0.35, "R": 0.22, "E": 0.12, "L": 0.06}
+CAPTURE_BALL_MUL = {"IT_BALL_N": 1.0, "IT_BALL_S": 1.5, "IT_BALL_U": 2.2}
+# (玩家-宠物等级差阈值, 成功率加成)  正差=宠物弱=更易抓
+CAPTURE_LEVEL_DIFF = [
+    (10, 0.10), (5, 0.05), (1, 0.01), (0, 0.00),
+    (-1, -0.02), (-3, -0.06), (-5, -0.10), (-10, -0.20),
+]
+CAPTURE_MIN_RATE = 0.01
+CAPTURE_MAX_RATE = 0.95
+# rarity → (连续失败触发次数, 每次触发加成, 加成上限)
+CAPTURE_PITY = {
+    "N": (8, 0.08, 0.16),
+    "R": (10, 0.10, 0.20),
+    "E": (12, 0.10, 0.20),
+    "L": (15, 0.10, 0.20),
+}
+
+
+def capture_level_diff_add(player_level: int, pet_level: int) -> float:
+    """等级差加成（玩家高于宠物=更易抓）"""
+    diff = player_level - pet_level
+    for threshold, add in CAPTURE_LEVEL_DIFF:
+        if diff >= threshold:
+            return add
+    return CAPTURE_LEVEL_DIFF[-1][1]
+
+
+def capture_success_rate(rarity: str, ball_id: str, player_level: int,
+                         pet_level: int, pity_fails: int = 0) -> float:
+    """计算最终捕捉成功率，clamp 到 [0.01, 0.95]"""
+    base = CAPTURE_BASE_RATE.get(rarity, 0.35)
+    mul = CAPTURE_BALL_MUL.get(ball_id, 1.0)
+    diff_add = capture_level_diff_add(player_level, pet_level)
+    pity_bonus = 0.0
+    if rarity in CAPTURE_PITY:
+        trigger, bonus, max_b = CAPTURE_PITY[rarity]
+        pity_bonus = min(max_b, (pity_fails // trigger) * bonus)
+    rate = base * mul + diff_add + pity_bonus
+    return max(CAPTURE_MIN_RATE, min(CAPTURE_MAX_RATE, rate))
+
+
+# ============================================================
+# 幻兽经验来源（cfg_pet_xp_sources）
+# ============================================================
+PET_XP_SOURCES = {
+    "stage_normal_win": 8,
+    "stage_elite_win": 14,
+    "dungeon_win": 22,
+    "arena_win": 10,
+    "arena_loss": 6,
+    "battlefield_settle": 18,
+    "tower_floor": 6,
 }
 
 
 # ============================================================
-# cfg_maps_capture 地图抓捕池权重
+# 重生（cfg_rebirth）
 # ============================================================
+REBIRTH = {
+    "cost_item": "IT_REBIRTH",
+    "reroll_growth_star": True,
+    "reroll_aptitudes": True,
+    "reroll_skills": True,
+    "lock_signature": False,
+}
+
+
+# ============================================================
+# 地图结构（每段：普通关/精英关/副本/BOSS）
+# ============================================================
+STAGES_PER_TIER = 15
+TIER_STRUCTURE = {
+    "T1": (10, 3, 1, 1),
+    "T2": (10, 5, 2, 1),
+    "T3": (10, 5, 2, 1),
+    "T4": (10, 5, 2, 1),
+    "T5": (10, 5, 2, 1),
+    "T6": (10, 5, 2, 1),
+    "T7": (10, 5, 2, 1),
+    "T8": (10, 5, 2, 1),
+}
+
 POOL_WEIGHTS = {"WC": 10, "WE": 6, "DG": 2, "BS": 1, "EV": 3}
-# 稀有度抽取权重（按段位微调，高段位稀有更高）
 RARITY_WEIGHTS_BY_TIER = {
     "T1": {"N": 70, "R": 22, "E": 6, "L": 2},
     "T2": {"N": 65, "R": 24, "E": 8, "L": 3},
@@ -374,73 +809,104 @@ RARITY_WEIGHTS_BY_TIER = {
 
 
 def pets_in_tier(tier: str) -> list[str]:
-    """该段位所有幻兽 id"""
     return [pid for pid, v in PETS.items() if v[2] == tier]
 
 
 def pets_in_pool(tier: str, pool: str) -> list[str]:
-    """该段位指定产出池的幻兽 id"""
     return [pid for pid, v in PETS.items() if v[2] == tier and v[5] == pool]
 
 
 # ============================================================
-# 个体属性生成（按种族/稀有度/成长星 + 等级）
+# 掉落表（4 套：普通/精英/副本/BOSS）
+# (item_id, weight, min, max)
 # ============================================================
-# 种族基础属性倾向（HP/物攻/魔攻/物防/魔防/速度）
-RACE_BASE = {
-    "水": (110, 18, 22, 14, 12, 9),
-    "兽": (100, 26, 14, 12, 10, 12),
-    "虫": (95, 20, 16, 14, 12, 11),
-    "羽": (85, 22, 18, 9, 10, 16),
-    "龙": (120, 24, 24, 14, 14, 11),
-    "亡灵": (105, 20, 22, 12, 14, 10),
+DROP_NORMAL = [
+    ("CUR_COIN", 60, 60, 120),
+    ("IT_BALL_N", 20, 1, 2),
+    ("IT_STONE", 10, 0, 1),
+    ("IT_SOUL_POWDER_1", 10, 0, 1),
+]
+DROP_ELITE = [
+    ("CUR_COIN", 45, 120, 220),
+    ("IT_BALL_S", 20, 1, 2),
+    ("IT_STONE", 15, 1, 2),
+    ("IT_SOUL_POWDER_1", 10, 1, 2),
+    ("IT_SOUL_POWDER_2", 10, 0, 1),
+]
+DROP_DUNGEON = [
+    ("CUR_COIN", 35, 220, 380),
+    ("IT_BALL_U", 15, 1, 1),
+    ("IT_STONE", 15, 2, 4),
+    ("IT_SOUL_POWDER_2", 15, 1, 2),
+    ("IT_SOUL_POWDER_3", 10, 0, 1),
+    ("IT_SPIRIT_DUST", 10, 0, 60),
+]
+DROP_BOSS = [
+    ("CUR_COIN", 30, 380, 650),
+    ("IT_SOUL_POWDER_3", 15, 1, 2),
+    ("IT_SOUL_POWDER_4", 10, 0, 1),
+    ("IT_SPIRIT_KEY", 10, 0, 1),
+    ("IT_SOUL_CHARM", 5, 0, 1),
+    ("BOX_ARENA", 15, 1, 1),
+    ("BOX_BF", 15, 1, 1),
+]
+
+DROP_TABLES = {
+    "normal": DROP_NORMAL,
+    "elite": DROP_ELITE,
+    "dungeon": DROP_DUNGEON,
+    "boss": DROP_BOSS,
 }
-ROLE_BONUS = {
-    "PHY": (0, 6, 0, 0, 0, 0),
-    "TANK": (20, 0, 0, 4, 4, -2),
-    "MAG": (0, 0, 6, 0, 0, 0),
-    "CTRL": (-5, 0, 0, 0, 0, 4),
-    "CURSE": (0, 0, 2, 0, 0, 0),
+
+
+def roll_drop(table_key: str, tier_mul: float = 1.0) -> list[tuple[str, int]]:
+    """从掉落表抽取，返回 [(item_id, qty), ...]
+    tier_mul: 段位加成（影响数量，不影响是否掉落）
+    """
+    table = DROP_TABLES.get(table_key, DROP_NORMAL)
+    results = []
+    for item_id, weight, lo, hi in table:
+        if random.random() * 100 < weight:
+            base = random.randint(lo, hi) if hi > 0 else lo
+            qty = max(base, int(base * tier_mul)) if item_id == "CUR_COIN" else base
+            if qty > 0:
+                results.append((item_id, qty))
+    return results
+
+
+# ============================================================
+# 日常任务（cfg_daily_tasks）
+# task_id → (name, open_level, daily_limit, metric, reward_str)
+# ============================================================
+DAILY_TASKS = [
+    ("D001", "完成普通关10次", 1, 1, "stage_normal_win", "CUR_COIN:600"),
+    ("D002", "完成精英关3次", 1, 1, "stage_elite_win", "CUR_COIN:500|IT_BALL_S:2"),
+    ("D003", "完成副本2次", 1, 1, "dungeon_win", "IT_STONE:3|IT_SOUL_POWDER_1:2"),
+    ("D004", "擂台挑战10次", 10, 1, "arena_battle", "CUR_ARENA:120|CUR_PRESTIGE:80"),
+    ("D005", "战骨强化3次", 10, 1, "bone_upgrade", "IT_STONE:2|CUR_COIN:300"),
+    ("D006", "通天塔推进10层", 1, 1, "tower_floor", "IT_BURN_CRYSTAL:20|CUR_COIN:800"),
+    ("D007", "猎魂3次", 30, 1, "soul_hunt", "CUR_COIN:1000|IT_SOUL_POWDER_2:1"),
+    ("D008", "战灵塔推进8层", 35, 1, "spirit_tower_floor", "IT_SPIRIT_DUST:180|IT_SPIRIT_KEY:1"),
+    ("D009", "战场结算3场", 40, 1, "battlefield_settle", "CUR_BF:120|CUR_PRESTIGE:90|BOX_KILL:3"),
+    ("D010", "联盟捐献焚火晶20个", 1, 1, "guild_donate", "CUR_GUILD:20"),
+    ("D011", "师徒互灌1次", 40, 1, "mentor_refill", "CUR_ENERGY:40|CUR_MENTOR:10"),
+    ("D012", "捕捉成功1次", 1, 1, "capture_success", "IT_BALL_N:2|CUR_COIN:200"),
+]
+
+# 已实现的日常指标（其余为"即将开放"）
+IMPLEMENTED_METRICS = {
+    "stage_normal_win", "stage_elite_win", "dungeon_win", "capture_success",
 }
 
 
-def roll_pet_stats(species_id: str, level: int = 1, growth_stars: int = 3) -> dict:
-    """按图鉴+等级+成长星生成个体属性"""
-    info = pet_info(species_id)
-    base = RACE_BASE[info["race"]]
-    bonus = ROLE_BONUS[info["role"]]
-    rg = RARITY_GROWTH[info["rarity"]]
-    sg = GROWTH_STAR_MUL.get(growth_stars, 1.12)
-    # 等级成长系数（每级 +8%）
-    lvl_mul = 1.0 + 0.08 * (level - 1)
-    total_mul = rg * sg * lvl_mul
-    hp = int((base[0] + bonus[0]) * total_mul)
-    atk_phy = max(1, int((base[1] + bonus[1]) * total_mul))
-    atk_mag = max(1, int((base[2] + bonus[2]) * total_mul))
-    def_phy = max(1, int((base[3] + bonus[3]) * total_mul))
-    def_mag = max(1, int((base[4] + bonus[4]) * total_mul))
-    spd = max(1, int((base[5] + bonus[5]) * total_mul))
-    crit = round(CRIT_BASE + (0.02 if info["rarity"] in ("E", "L") else 0), 3)
-    return {"hp": hp, "atk_phy": atk_phy, "atk_mag": atk_mag,
-            "def_phy": def_phy, "def_mag": def_mag, "spd": spd, "crit": crit}
-
-
-def roll_wild_pet(tier: str) -> dict:
-    """生成一个野生遭遇幻兽（含等级/属性/技能）"""
-    import random
-    tier_pets = pets_in_tier(tier)
-    species_id = random.choice(tier_pets)
-    info = pet_info(species_id)
-    # 等级随段位
-    tier_num = int(tier[1])
-    lvl = random.randint(tier_num * 10 - 9, tier_num * 10)
-    stars = random.choices([1, 2, 3, 4, 5], weights=[30, 30, 25, 10, 5])[0]
-    stats = roll_pet_stats(species_id, lvl, stars)
-    # 技能：职业池取 2 个
-    pool = ROLE_SKILL_POOL.get(info["role"], ROLE_SKILL_POOL["PHY"])
-    skills = random.sample(pool, min(2, len(pool)))
-    return {"species_id": species_id, "level": lvl, "growth_stars": stars,
-            "skills": skills, **stats, "info": info}
+def parse_reward(reward_str: str) -> list[tuple[str, int]]:
+    """解析奖励字符串 'CUR_COIN:600|IT_BALL_S:2' → [(id, qty), ...]"""
+    rewards = []
+    for part in reward_str.split("|"):
+        if ":" in part:
+            iid, qty = part.split(":", 1)
+            rewards.append((iid, int(qty)))
+    return rewards
 
 
 # ============================================================

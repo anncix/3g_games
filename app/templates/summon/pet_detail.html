@@ -17,17 +17,35 @@
   速度 <b>{{ pet.spd }}</b> · 暴击 <b>{{ (pet.crit*100)|int }}%</b>
 </div>
 <div class="card">
-  <div class="hd">技能（{{ skills|length }}）</div>
+  <div class="hd">资质（0.85–1.15）</div>
+  生命 <b>{{ '%.2f'|format(aptitudes.hp|default(1.0)) }}</b> ·
+  物攻 <b>{{ '%.2f'|format(aptitudes.atk_phy|default(1.0)) }}</b> ·
+  魔攻 <b>{{ '%.2f'|format(aptitudes.atk_mag|default(1.0)) }}</b><br>
+  物防 <b>{{ '%.2f'|format(aptitudes.def_phy|default(1.0)) }}</b> ·
+  魔防 <b>{{ '%.2f'|format(aptitudes.def_mag|default(1.0)) }}</b> ·
+  速度 <b>{{ '%.2f'|format(aptitudes.spd|default(1.0)) }}</b>
+</div>
+<div class="card">
+  <div class="hd">技能（{{ skills|length }}/{{ skill_slots }}槽）</div>
   {% for s in skills %}
   <div class="li">{{ s.name }} <span class="tag">{{ s.type }}</span><span class="r">{{ s.school }} 系数{{ s.coef }}</span></div>
   <div class="muted">{{ s.notes }}</div>
   {% endfor %}
   {% if not skills %}<div class="muted">无技能</div>{% endif %}
+  <div class="muted">签名技能池：{{ spi.pool_main }} / 稀有池：{{ spi.pool_rare }}</div>
 </div>
 <div class="content">
   <form method="post" action="/games/summon/pet/{{ pet.id }}/team" style="display:inline">
     <button class="btn {% if pet.team_slot >= 0 %}ghost{% else %}blue{% endif %}" type="submit">{% if pet.team_slot >= 0 %}下阵{% else %}上阵{% endif %}</button>
   </form>
+  {% if rebirth_count > 0 %}
+  <form method="post" action="/games/summon/pet/{{ pet.id }}/rebirth" style="display:inline"
+        onsubmit="return confirm('重生将重洗成长星/资质/技能（保留等级），消耗1枚重生丹，确认？')">
+    <button class="btn danger" type="submit">重生（持有{{ rebirth_count }}）</button>
+  </form>
+  {% else %}
+  <span class="tag">重生丹不足</span>
+  {% endif %}
   <a class="btn ghost" href="/games/summon/pets">返回列表</a>
 </div>
 {{ footer(user) }}

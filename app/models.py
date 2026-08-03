@@ -801,11 +801,11 @@ class SeaUserEquip(Base):
 
 
 # ============================================================
-# 召唤之王（v0.0.5）：召唤师 + 幻兽 + 战斗
-# 静态配置（经验表/120图鉴/60技能/地图/商店）见 routers/summon_data.py
+# 召唤之王（v0.0.6）：召唤师 + 幻兽 + 战斗 + 日常任务
+# 静态配置（经验表/120图鉴/60技能/属性公式/捕捉公式/掉落表/日常任务）见 routers/summon_data.py
 # ============================================================
 class SummonState(Base):
-    """召唤师状态：等级 / 经验 / 活力 / 多货币 / 地图进度"""
+    """召唤师状态：等级 / 经验 / 活力 / 多货币 / 地图进度 / 日常计数"""
     __tablename__ = "summon_state"
     user_id: Mapped[int] = mapped_column(ForeignKey("users.id", ondelete="CASCADE"), primary_key=True)
     level: Mapped[int] = mapped_column(Integer, default=1)
@@ -817,10 +817,15 @@ class SummonState(Base):
     prestige: Mapped[int] = mapped_column(Integer, default=0)           # 声望
     arena_coin: Mapped[int] = mapped_column(Integer, default=0)         # 擂台币
     bf_coin: Mapped[int] = mapped_column(Integer, default=0)            # 战场币
+    guild_coin: Mapped[int] = mapped_column(Integer, default=0)         # 贡献
+    mentor_coin: Mapped[int] = mapped_column(Integer, default=0)        # 桃李值
     current_map: Mapped[str] = mapped_column(String(16), default="T1")  # 当前所在段位地图
     stage_cleared: Mapped[int] = mapped_column(Integer, default=0)      # 当前地图已通关数
     captures_today: Mapped[int] = mapped_column(Integer, default=0)     # 今日抓捕次数
     daily_log_date: Mapped[str] = mapped_column(String(10), default="") # 日限重置日期 YYYY-MM-DD
+    capture_pity: Mapped[str] = mapped_column(Text, default="{}")       # JSON: {rarity: 连续失败次数}
+    daily_counters: Mapped[str] = mapped_column(Text, default="{}")     # JSON: {metric: 今日次数}
+    daily_tasks: Mapped[str] = mapped_column(Text, default="{}")        # JSON: {task_id: 已领奖}
     last_battle_at: Mapped[datetime] = mapped_column(DateTime, default=_now)
 
 
@@ -833,7 +838,7 @@ class SummonPet(Base):
     nickname: Mapped[str] = mapped_column(String(32), default="")
     level: Mapped[int] = mapped_column(Integer, default=1)
     exp: Mapped[int] = mapped_column(Integer, default=0)
-    # 个体属性（捕获/升级时按种族+稀有度+成长星计算）
+    # 个体属性（捕获/升级时按段位范围+定位系数+资质+成长星计算）
     hp: Mapped[int] = mapped_column(Integer, default=100)
     atk_phy: Mapped[int] = mapped_column(Integer, default=20)
     atk_mag: Mapped[int] = mapped_column(Integer, default=20)
@@ -842,6 +847,7 @@ class SummonPet(Base):
     spd: Mapped[int] = mapped_column(Integer, default=10)
     crit: Mapped[float] = mapped_column(Float, default=0.05)
     growth_stars: Mapped[int] = mapped_column(Integer, default=3)        # 成长星 1-5
+    aptitudes: Mapped[str] = mapped_column(Text, default="{}")          # JSON: 6维资质 0.85-1.15
     skills: Mapped[str] = mapped_column(Text, default="[]")             # JSON: [skill_id,...]
     team_slot: Mapped[int] = mapped_column(Integer, default=-1)         # -1=未上阵, 0-3=出战位
     captured_at: Mapped[datetime] = mapped_column(DateTime, default=_now)

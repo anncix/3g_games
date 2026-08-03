@@ -26,7 +26,9 @@
 </div>
 {% if ok %}
 <div class="card">
-  获得金币 +<b>{{ coin_reward }}</b> · 经验 +<b>{{ exp_reward }}</b><br>
+  <div class="hd">战斗收益</div>
+  经验 +<b>{{ exp_reward }}</b>{% if leveled %} <span class="tag green">升级！</span>{% endif %}<br>
+  掉落：{{ drop_text }}<br>
   当前 Lv{{ st.level }}（{{ st.exp }}/{{ exp_need if exp_need else '满级' }}）
 </div>
 {% endif %}
