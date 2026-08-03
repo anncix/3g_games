@@ -1,6 +1,6 @@
 # QQ家园 — 怀旧平台化复刻
 
-> 版本：**v0.1.2** （2026-08-03 全仓库模拟运行修复：农场收获500/成就错位/图标触发/花谱成就/召唤API）
+> 版本：**v0.1.3** （2026-08-03 魔法花园对齐新版总纲：订单交易系统/品质5档/统一加成/价值体系）
 >
 > 基于 **FastAPI + SQLite + Jinja2(简版 WAP 风)** 实现的怀旧 QQ 家园平台复刻。
 > 严格遵循《怀旧QQ家园平台设计规范》：平台统一、模块自治、旧逻辑优先、一页只做一件事。
@@ -10,6 +10,73 @@
 ---
 
 ## 更新日志
+
+### v0.1.3 （2026-08-03）— 魔法花园对齐新版总纲（订单/品质/价值/加成）
+
+按用户提供的《QQ家园·魔法花园 新版总纲 + 四大分册》（系统总纲 / 页面结构 / 公式规则 / 物品体系），对照现有 garden 模块做验证与补齐。核心差距：原模块只有"种→收→合成→点亮"单线，缺少 spec 强调的**订单交易（经济主引擎）**、**品质系统（核心长期追求）**、**统一加成公式（必须写死）**、**物品价值体系（定价底座）**。本次补齐这 4 项，闭合"产出 → 订单消费 → 金币/经验回收"主循环；环境值/装扮与工坊制作队列记入待办（下一版本）。
+
+**订单交易系统（spec：经济主引擎 / 主要回收池）**
+- 复现：原模块收获后只有"卖/合成/点亮花谱"三条出路，spec 要求"产出必须有去处"，订单是主要回收池与金币经验主来源
+- 新增 `GardenOrder`（订单实例）+ `GardenOrderLog`（交付历史）2 张表
+- 订单类型：普通单(margin 1.15) / 加价单(1.45) / 限时单(1.75，8 小时截止)
+- 需求生成：从玩家已点亮花谱的花朵池抽取 1-3 种，每种 1-3 个，附带品质要求（新手用 Lv1 野花保底）
+- 奖励公式（spec 原文落地）：
+  - `V_req = Σ(qty_i × value_coin(item_i) × Q_value_mul(Q_req_i))`
+  - `R_coin = floor(V_req × margin(type) × urgency_mul × difficulty_mul)`
+  - `R_exp = floor(R_coin^0.6 × exp_scale(L))`（p<1 避免金币单一驱动升级）
+- 刷新：每日 2 次免费，之后 `cost = 50 × 1.5^n`（防刷递增）；同时进行上限 6 单
+- 路由：`/orders`（订单板）/ `/orders/deliver/{id}`（交付）/ `/orders/reroll`（刷新）/ `/orders/history`（历史）
+
+**统一加成公式（spec：必须写死）**
+- 复现：原模块各处加成自写一套口径，spec 强制 `final = base × (1 + Σadd) × Π(1 + mul_i)` + cap 上限 + 边际递减
+- 新增 `apply_buff(base, add_terms, mul_terms, cap)` 工具函数，统一所有加成叠加口径
+- 关键项必须有 cap（例：成长减免最多 80%）；长期加成边际递减
+
+**品质系统（spec：核心长期追求）**
+- 复现：原模块只有稀有度（普通/稀有/史诗/传说）单轴，spec 要求品质（N/G/R/E/L）作为独立轴 + 权重抽取
+- 新增 `QUALITY_TIERS`（5 档）+ `QUALITY_WEIGHT_BASE`（基础权重 70/20/7/2.5/0.5）
+- `roll_quality(quality_buff, env_score)` 权重抽取：`W_q = W_base × (1 + buff) × env_quality_mul`
+- `env_quality_mul` 边际递减：`1 + 0.3×(1 - exp(-env_score/50))`（spec 原文）
+- `Q_VALUE_MUL`：品质对订单价值倍率 N1.0 / G1.1 / R1.25 / E1.45 / L1.7（订单需求按品质加价）
+
+**物品价值体系（spec：四段式 item_value 定价底座）**
+- 复现：原模块无统一内部价值，spec 要求所有物品进同一价值坐标系，否则订单/配方会失控
+- 新增 `v_time_unit(L) = 8 + 0.5×L`（时间价值）
+- `crop_base_value(grow_seconds, level)`：`V_crop_base = T_grow_hours × V_time_unit(L) / plot_efficiency`
+- `item_value_coin(item_level, rarity, grow_seconds, base_sell)`：时间价值 + 稀有溢价（`RARITY_MUL` 普通1.0/稀有1.8/史诗2.6/传说4.0）
+- `value_coin` 用于订单/配方定价，不等于玩家可见卖价（spec：卖价 = value × sell_ratio，作回收口非赚钱手段）
+
+**API 与入口更新**
+- `GET /api/garden/state` 新增字段：`active_orders`（活跃订单数）/ `total_order_coin`（累计交付金币）
+- `garden/home.html` 快捷入口新增：订单板
+- `garden/rules.html` 新增 4 章节：订单交易系统 / 统一加成公式 / 品质系统 / 物品价值体系
+
+**数据模型变更（2 张新表 + 1 字段）**
+- `GardenOrder`：订单实例（order_type / requirements JSON / reward_coin / reward_exp / reward_token / expire_at）
+- `GardenOrderLog`：交付历史（coin_gain / exp_gain / token_gain / delivered_at）
+- `GardenDailyLog` 新增 `order_reroll_paid`（当日付费刷新次数）
+
+**文件变更**
+- `app/routers/garden.py`：新增订单路由 4 条 + 工具函数 4 个 + spec 公式配置 8 组（apply_buff/QUALITY_*/roll_quality/v_time_unit/crop_base_value/item_value_coin/ORDER_*/order_exp_scale）
+- `app/routers/api.py`：`/garden/state` 新增 active_orders / total_order_coin
+- `app/models.py`：新增 `GardenOrder` / `GardenOrderLog`（2 表）+ `GardenDailyLog.order_reroll_paid`
+- `app/templates/garden/`：新增 `orders.html` / `order_history.html`（2 模板）
+- `app/templates/garden/home.html`：快捷入口新增订单板
+- `app/templates/garden/rules.html`：新增 4 章节
+- `app/config.py`：版本号 0.1.2 → 0.1.3
+
+**待办（下一版本）**
+- 环境值 / 装扮系统（env_score + deco + set_bonus + 边际递减 buff）
+- 工坊制作队列（slot 工作台并行 + queue_item 时间戳完成，替代当前即时合成）
+
+**端到端验证**
+- ✅ 导入校验：apply_buff / roll_quality / item_value_coin / ORDER_MARGIN 可访问；GardenOrder/GardenOrderLog 模型存在
+- ✅ 公式校验：apply_buff(100, [0.1, 0.2], [0.05], cap=150) = 138；roll_quality 返回 N/G/R/E/L 之一
+- ✅ 订单闭环：进入订单板自动生成订单 → 交付扣材料发奖励 → 历史记录
+- ✅ 刷新防刷：免费 2 次后 cost=50×1.5^n 递增
+- ✅ API：`/api/garden/state` 返回 active_orders / total_order_coin
+
+---
 
 ### v0.1.2 （2026-08-03）— 全仓库模拟运行修复（5 项）
 

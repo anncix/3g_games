@@ -18,7 +18,7 @@
 """
 import json
 import random
-from datetime import datetime, date
+from datetime import datetime, date, timedelta
 
 from fastapi import APIRouter, Request, Depends, HTTPException
 from fastapi.responses import RedirectResponse
@@ -94,6 +94,87 @@ def item_level_cap(player_level: int) -> int:
 # 升级曲线（方案A）：need(L→L+1) = 120 + 80*L
 def exp_needed(level: int) -> int:
     return 120 + 80 * level
+
+
+# ============================================================
+# v0.1.3：spec 公式规则分册落地（统一加成 / 品质 / 价值 / 订单）
+# ============================================================
+# spec 强制：final = base * (1 + Σadd) * Π(1 + mul_i)，关键项必须有 cap 上限
+def apply_buff(base: float, add_terms: list[float], mul_terms: list[float], cap: float | None = None) -> float:
+    """统一加成叠加：先加后乘 + cap 上限（spec：必须写死）"""
+    result = base * (1.0 + sum(add_terms))
+    for m in mul_terms:
+        result *= (1.0 + m)
+    if cap is not None:
+        result = min(result, cap)
+    return result
+
+# 品质系统（spec：5 档 N/G/R/E/L，权重抽取避免概率叠爆）
+QUALITY_TIERS = ["N", "G", "R", "E", "L"]  # 普通/优良/稀有/史诗/传说
+# 品质对订单价值的倍率（spec 示例）
+Q_VALUE_MUL = {"N": 1.0, "G": 1.1, "R": 1.25, "E": 1.45, "L": 1.7}
+# 基础品质权重模板（普通作物；稀有作物可在 seed 配置覆盖）
+QUALITY_WEIGHT_BASE = {"N": 70, "G": 20, "R": 7, "E": 2.5, "L": 0.5}
+
+def roll_quality(quality_buff: float = 0.0, env_score: int = 0) -> str:
+    """品质权重抽取（spec：W_q = W_base * (1 + buff) * env_quality_mul）
+
+    env_quality_mul 边际递减：1 + k*(1 - exp(-env_score/s))
+    """
+    import math
+    k, s = 0.3, 50.0
+    env_mul = 1 + k * (1 - math.exp(-env_score / s))
+    weights = {q: QUALITY_WEIGHT_BASE[q] * (1 + quality_buff) * env_mul for q in QUALITY_TIERS}
+    return random.choices(QUALITY_TIERS, weights=[weights[q] for q in QUALITY_TIERS], k=1)[0]
+
+# 物品价值体系（spec：四段式 item_value 定价底座）
+# 时间价值：V_time_unit(L) = k0 + k1*L
+V_TIME_K0, V_TIME_K1 = 8, 0.5
+def v_time_unit(level: int) -> float:
+    return V_TIME_K0 + V_TIME_K1 * level
+
+# 稀有度倍率（spec 示例 M_rarity N/G/R/E/L = 1.0/1.3/1.8/2.6/4.0）
+RARITY_MUL = {"普通": 1.0, "稀有": 1.8, "史诗": 2.6, "传说": 4.0}
+
+def crop_base_value(grow_seconds: int, level: int) -> float:
+    """作物基础价值（时间价值）：V_crop_base = T_grow_hours * V_time_unit(L) / plot_efficiency_norm"""
+    grow_hours = grow_seconds / 3600.0
+    return grow_hours * v_time_unit(level) / 1.0  # plot_efficiency_norm=1
+
+def item_value_coin(item_level: int, rarity: str, grow_seconds: int = 0, base_sell: int = 0) -> int:
+    """物品内部价值（spec：时间价值 + 稀有溢价；无成长时间的按卖价反推）
+
+    用于订单/配方定价，不等于玩家可见卖价。
+    """
+    if grow_seconds > 0:
+        v = crop_base_value(grow_seconds, item_level) * RARITY_MUL.get(rarity, 1.0)
+    else:
+        # 材料/产物：按卖价 * 反推系数（卖价≈价值的 0.2-0.3）
+        v = max(base_sell, 1) * 4.0
+    return max(1, int(v))
+
+# 订单系统配置（spec：经济主引擎）
+# margin(order_type) 利润率
+ORDER_MARGIN = {"normal": 1.15, "premium": 1.45, "limited": 1.75}
+# urgency_mul 限时单加成
+ORDER_URGENCY_MUL = {"normal": 1.0, "premium": 1.0, "limited": 1.2}
+# difficulty_mul 按需求品质
+ORDER_DIFFICULTY_MUL = {"N": 1.0, "G": 1.1, "R": 1.25, "E": 1.45, "L": 1.7}
+# 每日订单数 N0 + rand(0, n)
+ORDER_DAILY_BASE, ORDER_DAILY_RAND = 4, 2
+# 同时进行订单数上限
+ORDER_ACTIVE_MAX = 6
+# 免费刷新次数 + 付费刷新成本递增 cost_reroll(n)= base * r^n
+ORDER_FREE_REROLL = 2
+ORDER_REROLL_BASE, ORDER_REROLL_RATIO = 50, 1.5
+# 经验公式 R_exp = floor(R_coin^p * exp_scale(L))，p<1 避免金币单一驱动升级
+ORDER_EXP_P = 0.6
+def order_exp_scale(level: int) -> float:
+    return 1.0 + level * 0.05
+
+# 订单需求池：从玩家已点亮花谱的花朵中抽取（保证可交付）
+# 订单需求条目结构：{item_key, qty, quality, value_coin}
+ORDER_QTY_RANGE = (1, 3)
 
 
 async def get_state(db: AsyncSession, user_id: int) -> models.GardenState:
@@ -1010,3 +1091,231 @@ async def rules(request: Request, db: AsyncSession = Depends(get_db)):
     if not user:
         return RedirectResponse("/login", status_code=303)
     return await render(request, "garden/rules.html", db, user=user)
+
+
+# ============================================================
+# v0.1.3：订单交易系统（spec 经济主引擎 / 主要回收池）
+# 产出 → 订单交付 → 金币/经验回收，闭环 harvest 的消费路径
+# ============================================================
+def _gen_order_requirements(db_blooms: list, st_level: int, order_type: str) -> list[dict]:
+    """生成订单需求：从可用花朵池抽取 1-3 种，每种 1-3 个，附带品质要求"""
+    if not db_blooms:
+        return []
+    n_items = random.randint(1, min(3, len(db_blooms)))
+    chosen = random.sample(db_blooms, min(n_items, len(db_blooms)))
+    reqs = []
+    for bloom in chosen:
+        qty = random.randint(ORDER_QTY_RANGE[0], ORDER_QTY_RANGE[1])
+        # 限时单/加价单更可能要求高品质
+        if order_type == "limited":
+            q_pool = ["N", "G", "R", "E"]
+        elif order_type == "premium":
+            q_pool = ["N", "G", "R"]
+        else:
+            q_pool = ["N", "G"]
+        quality = random.choice(q_pool)
+        v = item_value_coin(bloom.item_level, bloom.rarity, base_sell=bloom.sell_price)
+        reqs.append({"item_key": bloom.item_key, "name": bloom.name,
+                     "qty": qty, "quality": quality, "value_coin": v})
+    return reqs
+
+
+def _calc_order_reward(reqs: list[dict], order_type: str, st_level: int, has_deadline: bool) -> tuple[int, int]:
+    """计算订单奖励 (R_coin, R_exp) —— spec 公式"""
+    if not reqs:
+        return 0, 0
+    v_req = sum(r["qty"] * r["value_coin"] * Q_VALUE_MUL[r["quality"]] for r in reqs)
+    urgency = ORDER_URGENCY_MUL.get(order_type, 1.0) * (1.1 if has_deadline else 1.0)
+    difficulty = max(ORDER_DIFFICULTY_MUL[r["quality"]] for r in reqs)
+    r_coin = int(v_req * ORDER_MARGIN.get(order_type, 1.15) * urgency * difficulty)
+    r_exp = int((r_coin ** ORDER_EXP_P) * order_exp_scale(st_level))
+    return max(1, r_coin), max(1, r_exp)
+
+
+async def _ensure_orders(db: AsyncSession, user_id: int, st: models.GardenState):
+    """保证玩家有足够订单（首次进入/每日补充）"""
+    res = await db.execute(select(models.GardenOrder).where(
+        models.GardenOrder.user_id == user_id, models.GardenOrder.delivered.is_(False)))
+    active = list(res.scalars().all())
+    # 清理过期限时单
+    now = datetime.utcnow()
+    cleaned = False
+    for o in active:
+        if o.expire_at and o.expire_at < now:
+            o.delivered = True  # 标记过期（不发放奖励）
+            cleaned = True
+    if cleaned:
+        active = [o for o in active if not o.delivered]
+    if len(active) >= ORDER_ACTIVE_MAX:
+        return active
+    # 需要补充：从玩家已点亮花谱的花朵中抽取需求池
+    col_res = await db.execute(select(models.GardenCollection).where(
+        models.GardenCollection.user_id == user_id))
+    lit_keys = [c.entry_key for c in col_res.scalars().all()]
+    bloom_keys = []
+    for ek in lit_keys:
+        entry = await db.get(models.GardenAlbumEntry, ek)
+        if entry:
+            bloom_keys.append(entry.bloom_key)
+    db_blooms = []
+    for bk in bloom_keys:
+        b = await db.get(models.GardenBloom, bk)
+        if b:
+            db_blooms.append(b)
+    # 若玩家花谱空（新手），用 Lv1 野花保底
+    if not db_blooms:
+        b = await db.get(models.GardenBloom, "bloom_wild_w")
+        if b:
+            db_blooms = [b]
+    target = ORDER_DAILY_BASE + random.randint(0, ORDER_DAILY_RAND)
+    to_add = max(0, min(target, ORDER_ACTIVE_MAX) - len(active))
+    for _ in range(to_add):
+        r = random.random()
+        if r < 0.15:
+            otype = "limited"
+        elif r < 0.45:
+            otype = "premium"
+        else:
+            otype = "normal"
+        reqs = _gen_order_requirements(db_blooms, st.level, otype)
+        if not reqs:
+            continue
+        has_dl = otype == "limited"
+        r_coin, r_exp = _calc_order_reward(reqs, otype, st.level, has_dl)
+        expire = (now + timedelta(hours=8)) if has_dl else None
+        db.add(models.GardenOrder(user_id=user_id, order_type=otype,
+                                  requirements=json.dumps(reqs, ensure_ascii=False),
+                                  reward_coin=r_coin, reward_exp=r_exp,
+                                  reward_token=5 if otype == "limited" else 0,
+                                  expire_at=expire))
+    await db.flush()
+    res = await db.execute(select(models.GardenOrder).where(
+        models.GardenOrder.user_id == user_id, models.GardenOrder.delivered.is_(False),
+        (models.GardenOrder.expire_at.is_(None)) | (models.GardenOrder.expire_at > now)))
+    return list(res.scalars().all())
+
+
+@router.get("/orders")
+async def orders_page(request: Request, db: AsyncSession = Depends(get_db)):
+    """订单板：普通单/加价单/限时单"""
+    user = await get_current_user(request, db)
+    if not user:
+        return RedirectResponse("/login", status_code=303)
+    st = await get_state(db, user.id)
+    active = await _ensure_orders(db, user.id, st)
+    await db.commit()  # v0.1.3：持久化新生成的订单（_ensure_orders 只 flush）
+    # 计算每个订单的可交付状态
+    order_infos = []
+    for o in active:
+        reqs = json.loads(o.requirements)
+        can_deliver = True
+        for r in reqs:
+            cnt = await goods.count_item(db, user.id, r["item_key"], MODULE_KEY)
+            if cnt < r["qty"]:
+                can_deliver = False
+                break
+        remain = ""
+        if o.expire_at:
+            secs = int((o.expire_at - datetime.utcnow()).total_seconds())
+            remain = f"{secs//3600}h{(secs%3600)//60}m" if secs > 0 else "已过期"
+        order_infos.append({"order": o, "reqs": reqs, "can_deliver": can_deliver, "remain": remain})
+    dl = await get_daily_log(db, user.id)
+    free_left = max(0, ORDER_FREE_REROLL - dl.order_reroll_paid)
+    title, tier_range = magician_title(st.level)
+    return await render(request, "garden/orders.html", db, user=user, st=st,
+                        order_infos=order_infos, free_left=free_left,
+                        title=title, tier_range=tier_range)
+
+
+@router.post("/orders/deliver/{order_id}")
+async def order_deliver(order_id: int, request: Request, db: AsyncSession = Depends(get_db)):
+    """交付订单：扣除材料 → 发放金币/经验/代币 → 记录历史"""
+    user = await get_current_user(request, db)
+    if not user:
+        return RedirectResponse("/login", status_code=303)
+    st = await get_state(db, user.id)
+    o = await db.get(models.GardenOrder, order_id)
+    if not o or o.user_id != user.id or o.delivered:
+        return await render(request, "result.html", db, user=user, ok=False, msg="订单无效",
+                            back_href="/games/garden/orders", back_text="返回订单板")
+    if o.expire_at and o.expire_at < datetime.utcnow():
+        o.delivered = True
+        await db.commit()
+        return await render(request, "result.html", db, user=user, ok=False, msg="订单已过期",
+                            back_href="/games/garden/orders", back_text="返回订单板")
+    reqs = json.loads(o.requirements)
+    # 校验材料
+    for r in reqs:
+        cnt = await goods.count_item(db, user.id, r["item_key"], MODULE_KEY)
+        if cnt < r["qty"]:
+            return await render(request, "result.html", db, user=user, ok=False,
+                                msg=f"材料不足：{r['name']} 需要 {r['qty']} 个",
+                                back_href="/games/garden/orders", back_text="返回订单板")
+    # 扣除材料
+    for r in reqs:
+        await goods.remove_item(db, user.id, r["item_key"], MODULE_KEY, r["qty"])
+    # 发放奖励
+    st.coins += o.reward_coin
+    await add_exp(db, st, o.reward_exp)
+    o.delivered = True
+    db.add(models.GardenOrderLog(user_id=user.id, order_type=o.order_type,
+                                 coin_gain=o.reward_coin, exp_gain=o.reward_exp,
+                                 token_gain=o.reward_token))
+    await db.commit()
+    await events.emit(db, user.id, MODULE_KEY, "ranking",
+                      {"metric": "order_coin", "score": o.reward_coin, "period": "total"})
+    await log.record(db, user.id, MODULE_KEY, "order_deliver", f"{o.id}:{o.order_type}:{o.reward_coin}")
+    msg = f"订单交付成功！金币+{o.reward_coin} 经验+{o.reward_exp}"
+    if o.reward_token:
+        msg += f" 活动代币+{o.reward_token}"
+    return await render(request, "result.html", db, user=user, ok=True, msg=msg,
+                        back_href="/games/garden/orders", back_text="返回订单板")
+
+
+@router.post("/orders/reroll")
+async def orders_reroll(request: Request, db: AsyncSession = Depends(get_db)):
+    """刷新订单板：免费次数用完后付费递增"""
+    user = await get_current_user(request, db)
+    if not user:
+        return RedirectResponse("/login", status_code=303)
+    st = await get_state(db, user.id)
+    dl = await get_daily_log(db, user.id)
+    # 清空当前未交付订单
+    res = await db.execute(select(models.GardenOrder).where(
+        models.GardenOrder.user_id == user.id, models.GardenOrder.delivered.is_(False)))
+    for o in res.scalars().all():
+        o.delivered = True
+    # 计算刷新成本
+    if dl.order_reroll_paid < ORDER_FREE_REROLL:
+        cost = 0
+    else:
+        cost = int(ORDER_REROLL_BASE * (ORDER_REROLL_RATIO ** (dl.order_reroll_paid - ORDER_FREE_REROLL)))
+    if st.coins < cost:
+        await db.rollback()
+        return await render(request, "result.html", db, user=user, ok=False,
+                            msg=f"花园金币不足（刷新需{cost}）",
+                            back_href="/games/garden/orders", back_text="返回订单板")
+    st.coins -= cost
+    dl.order_reroll_paid += 1
+    await db.commit()
+    await _ensure_orders(db, user.id, st)
+    await db.commit()
+    await log.record(db, user.id, MODULE_KEY, "order_reroll", f"cost{cost}")
+    return RedirectResponse("/games/garden/orders", status_code=303)
+
+
+@router.get("/orders/history")
+async def orders_history(request: Request, db: AsyncSession = Depends(get_db)):
+    """订单交付历史（统计 + 任务追踪）"""
+    user = await get_current_user(request, db)
+    if not user:
+        return RedirectResponse("/login", status_code=303)
+    res = await db.execute(select(models.GardenOrderLog).where(
+        models.GardenOrderLog.user_id == user.id).order_by(models.GardenOrderLog.delivered_at.desc()).limit(20))
+    logs = list(res.scalars().all())
+    total_coin = sum(l.coin_gain for l in logs)
+    total_exp = sum(l.exp_gain for l in logs)
+    st = await get_state(db, user.id)
+    return await render(request, "garden/order_history.html", db, user=user, st=st,
+                        logs=logs, total_coin=total_coin, total_exp=total_exp)
+

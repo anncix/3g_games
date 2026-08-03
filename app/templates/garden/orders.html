@@ -1,0 +1,53 @@
+{% extends "base.html" %}
+{% from "macros.html" import topbar, footer %}
+{% block title %}订单板{% endblock %}
+{% block body %}
+{{ topbar("订单板", user) }}
+<div class="crumb"><a href="/games/garden">花园</a> › 订单板</div>
+<div class="card">
+  <div class="hd">订单交易中心</div>
+  <span class="tag blue">{{ title }}</span> 花园金币 <b>{{ st.coins }}</b><br>
+  <span class="muted">spec 经济主引擎：产出 → 订单交付 → 金币/经验回收</span>
+</div>
+<div class="card">
+  <div class="hd">刷新订单板</div>
+  今日免费刷新剩余 <b>{{ free_left }}</b> 次<br>
+  <span class="muted">免费用完后付费递增：cost = 50 × 1.5^n</span>
+  <form method="post" action="/games/garden/orders/reroll"><button class="btn" type="submit">刷新订单</button></form>
+</div>
+<div class="section-title">进行中订单（{{ order_infos|length }}）</div>
+<div class="content">
+  {% if not order_infos %}
+  <div class="muted">暂无订单，刷新试试</div>
+  {% endif %}
+  {% for info in order_infos %}
+  <div class="card">
+    {% set o = info.order %}
+    {% if o.order_type == 'limited' %}<span class="tag red">限时单</span>
+    {% elif o.order_type == 'premium' %}<span class="tag orange">加价单</span>
+    {% else %}<span class="tag green">普通单</span>{% endif %}
+    {% if o.expire_at %}<span class="tag">{{ info.remain }}</span>{% endif %}
+    <div class="hd">需求</div>
+    {% for r in info.reqs %}
+    {{ r.name }} ×<b>{{ r.qty }}</b>（品质 <b>{{ r.quality }}</b>）<br>
+    {% endfor %}
+    <div class="hd">奖励</div>
+    金币 <b>{{ o.reward_coin }}</b> · 经验 <b>{{ o.reward_exp }}</b>
+    {% if o.reward_token %} · 代币 <b>{{ o.reward_token }}</b>{% endif %}
+    <div class="content">
+      {% if info.can_deliver %}
+      <form method="post" action="/games/garden/orders/deliver/{{ o.id }}"><button class="btn green" type="submit">交付订单</button></form>
+      {% else %}
+      <span class="tag red">材料不足</span>
+      <a class="btn ghost" href="/games/garden/pots">去种花</a>
+      {% endif %}
+    </div>
+  </div>
+  {% endfor %}
+</div>
+<div class="content">
+  <a class="btn ghost" href="/games/garden/orders/history">交付历史</a>
+  <a class="btn ghost" href="/games/garden">返回花园</a>
+</div>
+{{ footer(user) }}
+{% endblock %}

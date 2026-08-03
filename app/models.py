@@ -797,7 +797,43 @@ class GardenDailyLog(Base):
     date: Mapped[str] = mapped_column(String(10))  # YYYY-MM-DD
     steal_count: Mapped[int] = mapped_column(Integer, default=0)
     help_count: Mapped[int] = mapped_column(Integer, default=0)
+    order_reroll_paid: Mapped[int] = mapped_column(Integer, default=0)  # v0.1.3：当日付费刷新订单次数
     __table_args__ = (UniqueConstraint("user_id", "date", name="uq_garden_daily"),)
+
+
+# v0.1.3：订单交易系统（spec 经济主引擎 / 主要回收池）
+class GardenOrder(Base):
+    """订单实例：玩家产出 → 订单交付 → 金币/经验回收
+
+    spec 公式：
+    - V_req = Σ(qty_i * value_coin(item_i) * Q_value_mul(Q_req_i))
+    - R_coin = floor(V_req * margin(type) * urgency_mul * difficulty_mul)
+    - R_exp  = floor(R_coin^p * exp_scale(L))
+    """
+    __tablename__ = "garden_orders"
+    id: Mapped[int] = mapped_column(Integer, primary_key=True)
+    user_id: Mapped[int] = mapped_column(ForeignKey("users.id", ondelete="CASCADE"), index=True)
+    order_type: Mapped[str] = mapped_column(String(16), default="normal")  # normal/premium/limited
+    requirements: Mapped[str] = mapped_column(Text)  # JSON [{item_key, qty, quality}]
+    reward_coin: Mapped[int] = mapped_column(Integer, default=0)
+    reward_exp: Mapped[int] = mapped_column(Integer, default=0)
+    reward_token: Mapped[int] = mapped_column(Integer, default=0)  # 活动代币(活动单)
+    expire_at: Mapped[datetime] = mapped_column(DateTime, nullable=True)  # 限时单截止
+    created_at: Mapped[datetime] = mapped_column(DateTime, default=_now)
+    delivered: Mapped[bool] = mapped_column(Boolean, default=False)
+
+
+class GardenOrderLog(Base):
+    """订单交付历史（统计 + 任务追踪）"""
+    __tablename__ = "garden_order_logs"
+    id: Mapped[int] = mapped_column(Integer, primary_key=True)
+    user_id: Mapped[int] = mapped_column(ForeignKey("users.id", ondelete="CASCADE"), index=True)
+    order_type: Mapped[str] = mapped_column(String(16))
+    coin_gain: Mapped[int] = mapped_column(Integer, default=0)
+    exp_gain: Mapped[int] = mapped_column(Integer, default=0)
+    token_gain: Mapped[int] = mapped_column(Integer, default=0)
+    delivered_at: Mapped[datetime] = mapped_column(DateTime, default=_now)
+
 
 
 # ============================================================

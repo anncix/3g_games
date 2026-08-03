@@ -258,6 +258,16 @@ async def api_garden_state(request: Request, db: AsyncSession = Depends(get_db))
     res = await db.execute(select(models.GardenCollection).where(models.GardenCollection.user_id == user.id))
     lit = sum(1 for c in res.scalars().all() if c.lit)
     level = st.level if st else 1
+    # v0.1.3：订单统计（活跃数 + 累计交付金币）
+    active_orders = 0
+    total_order_coin = 0
+    if st:
+        o_res = await db.execute(select(models.GardenOrder).where(
+            models.GardenOrder.user_id == user.id, models.GardenOrder.delivered.is_(False)))
+        active_orders = len([o for o in o_res.scalars().all() if not o.expire_at or o.expire_at > datetime.utcnow()])
+        l_res = await db.execute(select(models.GardenOrderLog).where(
+            models.GardenOrderLog.user_id == user.id))
+        total_order_coin = sum(l.coin_gain for l in l_res.scalars().all())
     # 魔法师称号 + 物品等级上限（v0.0.3）
     from ..routers.garden import magician_title, item_level_cap, exp_needed
     title, tier_range = magician_title(level)
@@ -271,6 +281,8 @@ async def api_garden_state(request: Request, db: AsyncSession = Depends(get_db))
         "title": title,
         "tier_range": list(tier_range),
         "item_level_cap": item_level_cap(level),
+        "active_orders": active_orders,        # v0.1.3
+        "total_order_coin": total_order_coin,  # v0.1.3
     })
 
 
