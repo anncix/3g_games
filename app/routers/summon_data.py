@@ -1,4 +1,4 @@
-"""召唤之王静态配置包（v0.0.7 全量配表定版）
+"""召唤之王静态配置包（v0.0.8 全量配表定版）
 
 来源说明：
 - 战骨/魔魂/战灵槽位、魔魂魂力表、战场时间、联盟/师徒规则 = 公开资料对齐的结构信息
@@ -1021,6 +1021,52 @@ SPIRIT_AFFIXES = {
     "AF_204": ("闪避%", "special", "DODGE%", 0.02, 0.06),
 }
 
+# ============================================================
+# cfg_spirit_reroll_cost 战灵洗炼费用（当日第 N 次）
+# 规则：前 3 次免费，第 4 次起消耗铜钱+灵力，线性递增，第 30 次封顶
+# ============================================================
+# roll_no → (is_free, coin_cost, spirit_dust_cost)
+SPIRIT_REROLL_COST = {
+    1: (1, 0, 0), 2: (1, 0, 0), 3: (1, 0, 0),
+    4: (0, 500, 20), 5: (0, 750, 30), 6: (0, 1000, 40),
+    7: (0, 1250, 50), 8: (0, 1500, 60), 9: (0, 1750, 70),
+    10: (0, 2000, 80), 11: (0, 2250, 90), 12: (0, 2500, 100),
+    13: (0, 2750, 110), 14: (0, 3000, 120), 15: (0, 3250, 130),
+    16: (0, 3500, 140), 17: (0, 3750, 150), 18: (0, 4000, 160),
+    19: (0, 4250, 170), 20: (0, 4500, 180), 21: (0, 4750, 190),
+    22: (0, 5000, 200), 23: (0, 5250, 210), 24: (0, 5500, 220),
+    25: (0, 5750, 230), 26: (0, 6000, 240), 27: (0, 6250, 250),
+    28: (0, 6500, 260), 29: (0, 6750, 270), 30: (0, 7000, 280),
+}
+SPIRIT_REROLL_FREE_COUNT = 3       # 每日前 3 次免费
+SPIRIT_REROLL_DAILY_CAP = 30       # 每日封顶 30 次
+
+# cfg_spirit_reroll_lock_cost 锁词条额外费用（叠加到洗炼费用上）
+# lock_count → (extra_coin_cost, extra_spirit_dust_cost, notes)
+SPIRIT_REROLL_LOCK_COST = {
+    0: (0, 0, "不锁"),
+    1: (800, 30, "锁1条"),
+    2: (1600, 60, "锁2条"),
+    3: (2600, 100, "锁3条（3词条全开后）"),
+}
+
+
+def spirit_reroll_cost(roll_no: int, lock_count: int = 0) -> tuple[int, int, bool]:
+    """战灵洗炼费用（当日第 roll_no 次，锁 lock_count 条词条）
+    返回 (coin_cost, spirit_dust_cost, is_free)
+    注：is_free 仅当 roll_no 在免费区间且未锁词条时为 True
+    """
+    if roll_no < 1:
+        roll_no = 1
+    if roll_no > SPIRIT_REROLL_DAILY_CAP:
+        roll_no = SPIRIT_REROLL_DAILY_CAP
+    is_free, coin, dust = SPIRIT_REROLL_COST[roll_no]
+    extra_coin, extra_dust, _ = SPIRIT_REROLL_LOCK_COST.get(lock_count, (0, 0, ""))
+    # 锁词条则不再免费
+    if lock_count > 0:
+        is_free = 0
+    return coin + extra_coin, dust + extra_dust, bool(is_free)
+
 
 # ============================================================
 # 擂台（cfg_arena）
@@ -1087,6 +1133,41 @@ ALLIANCE_SKILLS = {
     "GSK_DEF": ("联盟防御", 10, 0.01, 20, 10),
     "GSK_SPD": ("联盟速度", 10, 0.01, 20, 10),
 }
+
+# cfg_alliance_skill_level_cost 联盟技能逐级消耗（0级→1级 ... 9级→10级）
+# to_level → (contrib_cost_this_level, contrib_cost_cumulative, bonus_total)
+ALLIANCE_SKILL_LEVEL_COST = {
+    1: (20, 20, 0.01), 2: (30, 50, 0.02), 3: (40, 90, 0.03),
+    4: (50, 140, 0.04), 5: (60, 200, 0.05), 6: (70, 270, 0.06),
+    7: (80, 350, 0.07), 8: (90, 440, 0.08), 9: (100, 540, 0.09),
+    10: (110, 650, 0.10),
+}
+
+
+def alliance_skill_cost(skill_id: str, from_level: int) -> tuple[int, int, float]:
+    """联盟技能升级消耗（from_level → from_level+1）
+    返回 (contrib_cost_this_level, contrib_cost_cumulative, bonus_total_after)
+    满级或非法参数返回 (0, 当前累计, 当前总加成)
+    """
+    if skill_id not in ALLIANCE_SKILLS:
+        return (0, 0, 0.0)
+    max_lv = ALLIANCE_SKILLS[skill_id][1]
+    to_level = from_level + 1
+    if to_level < 1 or to_level > max_lv:
+        # 已满级或越界：返回当前级累计与加成
+        cur = ALLIANCE_SKILL_LEVEL_COST.get(from_level, (0, 0, 0.0))
+        return (0, cur[1], cur[2])
+    return ALLIANCE_SKILL_LEVEL_COST[to_level]
+
+
+def alliance_skill_cumulative_cost(skill_id: str, to_level: int) -> int:
+    """联盟技能升到 to_level 的累计贡献消耗"""
+    if skill_id not in ALLIANCE_SKILLS or to_level < 1:
+        return 0
+    max_lv = ALLIANCE_SKILLS[skill_id][1]
+    if to_level > max_lv:
+        to_level = max_lv
+    return ALLIANCE_SKILL_LEVEL_COST[to_level][1]
 
 # 联盟寄存室
 ALLIANCE_STORAGE = {

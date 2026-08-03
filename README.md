@@ -1,6 +1,6 @@
 # QQ家园 — 怀旧平台化复刻
 
-> 版本：**v0.0.7** （2026-08-03 召唤之王全量配表定版：补齐战骨/魔魂/战灵/擂台/战场/联盟/师徒/商店全表）
+> 版本：**v0.0.8** （2026-08-03 召唤之王战灵洗炼/联盟技能逐级消耗配表补齐）
 >
 > 基于 **FastAPI + SQLite + Jinja2(简版 WAP 风)** 实现的怀旧 QQ 家园平台复刻。
 > 严格遵循《怀旧QQ家园平台设计规范》：平台统一、模块自治、旧逻辑优先、一页只做一件事。
@@ -10,6 +10,49 @@
 ---
 
 ## 更新日志
+
+### v0.0.8 （2026-08-03）— 召唤之王战灵洗炼/联盟技能逐级消耗配表补齐
+
+补齐两张用户提供的"不缺参数"配表：战灵洗炼费用（含锁词条）+ 联盟技能逐级消耗（1→10级），并新增查询函数供后续玩法路由调用。整理去重，修正 rules.html 战骨公式笔误。
+
+**新增配表（2 张全量）**
+- `cfg_spirit_reroll_cost`（30 行）：当日第 1-30 次洗炼费用
+  - 前 3 次免费（`is_free=1`）
+  - 第 4 次起消耗铜钱+灵力，线性递增（500+20 → 7000+280）
+  - 第 30 次封顶（`SPIRIT_REROLL_DAILY_CAP=30`）
+- `cfg_spirit_reroll_lock_cost`（4 行）：锁词条额外费用（叠加到洗炼费用）
+  - 不锁 0/0 · 锁1条 800铜钱+30灵力 · 锁2条 1600+60 · 锁3条 2600+100
+  - 锁词条则不再享受免费次数
+- `cfg_alliance_skill_level_cost`（10 行）：联盟技能逐级消耗
+  - 1级 20贡献 → 10级 110贡献，每级+10
+  - 满级累计 650贡献，每级+1%加成（满级+10%）
+  - 4 条技能（GSK_HP/ATK/DEF/SPD）消耗一致
+
+**新增辅助函数（3 个）**
+- `spirit_reroll_cost(roll_no, lock_count=0)` → `(coin, dust, is_free)`：洗炼费用查询，含锁词条叠加与封顶处理
+- `alliance_skill_cost(skill_id, from_level)` → `(this_cost, cumulative, bonus_total)`：单次升级消耗
+- `alliance_skill_cumulative_cost(skill_id, to_level)` → `int`：升到指定等级的累计贡献
+
+**修正与整理**
+- `rules.html` 战骨公式笔误 `floor((lv-1)/5)` → `floor(lv/5)`（与 v0.0.7 实际公式一致）
+- `rules.html` 战灵区补充洗炼/锁词条费用说明
+- `rules.html` 联盟区补充技能逐级消耗说明（1级20→10级110，满级650）
+- `summon_data.py` 文件头版本 0.0.7 → 0.0.8
+
+**文件变更**
+- `app/routers/summon_data.py`：新增 2 张配表 + 3 个辅助函数 + 文件头版本
+- `app/templates/summon/rules.html`：修正战骨公式笔误 + 补充战灵洗炼/联盟技能说明
+- `app/config.py`：版本号 0.0.7 → 0.0.8
+
+**端到端验证**
+- ✅ 导入校验：SPIRIT_REROLL_COST 30 / SPIRIT_REROLL_LOCK_COST 4 / ALLIANCE_SKILL_LEVEL_COST 10
+- ✅ 洗炼费用：roll1=(0,0,True) / roll4=(500,20,False) / roll30=(7000,280,False)
+- ✅ 锁词条：roll1+lock1=(800,30,False)（锁则不再免费）/ roll4+lock2=(2100,80,False)
+- ✅ 联盟技能：GSK_HP 0→1=(20,20,0.01) / 9→10=(110,650,0.10) / 10→11=(0,650,0.10)（满级）
+- ✅ 累计：GSK_HP 到10级 = 650贡献
+- ✅ HTTP 冒烟：首页/规则页 200
+
+---
 
 ### v0.0.7 （2026-08-03）— 召唤之王全量配表定版
 
