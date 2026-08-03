@@ -1,6 +1,6 @@
 # QQ家园 — 怀旧平台化复刻
 
-> 版本：**v0.2.0** （2026-08-03 风云三国路由层+全网检索补全：fengyun.py路由659行/11模板/官方7系列48件装备/11名器/14BOSS/sea+summon+garden路由扩展）
+> 版本：**v0.2.1** （2026-08-03 全网检索补全玩法：精武堂战神宫/花园7步魔法任务链/农场土地等级+化肥+变异/小镇外卖订单/平台限时活动+多指标排行）
 >
 > 基于 **FastAPI + SQLite + Jinja2(简版 WAP 风)** 实现的怀旧 QQ 家园平台复刻。
 > 严格遵循《怀旧QQ家园平台设计规范》：平台统一、模块自治、旧逻辑优先、一页只做一件事。
@@ -10,6 +10,76 @@
 ---
 
 ## 更新日志
+
+### v0.2.1 （2026-08-03）— 全网检索补全六模块核心玩法 + 平台活动/排行增强
+
+基于全网检索到的经典 QQ 家园原版玩法资料（zol.com 玩家攻略 / doc88.com 道具编码表 / baike.com 红土地百科 / youxiabc.com 作物排行 / QQ经典农场频道攻略），补全 v0.2.0 后仍缺失的六模块核心玩法与平台级系统。
+
+**一、精武堂 · 战神宫（spec 核心修炼场所，来源 zol.com 玩家攻略）**
+- 新增 `martial_data.py` `WARSHRINE` 配置：20级进入 / 前3层 / 15体力2小时 / 经验倍率1.5x→3x→4.5x / 4小时排位混战
+- 新增 4 路由（[martial.py](file:///workspace/app/routers/martial.py)）：战神宫主页 / 开始修炼 / 领取经验 / 挑战上层
+- 修炼状态存 `daily_counters` JSON（warshrine_floor + warshrine_started_at），不改 models
+- 新增 [warshrine.html](file:///workspace/app/templates/martial/warshrine.html) 模板：3层排位卡 + 各层在线玩家榜 + 规则说明
+- 规则对齐原版：必须停止练功房修炼才能进战神宫 / 排位失败掉1层 / 1层免排位
+
+**二、魔法花园 · 7步魔法任务链（spec 灵魂玩法，来源 doc88.com + jinchutou.com 攻略）**
+- 新增 `garden_data.py` `QUEST_CHAIN` 配置：7步暗香魔杖/五彩之翼任务，精确材料/概率/魅力/经验/周期
+  - 第1步 神秘的魔杖（好友花园探索，+60魅力）→ 第2步 绿野精灵（1断枝+99水仙+99牡丹，70%，+1000魅力）
+  - 第3步 海洋之心（5断枝+188美人蕉+188荷花，65%，+1200魅力）→ 第4步 宝石玫瑰（50%，+1500魅力）
+  - 第5步 黄金玫瑰（45%，+1580魅力）→ 第6步 钻石玫瑰（30%，+1680魅力）→ 第7步 五彩之翼（5花各99朵，100%，+1888魅力+暗香使者称号）
+- 新增 3 路由（[garden.py](file:///workspace/app/routers/garden.py)）：任务链主页 / 探索好友花园 / 合成种植
+- 魅力值 + 任务进度存 `craft_queue` JSON（迁移为dict结构，兼容旧工坊队列），不改 models
+- 新增 [quest.html](file:///workspace/app/templates/garden/quest.html) 模板：7步进度条 + 当前步材料/概率/奖励 + 探索/合成按钮
+
+**三、阳光农场 · 土地等级 + 化肥 + 变异（来源 baike.com 红土地百科 + youxiabc.com + QQ经典农场频道）**
+- 新增 `SOIL_GRADES` 配置：普通→红(28级,+10%)→金(60级,+50%)→黑(+100%)土地，含变异概率加成
+- 新增 `FERTILIZERS` 配置：普通化肥(加速60s)/有机化肥(加速30s×5次)/高级化肥(加速120s×3次)
+- 新增 `VARIATIONS` 配置：爱心(产量×3)/湿润(产量×2)/暗化(售价×2)/冰冻(售价×3)，可叠加
+- 新增 3 路由（[farm.py](file:///workspace/app/routers/farm.py)）：土地等级页 / 升级土地 / 施肥
+- 修改收获路由：土地等级产量加成 + 变异效果应用 + 收获后变异清空
+- `models.py` FarmPlot 新增 `soil_type` + `variation` 字段
+- `seed.py` 新增 3 化肥道具（farm_fert_normal/organic/premium）
+- 新增 [soil.html](file:///workspace/app/templates/farm/soil.html) 模板：土地等级一览 + 地块升级 + 化肥系统 + 变异效果
+
+**四、美味小镇 · 外卖订单系统（spec 后期升级途径）**
+- 新增 2 路由（[town.py](file:///workspace/app/routers/town.py)）：外卖订单页 / 完成订单
+- 每日生成3单（随机已学菜品×1-3量，24h时限），完成奖励大额经验+金币，日限10单
+- 订单状态存 `daily_counters` JSON（运行时 ALTER TABLE 幂等添加列，不改 models）
+- 新增 [delivery.html](file:///workspace/app/templates/town/delivery.html) 模板：3订单卡 + 库存检查 + 完成按钮
+
+**五、平台级 · 限时活动 + 多指标排行（来源原版活动/排行系统）**
+- [activity.py](file:///workspace/app/routers/activity.py) 新增 2 路由：限时活动列表 / 领取礼包
+  - 4 限时活动：双倍经验周 / 农场收获赛 / 节日登录礼 / 帮派争霸赛
+  - 登录礼每日限领1次（OperationLog 去重），奖励88金币+节日礼包
+- [ranking.py](file:///workspace/app/routers/ranking.py) 增强为多指标排行：等级榜/农场收获榜/花园等级榜/精武堂战力榜/纵横四海榜
+  - 支持 `?metric=farm|garden|martial|sea|level` 选择，Top10 展示
+- 新增 [events.html](file:///workspace/app/templates/activity/events.html) + [ranking/index.html](file:///workspace/app/templates/ranking/index.html) 模板
+
+**闭环验证**
+- ✅ IMPORT OK（全模块路由注册无冲突）
+- ✅ 种子闭环：`[fengyun-v020] 城市+13 技能+30 装备+105 官方系列+48 名器+11 BOSS+14 副本+13 称号+15 成就+21 物品字典+189` + 3 化肥道具
+- ✅ 幂等性：重跑全 0
+- ✅ 风云三国冒烟测试：ALL SMOKE TESTS PASSED
+- ✅ 战神宫：20级门槛 / 3层经验倍率 / 排位挑战逻辑闭环
+- ✅ 7步任务链：探索→合成→概率→魅力奖励→暗香使者称号 全流程通过
+- ✅ 农场：土地升级→产量加成 / 施肥→加速+变异触发→收获变异效果 全流程通过
+- ✅ 外卖订单：生成→库存检查→完成→奖励→日限 全流程通过
+- ✅ 活动/排行：4活动展示+领取去重 / 5指标排行切换 全流程通过
+
+**文件变更**
+- `app/routers/martial_data.py`：新增 WARSHRINE 配置
+- `app/routers/martial.py`：+4 战神宫路由 / `app/templates/martial/warshrine.html`（新）
+- `app/routers/garden_data.py`（新）：QUEST_CHAIN 7步配置
+- `app/routers/garden.py`：+3 任务链路由 / `app/templates/garden/quest.html`（新）
+- `app/routers/farm.py`：SOIL_GRADES/FERTILIZERS/VARIATIONS 配置 + 3 路由 + 收获改造 / `app/templates/farm/soil.html`（新）
+- `app/routers/town.py`：+2 外卖订单路由 / `app/templates/town/delivery.html`（新）
+- `app/routers/activity.py`：+2 活动路由 / `app/templates/activity/events.html`（新）
+- `app/routers/ranking.py`：多指标排行增强 / `app/templates/ranking/index.html`（新）
+- `app/models.py`：FarmPlot +soil_type +variation 字段
+- `app/seed.py`：+3 化肥道具
+- `app/config.py`：版本号 0.2.0 → 0.2.1
+
+---
 
 ### v0.2.0 （2026-08-03）— 风云三国路由层上线 + 全网检索补全装备/名器/BOSS 数据
 

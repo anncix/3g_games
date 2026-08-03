@@ -63,6 +63,10 @@ async def seed():
         await goods.ensure_item(db, "farm_radish", "萝卜", "crop", "farm", True, 10, "收获物")
         await goods.ensure_item(db, "farm_seed_tomato", "番茄种子", "crop", "farm", True, 20, "种下120秒成熟")
         await goods.ensure_item(db, "farm_tomato", "番茄", "crop", "farm", True, 25, "收获物")
+        # v0.2.1：化肥道具（spec：普通/有机/高级化肥，加速成熟+触发变异）
+        await goods.ensure_item(db, "farm_fert_normal", "普通化肥", "prop", "farm", True, 200, "施肥加速60秒成熟")
+        await goods.ensure_item(db, "farm_fert_organic", "有机化肥", "prop", "farm", True, 800, "施肥加速30秒，可用5次，概率触发变异")
+        await goods.ensure_item(db, "farm_fert_premium", "高级化肥", "prop", "farm", True, 2000, "施肥加速120秒，可用3次，高概率触发变异")
         # 小镇食材（按 6 级食材等级，对齐菜谱级别 1-6）
         # 1级食材（Lv1 解锁）
         await goods.ensure_item(db, "town_ing_rice", "大米", "ingredient", "town", True, 5, "1级食材·基础主食")

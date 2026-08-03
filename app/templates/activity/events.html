@@ -1,0 +1,34 @@
+{% extends "base.html" %}
+{% from "macros.html" import topbar, footer %}
+{% block title %}限时活动{% endblock %}
+{% block body %}
+{{ topbar("限时活动", user) }}
+<div class="crumb"><a href="/">家园</a> › <a href="/activity">活动</a> › 限时活动</div>
+<div class="section-title">活动列表</div>
+<div class="content">
+  {% for ev in events %}
+  <div class="card">
+    <div class="hd">{{ ev.name }}
+      {% if ev.active %}<span class="tag green">进行中</span>{% else %}<span class="tag gray">未开启</span>{% endif %}
+    </div>
+    <div class="muted">{{ ev.desc }}</div>
+    <div class="muted">类型：{{ ev.type }}</div>
+    {% if ev.type == "login" and ev.active %}
+      {% if ev.key in claimed %}
+      <div class="muted">今日已领取 ✓</div>
+      {% else %}
+      <form method="post" action="/activity/events/claim/{{ ev.key }}">
+        <button class="btn green" type="submit">领取礼包</button>
+      </form>
+      {% endif %}
+    {% elif ev.type == "login" and not ev.active %}
+      <div class="muted">活动未开启，无法领取</div>
+    {% endif %}
+  </div>
+  {% endfor %}
+</div>
+<div class="content">
+  <a class="btn ghost" href="/activity">返回活动</a>
+</div>
+{{ footer(user) }}
+{% endblock %}

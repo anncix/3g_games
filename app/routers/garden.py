@@ -29,6 +29,7 @@ from .. import models
 from ..database import get_db
 from ..deps import get_current_user
 from ..platform import goods, events, locks, friends as fsvc, log
+from .garden_data import QUEST_CHAIN, QUEST_CHAIN_REWARD_CHARM
 from .views import render
 
 router = APIRouter(prefix="/games/garden")
@@ -742,9 +743,36 @@ async def album_light(entry_key: str, request: Request, db: AsyncSession = Depen
 # 合成工坊 / 兑换中心
 # v0.1.5：工坊合成队列（spec：时间制合成，N 槽并行 + 完成时间戳）
 # ============================================================
+def _craft_data(st: models.GardenState) -> dict:
+    """解析 craft_queue JSON 为完整 dict（兼容旧 list 格式迁移）
+
+    结构：{"queue": [...工坊合成...], "charm": N, "quest_step": N,
+           "quest_flowers": {花名: 数量}, "quest_materials": {材料名: 数量}}
+    """
+    if not st.craft_queue:
+        return {"queue": [], "charm": 0, "quest_step": 1, "quest_flowers": {}, "quest_materials": {}}
+    data = json.loads(st.craft_queue)
+    if isinstance(data, list):
+        # 旧格式迁移：原 craft_queue 是合成项列表
+        data = {"queue": data, "charm": 0, "quest_step": 1, "quest_flowers": {}, "quest_materials": {}}
+    data.setdefault("queue", [])
+    data.setdefault("charm", 0)
+    data.setdefault("quest_step", 1)
+    data.setdefault("quest_flowers", {})
+    data.setdefault("quest_materials", {})
+    return data
+
+
 def _craft_queue(st: models.GardenState) -> list[dict]:
-    """解析 craft_queue JSON"""
-    return json.loads(st.craft_queue) if st.craft_queue else []
+    """解析 craft_queue JSON → 工坊队列列表"""
+    return _craft_data(st)["queue"]
+
+
+def _set_craft_queue(st: models.GardenState, q: list[dict]):
+    """写入工坊队列（保留任务链等其它键）"""
+    data = _craft_data(st)
+    data["queue"] = q
+    st.craft_queue = json.dumps(data, ensure_ascii=False)
 
 
 def _craft_queue_view(st: models.GardenState, now: datetime) -> list[dict]:
@@ -864,7 +892,7 @@ async def _start_craft(db: AsyncSession, request: Request, user, st: models.Gard
         "finish_at": finish.isoformat(),
         "slot": free_slot,
     })
-    st.craft_queue = json.dumps(q, ensure_ascii=False)
+    _set_craft_queue(st, q)
     await log.record(db, user.id, MODULE_KEY, "craft_start",
                      f"{recipe_id}:slot{free_slot}:{r.target_level}")
     await db.commit()
@@ -921,7 +949,7 @@ async def craft_collect(slot: int, request: Request, db: AsyncSession = Depends(
     if not r:
         # 配方被删：移除队列项，不结算
         q = [it for it in q if it.get("slot") != slot]
-        st.craft_queue = json.dumps(q, ensure_ascii=False)
+        _set_craft_queue(st, q)
         await db.commit()
         return await render(request, "result.html", db, user=user, ok=False,
                             msg="配方已失效，合成作废",
@@ -940,7 +968,7 @@ async def craft_collect(slot: int, request: Request, db: AsyncSession = Depends(
     success = guaranteed or (random.randint(1, 100) <= r.success_rate)
     # 无论成败，先移出队列
     q = [it for it in q if it.get("slot") != slot]
-    st.craft_queue = json.dumps(q, ensure_ascii=False)
+    _set_craft_queue(st, q)
     if success:
         await goods.add_item(db, user.id, seed.seed_item_key, MODULE_KEY, r.result_qty)
         credit.credits = 0  # 成功重置保底
@@ -1689,4 +1717,140 @@ async def orders_history(request: Request, db: AsyncSession = Depends(get_db)):
     st = await get_state(db, user.id)
     return await render(request, "garden/order_history.html", db, user=user, st=st,
                         logs=logs, total_coin=total_coin, total_exp=total_exp)
+
+
+# ============================================================
+# v0.1.6：7步魔法任务链（spec：暗香魔杖 / 五彩之翼）
+# 任务状态全部寄存在 GardenState.craft_queue JSON 内：
+#   {charm, quest_step, quest_flowers, quest_materials}
+# 第1步：探索好友花园（50%几率获得魔杖）
+# 第2-7步：合成魔法种子 + 种植（按 success_rate 判定）→ 成功收获任务花 + 推进下一步
+# ============================================================
+def _quest_have(data: dict, name: str) -> int:
+    """任务材料/花朵持有数（quest_materials 与 quest_flowers 合计）"""
+    return data["quest_materials"].get(name, 0) + data["quest_flowers"].get(name, 0)
+
+
+def _quest_deduct(data: dict, name: str, need: int):
+    """扣除任务材料（先扣 quest_materials，不足再扣 quest_flowers）"""
+    from_mat = min(need, data["quest_materials"].get(name, 0))
+    if from_mat > 0:
+        data["quest_materials"][name] = data["quest_materials"].get(name, 0) - from_mat
+    rest = need - from_mat
+    if rest > 0:
+        data["quest_flowers"][name] = data["quest_flowers"].get(name, 0) - rest
+
+
+@router.get("/quest")
+async def quest_home(request: Request, db: AsyncSession = Depends(get_db)):
+    """任务链主页：当前步骤 / 魅力 / 各步要求 / 已收集任务花"""
+    user = await get_current_user(request, db)
+    if not user:
+        return RedirectResponse("/login", status_code=303)
+    st = await get_state(db, user.id)
+    data = _craft_data(st)
+    quest_step = data["quest_step"]
+    charm = data["charm"]
+    completed = quest_step > len(QUEST_CHAIN)
+    current = QUEST_CHAIN[quest_step - 1] if 1 <= quest_step <= len(QUEST_CHAIN) else None
+    return await render(request, "garden/quest.html", db, user=user, st=st,
+                        steps=QUEST_CHAIN, current=current, quest_step=quest_step,
+                        charm=charm, completed=completed,
+                        quest_flowers=data["quest_flowers"],
+                        quest_materials=data["quest_materials"],
+                        reward_charm=QUEST_CHAIN_REWARD_CHARM,
+                        title=magician_title(st.level)[0],
+                        exp_need=exp_needed(st.level))
+
+
+@router.post("/quest/explore")
+async def quest_explore(request: Request, db: AsyncSession = Depends(get_db)):
+    """探索好友花园（第1步）：50%几率找到神秘魔杖"""
+    user = await get_current_user(request, db)
+    if not user:
+        return RedirectResponse("/login", status_code=303)
+    st = await get_state(db, user.id)
+    data = _craft_data(st)
+    if data["quest_step"] != 1:
+        return await render(request, "result.html", db, user=user, ok=False,
+                            msg="当前步骤无法探索好友花园",
+                            back_href="/games/garden/quest", back_text="返回任务")
+    if random.random() < 0.5:
+        data["quest_step"] = 2
+        data["charm"] += QUEST_CHAIN_REWARD_CHARM[1]
+        st.craft_queue = json.dumps(data, ensure_ascii=False)
+        await log.record(db, user.id, MODULE_KEY, "quest_explore", "step1:success")
+        await db.commit()
+        return await render(request, "result.html", db, user=user, ok=True,
+                            msg="找到神秘魔杖！魅力+60，解锁【绿野精灵】任务",
+                            back_href="/games/garden/quest", back_text="返回任务")
+    st.craft_queue = json.dumps(data, ensure_ascii=False)
+    await log.record(db, user.id, MODULE_KEY, "quest_explore", "step1:fail")
+    await db.commit()
+    return await render(request, "result.html", db, user=user, ok=False,
+                        msg="未发现魔杖，再试试",
+                        back_href="/games/garden/quest", back_text="返回任务")
+
+
+@router.post("/quest/synthesize")
+async def quest_synthesize(request: Request, db: AsyncSession = Depends(get_db)):
+    """合成魔法种子并种植（步骤2-7）：扣材料 → success_rate 判定 → 成功收获任务花 + 推进"""
+    user = await get_current_user(request, db)
+    if not user:
+        return RedirectResponse("/login", status_code=303)
+    st = await get_state(db, user.id)
+    form = await request.form()
+    try:
+        step = int(form.get("step", 0))
+    except (TypeError, ValueError):
+        step = 0
+    if step < 2 or step > len(QUEST_CHAIN):
+        return await render(request, "result.html", db, user=user, ok=False, msg="无效的任务步骤",
+                            back_href="/games/garden/quest", back_text="返回任务")
+    data = _craft_data(st)
+    if data["quest_step"] != step:
+        return await render(request, "result.html", db, user=user, ok=False,
+                            msg="当前步骤不匹配，请按顺序完成",
+                            back_href="/games/garden/quest", back_text="返回任务")
+    _s, name, skill_req, materials, success_rate, max_yield, _charm, exp, _hours, reward_text = QUEST_CHAIN[step - 1]
+    # 技能等级要求校验
+    if st.level < skill_req:
+        return await render(request, "result.html", db, user=user, ok=False,
+                            msg=f"需要花园等级 {skill_req} 才能进行【{name}】任务",
+                            back_href="/games/garden/quest", back_text="返回任务")
+    # 材料校验（spec：即使失败材料也会消耗，故先校验齐全再扣除）
+    for mname, mneed in materials.items():
+        if _quest_have(data, mname) < mneed:
+            return await render(request, "result.html", db, user=user, ok=False,
+                                msg=f"材料不足：{mname} 需要 {mneed} 个",
+                                back_href="/games/garden/quest", back_text="返回任务")
+    # 扣除材料（合成魔法种子消耗）
+    for mname, mneed in materials.items():
+        _quest_deduct(data, mname, mneed)
+    # 种植判定（success_rate）
+    if random.random() < success_rate:
+        data["quest_flowers"][name] = data["quest_flowers"].get(name, 0) + max_yield
+        data["charm"] += QUEST_CHAIN_REWARD_CHARM[step]
+        data["quest_step"] = step + 1
+        st.craft_queue = json.dumps(data, ensure_ascii=False)
+        await add_exp(db, st, exp)
+        await log.record(db, user.id, MODULE_KEY, "quest_synthesize",
+                         f"step{step}:{name}:success")
+        await db.commit()
+        msg = (f"种植成功！收获【{name}】×{max_yield} | 魅力+{QUEST_CHAIN_REWARD_CHARM[step]}"
+               f" | 经验+{exp} | {reward_text}")
+        if step == len(QUEST_CHAIN):
+            # 第7步完成：颁发暗香使者称号
+            msg = (f"【五彩之翼】合成成功！收获×{max_yield} | 魅力+{QUEST_CHAIN_REWARD_CHARM[step]}"
+                   f" | 经验+{exp} | 荣获「暗香使者」称号！任务链全部完成")
+        return await render(request, "result.html", db, user=user, ok=True, msg=msg,
+                            back_href="/games/garden/quest", back_text="返回任务")
+    # 失败：材料已消耗
+    st.craft_queue = json.dumps(data, ensure_ascii=False)
+    await log.record(db, user.id, MODULE_KEY, "quest_synthesize",
+                     f"step{step}:{name}:fail")
+    await db.commit()
+    return await render(request, "result.html", db, user=user, ok=False,
+                        msg="种植失败，材料已消耗",
+                        back_href="/games/garden/quest", back_text="返回任务")
 

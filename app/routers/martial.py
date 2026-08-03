@@ -1068,3 +1068,180 @@ async def rules(request: Request, db: AsyncSession = Depends(get_db)):
     if not user:
         return RedirectResponse("/login", status_code=303)
     return await render(request, "martial/rules.html", db, user=user)
+
+
+# ============================================================
+# 战神宫（分层修炼 + 排位混战，来源 zol.com 玩家攻略）
+# 状态存于 daily_counters JSON：warshrine_floor（当前层数）、warshrine_started_at（修炼开始时间戳）
+# 注：本模块无体力字段，故 stamina_cost 仅作展示，不做扣减
+# ============================================================
+@router.get("/warshrine")
+async def warshrine_page(request: Request, db: AsyncSession = Depends(get_db)):
+    user = await get_current_user(request, db)
+    if not user:
+        return RedirectResponse("/login", status_code=303)
+    st = await get_state(db, user.id)
+    counters = get_json(st, "daily_counters")
+    floor = counters.get("warshrine_floor", 1)
+    started_at = counters.get("warshrine_started_at")
+    cultivating = False
+    elapsed = 0
+    remaining = 0
+    if started_at:
+        started_dt = datetime.utcfromtimestamp(started_at)
+        elapsed = int((datetime.utcnow() - started_dt).total_seconds())
+        duration = D.WARSHRINE["duration_hours"] * 3600
+        if elapsed < duration:
+            cultivating = True
+            remaining = duration - elapsed
+    # 各层排行：遍历全部 MartialState，按 daily_counters.warshrine_floor 归层，等级降序
+    floor_rankings = {f: [] for f in range(1, D.WARSHRINE["max_floor"] + 1)}
+    all_states = (await db.execute(
+        select(models.MartialState).order_by(models.MartialState.level.desc())
+    )).scalars().all()
+    for ms in all_states:
+        mc = get_json(ms, "daily_counters")
+        mf = mc.get("warshrine_floor", 1)
+        if mf in floor_rankings:
+            mu = await db.get(models.User, ms.user_id)
+            floor_rankings[mf].append({"st": ms, "user": mu})
+    locked = st.level < D.WARSHRINE["min_level"]
+    await db.commit()
+    return await render(request, "martial/warshrine.html", db, user=user, st=st,
+                        floor=floor, cultivating=cultivating, elapsed=elapsed,
+                        remaining=remaining, floor_rankings=floor_rankings,
+                        warshrine=D.WARSHRINE, locked=locked,
+                        exp_need=D.exp_needed(st.level))
+
+
+@router.post("/warshrine/start")
+async def warshrine_start(request: Request, db: AsyncSession = Depends(get_db)):
+    user = await get_current_user(request, db)
+    if not user:
+        return RedirectResponse("/login", status_code=303)
+    st = await get_state(db, user.id)
+    if st.level < D.WARSHRINE["min_level"]:
+        return await render(request, "result.html", db, user=user, ok=False,
+                            msg=f"需{D.WARSHRINE['min_level']}级才能进入战神宫",
+                            back_href="/games/martial/warshrine", back_text="返回战神宫")
+    # 必须停止练功房修炼（本模块以闭关态为修炼中标志）
+    if D.WARSHRINE["must_stop_cultivate"] and st.cultivate_biguan:
+        return await render(request, "result.html", db, user=user, ok=False,
+                            msg="请先停止闭关修炼再进入战神宫",
+                            back_href="/games/martial/warshrine", back_text="返回战神宫")
+    counters = get_json(st, "daily_counters")
+    started_at = counters.get("warshrine_started_at")
+    if started_at:
+        started_dt = datetime.utcfromtimestamp(started_at)
+        if (datetime.utcnow() - started_dt).total_seconds() < D.WARSHRINE["duration_hours"] * 3600:
+            return await render(request, "result.html", db, user=user, ok=False,
+                                msg="战神宫修炼进行中，请稍后再来",
+                                back_href="/games/martial/warshrine", back_text="返回战神宫")
+    floor = counters.get("warshrine_floor", 1)
+    counters["warshrine_started_at"] = datetime.utcnow().timestamp()
+    counters["warshrine_floor"] = floor
+    set_json(st, "daily_counters", counters)
+    await log.record(db, user.id, MODULE_KEY, "warshrine.start", f"floor={floor}")
+    await db.commit()
+    return await render(request, "result.html", db, user=user, ok=True,
+                        msg=f"开始战神宫第 {floor} 层修炼（耗时 {D.WARSHRINE['duration_hours']} 小时）",
+                        back_href="/games/martial/warshrine", back_text="返回战神宫")
+
+
+@router.post("/warshrine/claim")
+async def warshrine_claim(request: Request, db: AsyncSession = Depends(get_db)):
+    user = await get_current_user(request, db)
+    if not user:
+        return RedirectResponse("/login", status_code=303)
+    st = await get_state(db, user.id)
+    counters = get_json(st, "daily_counters")
+    started_at = counters.get("warshrine_started_at")
+    if not started_at:
+        return await render(request, "result.html", db, user=user, ok=False,
+                            msg="尚未开始战神宫修炼",
+                            back_href="/games/martial/warshrine", back_text="返回战神宫")
+    started_dt = datetime.utcfromtimestamp(started_at)
+    elapsed = (datetime.utcnow() - started_dt).total_seconds()
+    duration = D.WARSHRINE["duration_hours"] * 3600
+    if elapsed < duration:
+        return await render(request, "result.html", db, user=user, ok=False,
+                            msg=f"修炼未完成，还需 {int((duration - elapsed) // 60)} 分钟",
+                            back_href="/games/martial/warshrine", back_text="返回战神宫")
+    floor = counters.get("warshrine_floor", 1)
+    base_exp = st.level * 100
+    exp_gain = int(base_exp * D.WARSHRINE["exp_mul"].get(floor, 1.0))
+    leveled = add_exp(st, exp_gain)
+    if "warshrine_started_at" in counters:
+        del counters["warshrine_started_at"]
+    set_json(st, "daily_counters", counters)
+    await log.record(db, user.id, MODULE_KEY, "warshrine.claim",
+                     f"floor={floor},exp={exp_gain}")
+    await events.emit(db, user.id, MODULE_KEY, "warshrine_claim",
+                      {"exp": exp_gain, "floor": floor})
+    await db.commit()
+    return await render(request, "result.html", db, user=user, ok=True,
+                        msg=f"领取战神宫修炼经验：+{exp_gain}{'，升级了！' if leveled else ''}",
+                        back_href="/games/martial/warshrine", back_text="返回战神宫")
+
+
+@router.post("/warshrine/challenge")
+async def warshrine_challenge(request: Request, db: AsyncSession = Depends(get_db)):
+    """挑战上层（简化版：战力比较概率判定）"""
+    user = await get_current_user(request, db)
+    if not user:
+        return RedirectResponse("/login", status_code=303)
+    st = await get_state(db, user.id)
+    if st.level < D.WARSHRINE["min_level"]:
+        return await render(request, "result.html", db, user=user, ok=False,
+                            msg=f"需{D.WARSHRINE['min_level']}级才能进入战神宫",
+                            back_href="/games/martial/warshrine", back_text="返回战神宫")
+    counters = get_json(st, "daily_counters")
+    floor = counters.get("warshrine_floor", 1)
+    if floor >= D.WARSHRINE["max_floor"]:
+        return await render(request, "result.html", db, user=user, ok=False,
+                            msg="已在最高层，无法挑战",
+                            back_href="/games/martial/warshrine", back_text="返回战神宫")
+    # 玩家战力
+    equipped = await get_equipped(db, user.id)
+    learned = await get_learned_skills(db, user.id)
+    my_player = compute_player(st, equipped, learned)
+    # 目标：上层随机一名玩家，否则生成 NPC 守关
+    target_floor = floor + 1
+    target_states = []
+    other_states = (await db.execute(
+        select(models.MartialState).where(models.MartialState.user_id != user.id)
+    )).scalars().all()
+    for ms in other_states:
+        mc = get_json(ms, "daily_counters")
+        if mc.get("warshrine_floor", 1) == target_floor:
+            target_states.append(ms)
+    if target_states:
+        target_st = random.choice(target_states)
+        target_player = compute_player(target_st, await get_equipped(db, target_st.user_id),
+                                       await get_learned_skills(db, target_st.user_id))
+        target_user = await db.get(models.User, target_st.user_id)
+        tname = target_user.nickname if target_user else "侠客"
+    else:
+        npc = models.MartialState(user_id=0, level=max(1, st.level),
+                                  strength=st.strength + 2, agility=st.agility + 2,
+                                  physique=st.physique + 2, inner_power=st.inner_power + 2)
+        target_player = compute_player(npc, [], {})
+        tname = "守关高手(NPC)"
+    # 战力比较概率：基础 0.5 + 战力差×0.01，钳制到 [0.05, 0.95]
+    prob = 0.5 + (my_player["power"] - target_player["power"]) * 0.01
+    prob = max(0.05, min(0.95, prob))
+    win = random.random() < prob
+    if win:
+        counters["warshrine_floor"] = floor + 1
+        msg = f"挑战胜利！升至第 {floor + 1} 层（击败 {tname}）"
+        ok = True
+    else:
+        counters["warshrine_floor"] = 1
+        msg = f"挑战失败，落回第 1 层（败于 {tname}）"
+        ok = False
+    set_json(st, "daily_counters", counters)
+    await log.record(db, user.id, MODULE_KEY, "warshrine.challenge",
+                     f"{floor}->{counters['warshrine_floor']}")
+    await db.commit()
+    return await render(request, "result.html", db, user=user, ok=ok,
+                        msg=msg, back_href="/games/martial/warshrine", back_text="返回战神宫")

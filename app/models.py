@@ -417,6 +417,9 @@ class FarmPlot(Base):
     planted_at: Mapped[datetime] = mapped_column(DateTime, nullable=True)
     watered: Mapped[bool] = mapped_column(Boolean, default=False)
     pest: Mapped[bool] = mapped_column(Boolean, default=False)  # 是否有虫害
+    # v0.2.1：土地等级 + 变异（spec：普通→红→金→黑土地，变异作物收益翻倍）
+    soil_type: Mapped[str] = mapped_column(String(8), default="普通")  # 普通/红/金/黑
+    variation: Mapped[str] = mapped_column(String(8), default="")  # 爱心/湿润/暗化/冰冻/""(无)
     __table_args__ = (UniqueConstraint("user_id", "slot", name="uq_farm_slot"),)
 
 

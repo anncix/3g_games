@@ -25,11 +25,12 @@ v0.1.1 新增（对齐《QQ家园美味小镇页面结构与数值资料汇总�
 """
 import json
 import random
+import time
 from datetime import datetime, timedelta, date
 
 from fastapi import APIRouter, Request, Depends, HTTPException
 from fastapi.responses import RedirectResponse
-from sqlalchemy import select, delete
+from sqlalchemy import select, delete, text
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from .. import models
@@ -1864,6 +1865,209 @@ async def contest_settle(request: Request, db: AsyncSession = Depends(get_db)):
     await db.commit()
     return await render(request, "result.html", db, user=user, ok=True, msg=msg,
                         back_href="/games/town/contest", back_text="返回大赛")
+
+
+# ============================================================
+# v0.1.2：外卖订单系统（后期大额经验/金币奖励循环）
+# 系统每日派发 3 单外卖（指定菜+数量+时限），完成获得大额 exp/gold
+# 状态存于 town_state.daily_counters（JSON），不修改 models.py
+# ============================================================
+DELIVERY_DAILY_LIMIT = 10          # 每日完成外卖上限
+DELIVERY_ORDER_COUNT = 3           # 每日生成外卖订单数
+DELIVERY_DEADLINE = 24 * 3600      # 订单有效期 24 小时
+
+_delivery_col_ready = False  # daily_counters 列是否已确认存在
+
+
+async def _ensure_delivery_col(db: AsyncSession):
+    """幂等确认 town_state.daily_counters 列存在
+
+    TownState 模型本身未定义此列（不能改 models.py），故通过 ALTER TABLE
+    在运行时补一个 JSON 文本列，再用裸 SQL 读写。
+    """
+    global _delivery_col_ready
+    if _delivery_col_ready:
+        return
+    res = await db.execute(text("PRAGMA table_info(town_state)"))
+    cols = [r[1] for r in res.fetchall()]
+    if "daily_counters" not in cols:
+        await db.execute(text(
+            "ALTER TABLE town_state ADD COLUMN daily_counters TEXT NOT NULL DEFAULT '{}'"))
+        await db.commit()
+    _delivery_col_ready = True
+
+
+async def _get_counters(db: AsyncSession, user_id: int) -> dict:
+    """读取 daily_counters JSON"""
+    await _ensure_delivery_col(db)
+    res = await db.execute(
+        text("SELECT daily_counters FROM town_state WHERE user_id=:uid"),
+        {"uid": user_id})
+    row = res.fetchone()
+    if not row or not row[0]:
+        return {}
+    try:
+        return json.loads(row[0])
+    except Exception:
+        return {}
+
+
+async def _set_counters(db: AsyncSession, user_id: int, data: dict):
+    """写入 daily_counters JSON（不提交，由调用方控制事务）"""
+    await db.execute(
+        text("UPDATE town_state SET daily_counters=:v WHERE user_id=:uid"),
+        {"v": json.dumps(data, ensure_ascii=False), "uid": user_id})
+
+
+async def _gen_delivery_orders(learned: list) -> list:
+    """根据已学菜谱生成 3 单外卖
+
+    每单：随机菜 + 数量1-3 + 经验/金币奖励（difficulty(recipe_level)×100×qty / ×50×qty）
+    """
+    orders = []
+    pool = learned[:] if learned else []
+    for _ in range(DELIVERY_ORDER_COUNT):
+        if not pool:
+            break
+        r = random.choice(pool)
+        qty = random.randint(1, 3)
+        orders.append({
+            "dish_key": r.key,
+            "qty": qty,
+            "reward_exp": r.recipe_level * 100 * qty,
+            "reward_gold": r.recipe_level * 50 * qty,
+            "deadline_ts": int(time.time()) + DELIVERY_DEADLINE,
+            "done": False,
+        })
+    return orders
+
+
+def _fmt_remain(sec: int) -> str:
+    """剩余时间格式化"""
+    if sec <= 0:
+        return "已过期"
+    h = sec // 3600
+    m = (sec % 3600) // 60
+    if h > 0:
+        return f"{h}小时{m}分"
+    return f"{m}分"
+
+
+@router.get("/delivery")
+async def delivery_page(request: Request, db: AsyncSession = Depends(get_db)):
+    """外卖订单页：每日 3 单大额奖励"""
+    user = await get_current_user(request, db)
+    if not user:
+        return RedirectResponse("/login", status_code=303)
+    st = await get_state(db, user.id)
+    today = today_str()
+    counters = await _get_counters(db, user.id)
+    # 跨日重置：日期变更或无订单时重新生成
+    if counters.get("date") != today or not counters.get("delivery_orders"):
+        res = await db.execute(select(models.TownRecipeProgress).where(
+            models.TownRecipeProgress.user_id == user.id,
+            models.TownRecipeProgress.learned.is_(True)))
+        learned = []
+        for p in res.scalars().all():
+            r = await db.get(models.TownRecipe, p.recipe_key)
+            if r:
+                learned.append(r)
+        counters["date"] = today
+        counters["delivery_orders"] = await _gen_delivery_orders(learned)
+        counters["delivery_done"] = 0
+        await _set_counters(db, user.id, counters)
+        await db.commit()
+    orders = counters.get("delivery_orders", [])
+    done_today = counters.get("delivery_done", 0)
+    # 渲染所需信息
+    now_ts = int(time.time())
+    order_info = []
+    for idx, o in enumerate(orders):
+        dish_key = o.get("dish_key") or ""
+        r = await db.get(models.TownRecipe, dish_key) if dish_key else None
+        dish_name = r.name if r else (dish_key or "未知")
+        output_key = r.output_item_key if r else ""
+        have = await goods.count_item(db, user.id, output_key, MODULE_KEY) if output_key else 0
+        qty = int(o.get("qty", 0))
+        remain = max(0, int(o.get("deadline_ts", 0)) - now_ts)
+        expired = remain <= 0
+        done = bool(o.get("done"))
+        can_complete = (not done and not expired and have >= qty
+                        and done_today < DELIVERY_DAILY_LIMIT)
+        order_info.append({
+            "idx": idx, "dish_name": dish_name, "qty": qty, "have": have,
+            "reward_exp": int(o.get("reward_exp", 0)),
+            "reward_gold": int(o.get("reward_gold", 0)),
+            "remain": _fmt_remain(remain), "remain_sec": remain,
+            "expired": expired, "done": done, "can_complete": can_complete,
+        })
+    return await render(request, "town/delivery.html", db, user=user, st=st,
+                        order_info=order_info, done_today=done_today,
+                        delivery_limit=DELIVERY_DAILY_LIMIT,
+                        exp_need=exp_needed(st.level))
+
+
+@router.post("/delivery/complete/{order_index}")
+async def delivery_complete(order_index: int, request: Request,
+                            db: AsyncSession = Depends(get_db)):
+    """完成外卖订单：扣菜 + 发奖 + 计数 + 标记完成"""
+    user = await get_current_user(request, db)
+    if not user:
+        return RedirectResponse("/login", status_code=303)
+    st = await get_state(db, user.id)
+    counters = await _get_counters(db, user.id)
+    orders = counters.get("delivery_orders", [])
+    # 订单序号校验
+    if order_index < 0 or order_index >= len(orders):
+        return await render(request, "result.html", db, user=user, ok=False, msg="订单不存在",
+                            back_href="/games/town/delivery", back_text="返回外卖")
+    o = orders[order_index]
+    # 已完成
+    if o.get("done"):
+        return await render(request, "result.html", db, user=user, ok=False, msg="该订单已完成",
+                            back_href="/games/town/delivery", back_text="返回外卖")
+    # 过期校验
+    if int(time.time()) >= int(o.get("deadline_ts", 0)):
+        return await render(request, "result.html", db, user=user, ok=False, msg="订单已过期",
+                            back_href="/games/town/delivery", back_text="返回外卖")
+    # 日限校验
+    done_today = int(counters.get("delivery_done", 0))
+    if done_today >= DELIVERY_DAILY_LIMIT:
+        return await render(request, "result.html", db, user=user, ok=False,
+                            msg=f"今日外卖完成已达上限({DELIVERY_DAILY_LIMIT}单)",
+                            back_href="/games/town/delivery", back_text="返回外卖")
+    # 菜品校验（按菜谱 output_item_key 计数/扣除）
+    r = await db.get(models.TownRecipe, o.get("dish_key", ""))
+    if not r:
+        return await render(request, "result.html", db, user=user, ok=False, msg="菜谱不存在",
+                            back_href="/games/town/delivery", back_text="返回外卖")
+    qty = int(o.get("qty", 0))
+    have = await goods.count_item(db, user.id, r.output_item_key, MODULE_KEY)
+    if have < qty:
+        return await render(request, "result.html", db, user=user, ok=False,
+                            msg=f"{r.name} 数量不足（需 {qty}，当前 {have}）",
+                            back_href="/games/town/delivery", back_text="返回外卖")
+    # 扣菜 + 发奖
+    if not await goods.remove_item(db, user.id, r.output_item_key, MODULE_KEY, qty):
+        return await render(request, "result.html", db, user=user, ok=False, msg="扣除菜品失败",
+                            back_href="/games/town/delivery", back_text="返回外卖")
+    reward_exp = int(o.get("reward_exp", 0))
+    reward_gold = int(o.get("reward_gold", 0))
+    st.coins += reward_gold
+    st.total_revenue += reward_gold
+    await add_exp(db, st, reward_exp)
+    # 标记完成（reward 清零，保留占位以稳定序号）
+    o["done"] = True
+    o["reward_exp"] = 0
+    o["reward_gold"] = 0
+    counters["delivery_done"] = done_today + 1
+    await _set_counters(db, user.id, counters)
+    await log.record(db, user.id, MODULE_KEY, "delivery_complete",
+                     f"{r.key}:qty{qty}:exp{reward_exp}:gold{reward_gold}")
+    await db.commit()
+    return await render(request, "result.html", db, user=user, ok=True,
+                        msg=f"完成外卖订单：{r.name}×{qty} | 经验+{reward_exp} 金币+{reward_gold}",
+                        back_href="/games/town/delivery", back_text="返回外卖")
 
 
 # ============================================================

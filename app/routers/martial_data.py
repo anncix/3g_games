@@ -43,6 +43,18 @@ BASE_CRIT = 0.05
 
 CRIT_MUL = 1.5
 
+# 战神宫（spec：分层修炼 + 排位混战，来源 zol.com 玩家攻略）
+WARSHRINE = {
+    "min_level": 20,              # 进入等级
+    "max_floor": 3,               # 当前开放前3层
+    "stamina_cost": 15,           # 修炼一次消耗体力
+    "duration_hours": 2,          # 修炼时长
+    "exp_mul": {1: 1.5, 2: 3.0, 3: 4.5},   # 各层经验倍率
+    "floor_cap": {1: 999, 2: 50, 3: 20},   # 各层人数上限
+    "rank_interval_hours": 4,     # 排位战间隔
+    "must_stop_cultivate": True,  # 必须停止练功房修炼
+}
+
 
 # ============================================================
 # 经验曲线（方案A，平台统一）
