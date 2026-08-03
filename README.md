@@ -1,6 +1,6 @@
 # QQ家园 — 怀旧平台化复刻
 
-> 版本：**v0.2.9** （2026-08-04 平台化复刻交互层：WAP 返回导航统一（wap_back 宏×8 模块）+ 平台剧情总览页（/story 聚合 8 模块主线）+ 家园页面结构树参考层）
+> 版本：**v0.3.0** （2026-08-04 平台产品功能清单对齐：platform_spec 参考层（12 家园子系统+4 游戏功能树+8 层数据架构+物品系统+4 剧情弧）+ wap_crumbs 面包屑宏×8 模块加强返回逻辑 + /story 剧情弧线与功能总览补全）
 >
 > 基于 **FastAPI + SQLite + Jinja2(简版 WAP 风)** 实现的怀旧 QQ 家园平台复刻。
 > 严格遵循《怀旧QQ家园平台设计规范》：平台统一、模块自治、旧逻辑优先、一页只做一件事。
@@ -10,6 +10,71 @@
 ---
 
 ## 更新日志
+
+### v0.3.0 （2026-08-04）— 平台产品功能清单对齐（platform_spec 参考层 + wap_crumbs 面包屑加强 + 剧情弧线补全）
+
+以用户提供的《QQ家园产品功能清单》（家园底座 12 子系统 + 4 经典游戏模块功能树 + 总体数据分层 8 层）为权威依据，把平台层规格全量沉淀为参考层，并加强 WAP 返回逻辑、补全剧情系统。本次为 minor 版本（0.2.9→0.3.0），标志平台化三层架构（家园底座 + 游戏模块 + 公共能力层）从布局层（v0.2.9 wap_layout）深入到功能清单层。策略与前版一致（保守增量，不破坏现有玩法）。
+
+**一、平台产品功能清单参考层（platform_spec.py，6 组常量 + 2 函数，纯静态不入库）**
+
+| 常量/函数 | 内容 | 对应 spec 章节 |
+|-----------|------|---------------|
+| `HOME_BASE_FEATURES` | 12 家园子系统（1.1~1.12），每子系统含功能点列表 + 路由 + 完成状态（✅/⚠️/❌） | 一、家园底座 |
+| `GAME_FEATURE_TREES` | 4 经典游戏（farm/town/garden/sea）功能树：页面列表 + 系统机制列表 | 二、2~5 |
+| `DATA_LAYERS` | 8 层数据架构（账号/家园/社交/运营/经济/模块/事件/排行层 + 是否全站共用） | 三、总体数据分层 |
+| `ITEM_CATEGORIES` | 9 物品大类（种子/食材/装备/宝石/材料/消耗品/货币/装饰/礼包 + 代表模块） | 四、物品系统 |
+| `ITEM_RARITY` | 6 级稀有度色系（普通白×1.0 → 圣橙黄×1.5，含成长系数） | 四、物品系统 |
+| `STORY_ARCS` | 4 大剧情弧（田园生活/花语奇缘/航海征途/群英逐鹿，跨模块串联） | 五、剧情系统 |
+| `arc_progress()` | 剧情弧进度统计（已完成/总主线数） | 五、剧情系统 |
+| `feature_stats()` | 家园底座功能完成度统计（done/total/pct） | 六、完成度统计 |
+
+> 完成状态基于当前路由审计：家园底座 12 子系统中 7 个 ✅、4 个 ⚠️、1 个 ❌；功能点级统计供 /story 展示完成度百分比。
+
+**二、WAP 返回逻辑加强（macros.html +8 游戏首页）**
+
+- 新增 `wap_crumbs(items, show_back, parent_href, parent_text)` 面包屑宏：渲染可点击的层级路径（末项为当前页无链接），可选附加 wap_back 返回按钮
+- 兼容字符串项与 `(名称,链接)` 二元组/单元素元组，末项无链接
+- 8 个游戏首页（farm/town/garden/sea/summon/martial/fengyun/xyou）的静态 crumb div 替换为 `wap_crumbs([("家园","/"),("大厅","/lobby"),(模块名,)], show_back=False)`，使面包屑宏驱动、跨模块一致
+- 与 v0.2.9 `wap_back`（底部返回按钮）配合：顶部面包屑定位 + 底部返回按钮操作，完整落实 WAP"每页都有上级返回"原则
+
+**三、剧情系统补全（story.py + story.html 扩展）**
+
+- `/story` 路由新增引入 `platform_spec as P`，传入 `P` 与 `feats=feature_stats()`
+- story.html 扩展为完整平台总览：
+  - 顶部：版本号 + 模块数 + 主线数 + 家园底座完成度进度条
+  - 剧情弧线区：4 大弧（A 田园生活/B 花语奇缘/C 航海征途/D 群英逐鹿），每弧含主题 + 进入该弧主线入口
+  - 各模块主线进度（保留 v0.2.9）
+  - 家园底座功能清单：12 子系统逐项展示功能点 + 路由 + 完成状态
+  - 游戏模块功能树：4 经典模块页面列表 + 系统机制
+  - 总体数据分层：8 层架构 + 是否全站共用
+  - 统一物品系统：9 大类 + 6 级稀有度色系
+  - 公共能力层 + WAP 三原则（保留 v0.2.9）
+
+**四、设计原则：参考层 + 交互层，玩法不动**
+
+- 现有各模块玩法完全保留，仅新增参考层常量与交互宏
+- `platform_spec` 为纯静态参考层，`feature_stats`/`arc_progress` 为只读统计函数，不写库
+- `wap_crumbs` 为纯展示宏，不改变路由逻辑；与 `wap_back` 解耦（crumb 定位 / back 操作）
+- 完成状态标记基于路由审计，供后续迭代排期参考
+
+**五、闭环验证**
+- ✅ IMPORT OK：`VERSION = 0.3.0`；platform_spec 6 组常量 + 2 函数全部可访问
+- ✅ 数据校验：HOME_BASE_FEATURES 12 子系统 / GAME_FEATURE_TREES 4 模块 / DATA_LAYERS 8 层 / ITEM_CATEGORIES 9 类 / ITEM_RARITY 6 级 / STORY_ARCS 4 弧 —— 与 spec 一致
+- ✅ 元组 arity：HOME_BASE_FEATURES 5 元组 `(no,name,href,st,feats)`、feats 内 3 元组 `(fn,fh,fs)`；GAME_FEATURE_TREES 7 元组；DATA_LAYERS 3 元组；ITEM_CATEGORIES 3 元组；ITEM_RARITY 4 元组；STORY_ARCS 5 元组 —— 全部与 story.html 解包匹配
+- ✅ feature_stats：统计家园底座功能点完成度（done/total/pct）
+- ✅ wap_crumbs：8 游戏首页均应用，无残留静态 crumb div
+- ✅ /story 路由：传入 P + feats，模板无未定义变量
+- ✅ py_compile OK（platform_spec.py / story.py）
+
+**文件变更**
+- `app/routers/platform_spec.py`：+1 新参考层（6 组常量 + 2 函数）
+- `app/templates/macros.html`：+`wap_crumbs` 面包屑宏
+- `app/templates/{farm,town,garden,sea,summon,martial,fengyun,xyou}/home.html`：8 文件应用 `wap_crumbs`（import + crumb 替换）
+- `app/routers/story.py`：引入 platform_spec，传入 P + feats
+- `app/templates/story.html`：扩展剧情弧线 + 功能清单 + 数据分层 + 物品系统 + 完成度
+- `app/config.py`：版本号 0.2.9 → 0.3.0
+
+---
 
 ### v0.2.9 （2026-08-04）— 平台化复刻交互层（WAP 返回导航统一 + 平台剧情总览页 + 家园页面结构树参考层）
 

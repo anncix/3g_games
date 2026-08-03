@@ -1,9 +1,9 @@
 {% extends "base.html" %}
-{% from "macros.html" import topbar, footer, wap_back %}
+{% from "macros.html" import topbar, footer, wap_back, wap_crumbs %}
 {% block title %}风云三国{% endblock %}
 {% block body %}
 {{ topbar("风云三国", user) }}
-<div class="crumb"><a href="/">家园</a> › <a href="/lobby">大厅</a> › 风云三国</div>
+{{ wap_crumbs([("家园","/"),("大厅","/lobby"),("风云三国",)], show_back=False) }}
 <div class="card">
   <div class="hd">三国名将</div>
   职业 <b>{{ class_name }}</b> · 阵营 <b>{{ faction_name }}</b><br>

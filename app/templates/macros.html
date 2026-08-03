@@ -35,6 +35,19 @@
 </div>
 {% endmacro %}
 
+{# v0.3.0 WAP面包屑导航（加强返回逻辑：可点击的层级路径）
+   用法：{{ wap_crumbs([("家园","/"),("大厅","/lobby"),("魔法花园",)]) }}
+   末项为当前页（单元素元组无链接），其余为 (名称,链接) 二元组可点击。 #}
+{% macro wap_crumbs(items, show_back=True, parent_href="/lobby", parent_text="返回大厅") %}
+<div class="crumb">
+  {% for it in items %}
+  {% if it is string %}{% set name = it %}{% set href = none %}{% else %}{% set name = it[0] %}{% set href = it[1] if it|length > 1 else none %}{% endif %}
+  {% if not loop.last %}{% if href %}<a href="{{ href }}">{{ name }}</a>{% else %}{{ name }}{% endif %} › {% else %}{{ name }}{% endif %}
+  {% endfor %}
+</div>
+{% if show_back %}{{ wap_back(parent_href, parent_text) }}{% endif %}
+{% endmacro %}
+
 {# 操作结果页通用 #}
 {% macro result(ok, msg, back_href, back_text="返回") %}
 <div class="result {{ 'ok' if ok else 'fail' }}">

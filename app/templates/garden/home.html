@@ -1,9 +1,9 @@
 {% extends "base.html" %}
-{% from "macros.html" import topbar, footer, wap_back %}
+{% from "macros.html" import topbar, footer, wap_back, wap_crumbs %}
 {% block title %}魔法花园{% endblock %}
 {% block body %}
 {{ topbar("魔法花园", user) }}
-<div class="crumb"><a href="/">家园</a> › <a href="/lobby">大厅</a> › 魔法花园</div>
+{{ wap_crumbs([("家园","/"),("大厅","/lobby"),("魔法花园",)], show_back=False) }}
 
 {# 顶部导航 5 项（spec：花园/好友/花房/魔法屋/活动） #}
 <div class="content">

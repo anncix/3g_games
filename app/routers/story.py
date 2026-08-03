@@ -11,6 +11,7 @@ from ..database import get_db
 from ..deps import get_current_user
 from .views import render
 from . import wap_layout as W
+from . import platform_spec as P
 
 router = APIRouter(tags=["剧情总览"])
 
@@ -83,5 +84,7 @@ async def story_overview(request: Request, db: AsyncSession = Depends(get_db)):
         return RedirectResponse("/login", status_code=303)
     modules = _load_all_quests()
     total_quests = sum(m["total"] for m in modules)
+    # v0.3.0：剧情弧线 + 平台功能清单总览
+    feats = P.feature_stats()
     return await render(request, "story.html", db, user=user,
-                        modules=modules, total_quests=total_quests, W=W)
+                        modules=modules, total_quests=total_quests, W=W, P=P, feats=feats)

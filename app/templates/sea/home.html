@@ -1,9 +1,9 @@
 {% extends "base.html" %}
-{% from "macros.html" import topbar, footer, wap_back %}
+{% from "macros.html" import topbar, footer, wap_back, wap_crumbs %}
 {% block title %}纵横四海{% endblock %}
 {% block body %}
 {{ topbar("纵横四海", user) }}
-<div class="crumb"><a href="/">家园</a> › <a href="/lobby">大厅</a> › 纵横四海</div>
+{{ wap_crumbs([("家园","/"),("大厅","/lobby"),("纵横四海",)], show_back=False) }}
 <div class="card">
   <div class="hd">航海日志</div>
   等级 <b>{{ st.level }}</b> · 战力 <b>{{ st.power }}</b> · 战舰 <b>{{ st.ship_name }}</b><br>

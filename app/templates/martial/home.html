@@ -1,9 +1,9 @@
 {% extends "base.html" %}
-{% from "macros.html" import topbar, footer, wap_back %}
+{% from "macros.html" import topbar, footer, wap_back, wap_crumbs %}
 {% block title %}精武堂{% endblock %}
 {% block body %}
 {{ topbar("精武堂", user) }}
-<div class="crumb"><a href="/">家园</a> › <a href="/lobby">大厅</a> › 精武堂</div>
+{{ wap_crumbs([("家园","/"),("大厅","/lobby"),("精武堂",)], show_back=False) }}
 <div class="card">
   <div class="hd">侠客行</div>
   Lv<b>{{ st.level }}</b>（经验 {{ st.exp }}/{{ exp_need }}）<br>

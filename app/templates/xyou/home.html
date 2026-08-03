@@ -1,9 +1,9 @@
 {% extends "base.html" %}
-{% from "macros.html" import topbar, footer, wap_back %}
+{% from "macros.html" import topbar, footer, wap_back, wap_crumbs %}
 {% block title %}幻想西游{% endblock %}
 {% block body %}
 {{ topbar("幻想西游", user) }}
-<div class="crumb"><a href="/">家园</a> › <a href="/lobby">大厅</a> › 幻想西游</div>
+{{ wap_crumbs([("家园","/"),("大厅","/lobby"),("幻想西游",)], show_back=False) }}
 <div class="card">
   <div class="hd">西行取经人</div>
   门派 <b>{{ sect_name }}</b><br>

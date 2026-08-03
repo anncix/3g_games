@@ -1,23 +1,29 @@
 {% extends "base.html" %}
-{% from "macros.html" import topbar, footer, wap_back %}
+{% from "macros.html" import topbar, footer, wap_back, wap_crumbs %}
 {% block title %}剧情总览{% endblock %}
 {% block body %}
 {{ topbar("剧情总览", user) }}
-<div class="crumb"><a href="/">家园</a> › 剧情总览</div>
+{{ wap_crumbs([("家园","/"),("剧情总览",)], show_back=False) }}
 
 <div class="card">
-  <div class="hd">家园剧情总览（v0.2.9）</div>
+  <div class="hd">家园剧情总览（v0.3.0）</div>
   <span class="muted">平台化复刻：8 个游戏模块的主线任务链统一看板。先到家园，再去游戏。</span><br>
-  共 <b>{{ modules|length }}</b> 个模块 · <b>{{ total_quests }}</b> 条主线任务
+  共 <b>{{ modules|length }}</b> 个模块 · <b>{{ total_quests }}</b> 条主线任务<br>
+  家园底座功能完成度 <b>{{ feats.home_done }}/{{ feats.home_total }}</b>（{{ feats.home_pct }}%）
+  <div class="bar"><i style="width:{{ feats.home_pct }}%"></i></div>
 </div>
 
-{# WAP 三原则 #}
+{# v0.3.0 剧情弧线（4 大弧，跨模块串联） #}
+<div class="section-title">剧情弧线（{{ P.STORY_ARCS|length }} 弧）</div>
+{% for aid, aname, theme, keys, hrefs in P.STORY_ARCS %}
 <div class="card">
-  <div class="hd">WAP 页面组织三原则</div>
-  {% for p in W.WAP_PRINCIPLES %}
-  <div class="li">{{ loop.index }}. {{ p }}</div>
-  {% endfor %}
+  <div class="hd"><span class="tag">{{ aid }}</span> {{ aname }}</div>
+  <span class="muted">{{ theme }}</span>
+  <div class="content">
+    {% for h in hrefs %}<a class="li" href="{{ h }}">进入该弧主线<span class="r">›</span></a>{% endfor %}
+  </div>
 </div>
+{% endfor %}
 
 {# 各模块主线任务链 #}
 <div class="section-title">各模块主线进度</div>
@@ -45,6 +51,53 @@
 </div>
 {% endfor %}
 
+{# v0.3.0 家园底座功能清单（12 子系统） #}
+<div class="section-title">家园底座功能清单（{{ P.HOME_BASE_FEATURES|length }} 子系统）</div>
+{% for no, name, href, st, feats in P.HOME_BASE_FEATURES %}
+<div class="card">
+  <div class="hd"><span class="tag">{{ no }}</span> {{ name }} <span class="tag">{{ st }}</span> <span class="r"><a href="{{ href }}">进入 ›</a></span></div>
+  <div class="content">
+    {% for fn, fh, fs in feats %}
+    <div class="li">{{ fn }} <span class="r">{{ fs }} <a href="{{ fh }}">›</a></span></div>
+    {% endfor %}
+  </div>
+</div>
+{% endfor %}
+
+{# v0.3.0 4 经典游戏功能树 #}
+<div class="section-title">游戏模块功能树（{{ P.GAME_FEATURE_TREES|length }} 经典模块）</div>
+{% for no, key, name, href, loop_name, pages, systems in P.GAME_FEATURE_TREES %}
+<div class="card">
+  <div class="hd"><span class="tag">{{ no }}</span> {{ name }} <span class="r"><a href="{{ href }}">进入 ›</a></span></div>
+  <span class="muted">{{ loop_name }}</span><br>
+  <b>页面：</b>{% for p in pages %}<span class="tag">{{ p }}</span> {% endfor %}<br>
+  <b>机制：</b>{% for s in systems %}<span class="tag">{{ s }}</span> {% endfor %}
+</div>
+{% endfor %}
+
+{# v0.3.0 总体数据分层（8 层） #}
+<div class="section-title">总体数据分层（{{ P.DATA_LAYERS|length }} 层）</div>
+<div class="card">
+  {% for layer, role, shared in P.DATA_LAYERS %}
+  <div class="li"><b>{{ layer }}</b> · {{ role }} <span class="tag">{{ shared }}</span></div>
+  {% endfor %}
+</div>
+
+{# v0.3.0 统一物品系统 #}
+<div class="section-title">统一物品系统</div>
+<div class="card">
+  <div class="hd">物品大类（{{ P.ITEM_CATEGORIES|length }}）</div>
+  {% for cat, desc, mods in P.ITEM_CATEGORIES %}
+  <div class="li"><b>{{ cat }}</b> · {{ desc }} <span class="r">{{ mods }}</span></div>
+  {% endfor %}
+</div>
+<div class="card">
+  <div class="hd">稀有度色系（{{ P.ITEM_RARITY|length }} 级）</div>
+  {% for name, alias, color, mul in P.ITEM_RARITY %}
+  <span class="tag" style="background:{{ color }};color:#333">{{ name }}·{{ alias }}×{{ mul }}</span>
+  {% endfor %}
+</div>
+
 {# 平台公共能力层 #}
 <div class="section-title">公共能力层（跨模块共用）</div>
 <div class="grid2">
@@ -53,11 +106,11 @@
   {% endfor %}
 </div>
 
-{# 统一品质色系 #}
+{# WAP 三原则 #}
 <div class="card">
-  <div class="hd">统一物品品质色系</div>
-  {% for name, color, alias in W.RARITY_COLORS %}
-  <span class="tag" style="background:{{ color }};color:#333">{{ name }}·{{ alias }}</span>
+  <div class="hd">WAP 页面组织三原则</div>
+  {% for p in W.WAP_PRINCIPLES %}
+  <div class="li">{{ loop.index }}. {{ p }}</div>
   {% endfor %}
 </div>
 
