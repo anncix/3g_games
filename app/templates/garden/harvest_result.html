@@ -1,0 +1,39 @@
+{% extends "base.html" %}
+{% from "macros.html" import topbar, footer %}
+{% block title %}收获结果{% endblock %}
+{% block body %}
+{{ topbar("收获结果", user) }}
+<div class="crumb"><a href="/games/garden/pots">花圃</a> › 收获结果</div>
+<div class="result {{ 'ok' if ok else 'fail' }}">
+  <div class="r-icon">{{ '√' if ok else '×' }}</div>
+  <div class="r-msg">{{ msg }}</div>
+</div>
+{% if ok %}
+<div class="card">
+  <div class="hd">收获明细</div>
+  种植花种：<b>{{ seed.name }}</b>（{{ seed.rarity }}）<br>
+  获得花朵：
+  {% for name, cnt in bloom_summary.items() %}{{ name }}×{{ cnt }} {% endfor %}<br>
+  金币 <b>+{{ coins_gain }}</b> · 经验 <b>+{{ exp_gain }}</b><br>
+  当前等级：<b>{{ st.level }}</b> · 经验：<b>{{ st.exp }}</b>
+</div>
+{% if lit_entries %}
+<div class="card">
+  <div class="hd">花谱点亮</div>
+  {% for e in lit_entries %}
+  <span class="tag green">新点亮</span> {{ e.name }}（{{ e.series }}）<br>
+  {% endfor %}
+  <span class="muted">已上报平台：图标/成就/排行</span>
+</div>
+{% endif %}
+<div class="section-title">下一步</div>
+<div class="grid2">
+  <a href="/games/garden/pots">继续种花</a>
+  <a href="/games/garden/album">查看花谱</a>
+  <a href="/games/garden/craft">去合成</a>
+  <a href="/inventory?m=garden">查看背包</a>
+</div>
+{% endif %}
+<div class="content"><a class="btn ghost" href="{{ back_href }}">{{ back_text }}</a></div>
+{{ footer(user) }}
+{% endblock %}

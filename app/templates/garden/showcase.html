@@ -1,0 +1,33 @@
+{% extends "base.html" %}
+{% from "macros.html" import topbar, footer %}
+{% block title %}花园展示{% endblock %}
+{% block body %}
+{{ topbar("花园展示", user) }}
+<div class="crumb"><a href="/games/garden">花园</a> › 展示</div>
+<div class="card">
+  <div class="hd">花谱概览</div>
+  花园等级 <b>{{ st.level }}</b> · 花谱点亮 <b>{{ lit_count }}/{{ total }}</b>
+  <div class="bar"><i style="width:{{ (lit_count/total*100)|int if total else 0 }}%"></i></div>
+</div>
+<div class="section-title">最近点亮</div>
+<div class="content">
+  {% for e in recent %}
+  <div class="li"><span class="tag green">已亮</span> {{ e.name }}（{{ e.series }}）</div>
+  {% else %}
+  <div class="muted">还未点亮任何花谱</div>
+  {% endfor %}
+</div>
+<div class="section-title">稀有花收藏</div>
+<div class="content">
+  {% for rb in rare_blooms %}
+  <div class="li">
+    <span class="tag {{ 'gold' if rb.bloom.rarity == '传说' else 'orange' }}">{{ rb.bloom.rarity }}</span>
+    {{ rb.bloom.name }}（{{ rb.bloom.color }}）×{{ rb.qty }}
+  </div>
+  {% else %}
+  <div class="muted">暂无稀有花，多种植稀有花种或合成获取</div>
+  {% endfor %}
+</div>
+<div class="content"><a class="btn ghost" href="/games/garden">返回花园</a></div>
+{{ footer(user) }}
+{% endblock %}

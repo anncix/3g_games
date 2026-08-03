@@ -1,0 +1,34 @@
+{% extends "base.html" %}
+{% from "macros.html" import topbar, footer %}
+{% block title %}花谱-{{ entry.name }}{% endblock %}
+{% block body %}
+{{ topbar("花谱详情", user) }}
+<div class="crumb"><a href="/games/garden/album">花谱</a> › {{ entry.name }}</div>
+<div class="card">
+  <div class="hd">{{ entry.name }}</div>
+  系列：<b>{{ entry.series }}</b><br>
+  {{ entry.description }}<br>
+  {% if bloom %}
+  花朵：<b>{{ bloom.name }}</b>（{{ bloom.color }}色/{{ bloom.rarity }}）<br>
+  售价：{{ bloom.sell_price }}金{% if bloom.special_tag %} · <span class="tag">{{ bloom.special_tag }}</span>{% endif %}
+  {% endif %}
+</div>
+<div class="card">
+  <div class="hd">点亮状态</div>
+  {% if is_lit %}
+    <span class="tag green">已点亮</span>
+  {% else %}
+    <span class="tag">未点亮</span><br>
+    持有花朵：<b>{{ hold }}</b> 朵<br>
+    {% if hold > 0 %}
+    <form method="post" action="/games/garden/album/light/{{ entry.key }}">
+      <button class="btn green" type="submit">点亮花谱（金币+20 经验+15）</button>
+    </form>
+    {% else %}
+    <span class="muted">需先获得该花朵（种植或好友赠送）</span>
+    {% endif %}
+  {% endif %}
+</div>
+<div class="content"><a class="btn ghost" href="/games/garden/album">返回花谱</a></div>
+{{ footer(user) }}
+{% endblock %}

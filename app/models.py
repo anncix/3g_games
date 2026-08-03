@@ -466,48 +466,115 @@ class TownState(Base):
 
 # ============================================================
 # 模块3：魔法花园 Garden
-# 老味道点：成长阶段操作 / 合成花种 / 花谱点亮 / 偷花送花展示
+# 老味道点：成长阶段操作(发芽/花苗/花蕾) / 合成花种 / 花谱点亮核心目标 / 偷花送花展示
+# 设计规范：花种(Seed)/花朵(Bloom)/花谱项(AlbumEntry) 三概念分离
 # ============================================================
-class Flower(Base):
-    """花种字典"""
-    __tablename__ = "garden_flowers"
+class GardenSeed(Base):
+    """花种定义（Seed）：播种用的物品定义
+
+    possible_blooms: JSON {bloom_key: weight} 同一种花种可能产出多种颜色花朵
+    stage_actions: JSON {"1":"water","2":"weed","3":"debug"} 各阶段需要的操作
+    """
+    __tablename__ = "garden_seeds"
     key: Mapped[str] = mapped_column(String(32), primary_key=True)
     name: Mapped[str] = mapped_column(String(32))
-    grow_seconds: Mapped[int] = mapped_column(Integer, default=60)
-    stages: Mapped[int] = mapped_column(Integer, default=4)  # 发芽/花苗/花蕾/盛开
-    seed_item_key: Mapped[str] = mapped_column(String(64))
-    harvest_item_key: Mapped[str] = mapped_column(String(64))
-    recipe: Mapped[str] = mapped_column(String(255), default="")  # 合成配方 JSON {item_key:qty}，空=基础花种可买
+    min_level: Mapped[int] = mapped_column(Integer, default=1)
+    grow_seconds: Mapped[int] = mapped_column(Integer, default=60)  # 总成长时间
+    stages: Mapped[int] = mapped_column(Integer, default=4)  # 阶段数：发芽/花苗/花蕾/成熟
+    stage_actions: Mapped[str] = mapped_column(Text, default="")  # JSON 各阶段需要操作
+    yield_min: Mapped[int] = mapped_column(Integer, default=1)
+    yield_max: Mapped[int] = mapped_column(Integer, default=2)
+    possible_blooms: Mapped[str] = mapped_column(Text, default="")  # JSON {bloom_key: weight}
+    rarity: Mapped[str] = mapped_column(String(16), default="普通")  # 普通/稀有/传说
+    sellable: Mapped[bool] = mapped_column(Boolean, default=True)
+    seed_item_key: Mapped[str] = mapped_column(String(64))  # 关联平台物品字典（种子）
+    obtain_sources: Mapped[str] = mapped_column(String(128), default="shop")  # shop/craft/exchange/drop
+
+
+class GardenBloom(Base):
+    """花朵定义（Bloom）：收获得到的实体花朵定义
+
+    一个花种可产出多种花朵（颜色/稀有度不同）
+    """
+    __tablename__ = "garden_blooms"
+    key: Mapped[str] = mapped_column(String(32), primary_key=True)
+    name: Mapped[str] = mapped_column(String(32))
+    color: Mapped[str] = mapped_column(String(16), default="白")  # 白/红/黄/紫...
+    rarity: Mapped[str] = mapped_column(String(16), default="普通")  # 普通/稀有/传说
+    sell_price: Mapped[int] = mapped_column(Integer, default=10)
+    album_entry_key: Mapped[str] = mapped_column(String(32))  # 对应花谱项
+    item_key: Mapped[str] = mapped_column(String(64))  # 关联平台物品字典（花朵）
+    special_tag: Mapped[str] = mapped_column(String(32), default="")  # 活动限定/合成材料...
+
+
+class GardenAlbumEntry(Base):
+    """花谱项（AlbumEntry）：图鉴收集条目，按系列分组"""
+    __tablename__ = "garden_album_entries"
+    key: Mapped[str] = mapped_column(String(32), primary_key=True)
+    series: Mapped[str] = mapped_column(String(32), index=True)  # 野花系列/玫瑰系列/传说系列/节日限定
+    name: Mapped[str] = mapped_column(String(32))
+    description: Mapped[str] = mapped_column(String(128), default="")
+    bloom_key: Mapped[str] = mapped_column(String(32))  # 对应花朵
 
 
 class GardenPot(Base):
-    """花盆槽位"""
+    """花盆槽位（状态机）
+
+    状态机: 空(seed_key='') -> 已播种 -> 发芽期 -> 花苗期 -> 花蕾期 -> 成熟 -> 收获后空
+    watered/weeded/debugged: 当前生长周期内三件套操作是否完成
+    """
     __tablename__ = "garden_pots"
     id: Mapped[int] = mapped_column(Integer, primary_key=True)
     user_id: Mapped[int] = mapped_column(ForeignKey("users.id", ondelete="CASCADE"), index=True)
     slot: Mapped[int] = mapped_column(Integer)
-    flower_key: Mapped[str] = mapped_column(String(32), default="")
+    seed_key: Mapped[str] = mapped_column(String(32), default="")  # 关联 GardenSeed
     planted_at: Mapped[datetime] = mapped_column(DateTime, nullable=True)
+    watered: Mapped[bool] = mapped_column(Boolean, default=False)  # 浇水
+    weeded: Mapped[bool] = mapped_column(Boolean, default=False)   # 除草
+    debugged: Mapped[bool] = mapped_column(Boolean, default=False) # 除虫
     __table_args__ = (UniqueConstraint("user_id", "slot", name="uq_garden_slot"),)
 
 
 class GardenState(Base):
+    """花园等级与经验：经验来自劳动行为（播种/操作/收获/点亮/帮忙）"""
     __tablename__ = "garden_state"
     user_id: Mapped[int] = mapped_column(ForeignKey("users.id", ondelete="CASCADE"), primary_key=True)
     level: Mapped[int] = mapped_column(Integer, default=1)
     exp: Mapped[int] = mapped_column(Integer, default=0)
     pot_count: Mapped[int] = mapped_column(Integer, default=4)
+    coins: Mapped[int] = mapped_column(Integer, default=200)  # 模块金币（买基础花种/道具）
 
 
-class FlowerCollection(Base):
-    """花谱点亮"""
+class GardenCollection(Base):
+    """花谱点亮记录（对应 AlbumEntry）"""
     __tablename__ = "garden_collection"
     id: Mapped[int] = mapped_column(Integer, primary_key=True)
     user_id: Mapped[int] = mapped_column(ForeignKey("users.id", ondelete="CASCADE"), index=True)
-    flower_key: Mapped[str] = mapped_column(String(32))
+    entry_key: Mapped[str] = mapped_column(String(32))  # 关联 GardenAlbumEntry
     lit: Mapped[bool] = mapped_column(Boolean, default=True)
     lit_at: Mapped[datetime] = mapped_column(DateTime, default=_now)
-    __table_args__ = (UniqueConstraint("user_id", "flower_key", name="uq_flower_col"),)
+    __table_args__ = (UniqueConstraint("user_id", "entry_key", name="uq_garden_col"),)
+
+
+class GardenRecipe(Base):
+    """合成配方：花朵 -> 花种（固定配方，可运营配置）"""
+    __tablename__ = "garden_recipes"
+    id: Mapped[int] = mapped_column(Integer, primary_key=True)
+    name: Mapped[str] = mapped_column(String(32))
+    result_seed_key: Mapped[str] = mapped_column(String(32))  # 合成产出花种
+    result_qty: Mapped[int] = mapped_column(Integer, default=1)
+    materials: Mapped[str] = mapped_column(Text)  # JSON {item_key: qty}
+
+
+class GardenExchange(Base):
+    """兑换：活动材料 -> 花种（稳定路径，非纯概率）"""
+    __tablename__ = "garden_exchanges"
+    id: Mapped[int] = mapped_column(Integer, primary_key=True)
+    name: Mapped[str] = mapped_column(String(32))
+    result_seed_key: Mapped[str] = mapped_column(String(32))
+    result_qty: Mapped[int] = mapped_column(Integer, default=1)
+    materials: Mapped[str] = mapped_column(Text)  # JSON {item_key: qty}
+    activity_key: Mapped[str] = mapped_column(String(32), default="")  # 关联活动（可空）
 
 
 # ============================================================

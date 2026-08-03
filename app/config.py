@@ -2,7 +2,7 @@
 from pathlib import Path
 
 # 版本号
-VERSION = "0.0.1"
+VERSION = "0.0.2"
 
 BASE_DIR = Path(__file__).resolve().parent.parent
 DB_PATH = BASE_DIR / "data" / "qq_home.db"

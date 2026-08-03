@@ -6,27 +6,49 @@
 <div class="crumb"><a href="/">家园</a> › <a href="/lobby">大厅</a> › 魔法花园</div>
 <div class="card">
   <div class="hd">我的花园</div>
-  等级 <b>{{ st.level }}</b> · 经验 <b>{{ st.exp }}</b><br>
-  花谱点亮 <b>{{ lit_count }}/{{ flowers|length }}</b>
-  <div class="bar"><i style="width:{{ (lit_count/flowers|length*100)|int if flowers else 0 }}%"></i></div>
+  等级 <b>{{ st.level }}</b> · 经验 <b>{{ st.exp }}/{{ exp_need }}</b>
+  <div class="bar"><i style="width:{{ (st.exp/exp_need*100)|int }}%"></i></div>
+  花园金币 <b>{{ st.coins }}</b> · 花盆 <b>{{ st.pot_count }}</b>个<br>
+  花谱点亮 <b>{{ lit_count }}/{{ entries|length }}</b>
+  <div class="bar"><i style="width:{{ (lit_count/entries|length*100)|int if entries else 0 }}%"></i></div>
 </div>
-<div class="section-title">今日待办 ({{ todo }})</div>
+<div class="section-title">今日待办</div>
 <div class="content">
-  {% for info in pot_info if info.stage == '盛开' %}
-  <a class="li" href="/games/garden/pot/{{ info.pot.slot }}"><span class="tag green">盛开</span> {{ info.flower.name if info.flower else '?' }}<span class="r">去收获 ›</span></a>
+  {% if todo_harvest > 0 %}
+  <a class="li" href="/games/garden/pots"><span class="tag green">可收获</span> {{ todo_harvest }}盆成熟<span class="r">去收获 ›</span></a>
+  {% endif %}
+  {% if todo_action > 0 %}
+  <a class="li" href="/games/garden/pots"><span class="tag orange">待护理</span> {{ todo_action }}盆需要浇水/除草/除虫<span class="r">去护理 ›</span></a>
+  {% endif %}
+  {% if todo_harvest == 0 and todo_action == 0 %}
+  <div class="muted">暂无待办，去种花吧</div>
+  {% endif %}
+</div>
+<div class="section-title">花圃速览</div>
+<div class="content">
+  {% for info in pot_info %}
+  <a class="li" href="/games/garden/pot/{{ info.pot.slot }}">
+    <span>第{{ info.pot.slot+1 }}盆 · {{ info.seed.name if info.seed else '空地' }}</span>
+    <span class="r">
+      {% if info.stage == -1 %}空
+      {% elif info.stage == 4 %}<span class="tag green">成熟</span>
+      {% else %}{{ info.stage_label }}{% if info.remain > 0 %} {{ info.remain }}s{% endif %}{% endif %}
+    </span>
+  </a>
   {% endfor %}
-  {% if todo == 0 %}<div class="muted">暂无待办，去种花吧</div>{% endif %}
 </div>
 <div class="section-title">快捷入口</div>
 <div class="grid2">
-  <a href="/games/garden/pots">我的花盆</a>
-  <a href="/games/garden/craft">合成花种</a>
-  <a href="/games/garden/collection">花谱</a>
+  <a href="/games/garden/pots">我的花圃</a>
+  <a href="/games/garden/album">我的花谱</a>
+  <a href="/games/garden/showcase">展示页</a>
+  <a href="/games/garden/craft">合成工坊</a>
+  <a href="/games/garden/exchange">兑换中心</a>
+  <a href="/games/garden/shop">花种商店</a>
   <a href="/inventory?m=garden">花园背包</a>
-  <a href="/shop?m=garden">花种商店</a>
   <a href="/friends">好友花园</a>
-  <a href="/games/garden/rules">规则</a>
   <a href="/ranking?m=garden&metric=flower_lit">排行</a>
+  <a href="/games/garden/rules">规则</a>
 </div>
 <div class="content"><a class="btn ghost" href="/lobby">返回大厅</a><a class="btn ghost" href="/">返回家园</a></div>
 {{ footer(user) }}

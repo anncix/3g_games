@@ -3,17 +3,49 @@
 {% block title %}花园规则{% endblock %}
 {% block body %}
 {{ topbar("花园规则", user) }}
-<div class="content">
-  <div class="card">
-    <div class="hd">魔法花园怎么玩</div>
-    1. 买/合成花种→种入花盆→经历<b>发芽/花苗/花蕾/盛开</b><br>
-    2. 盛开后收获，<b>点亮花谱</b>(核心目标)<br>
-    3. 部分花种需<b>合成</b>(消耗花瓣材料)<br>
-    4. 可去好友花园<b>偷花</b>或<b>送花</b><br>
-    5. 花盆可<b>上锁</b>防偷<br>
-    <hr><span class="muted">老味道：成长阶段操作 + 合成花种 + 花谱点亮为核心</span>
-  </div>
+<div class="crumb"><a href="/games/garden">花园</a> › 规则</div>
+<div class="card">
+  <div class="hd">玩法主循环</div>
+  播种 → 等待成长 → 阶段操作(浇水/除草/除虫) → 收花 → 入库/卖出/合成 → 点亮花谱 → 展示/互动 → 回到播种
 </div>
-<div class="content"><a class="btn" href="/games/garden">返回花园首页</a></div>
+<div class="card">
+  <div class="hd">等级与经验</div>
+  经验来自劳动：播种+2 / 浇水除草除虫+3 / 收获+5 / 点亮花谱+15 / 帮好友+2<br>
+  每级所需经验 = 等级 × 80<br>
+  等级影响：可种花种 / 花盆数量 / 商店可购买项
+</div>
+<div class="card">
+  <div class="hd">三概念分离</div>
+  <b>花种(Seed)</b>：播种用，决定成长时间/产量/可产出花朵<br>
+  <b>花朵(Bloom)</b>：收获得到，有颜色/稀有度/售价<br>
+  <b>花谱项(AlbumEntry)</b>：图鉴条目，按系列分组，点亮有奖励<br>
+  同一花种可随机产出多种颜色花朵
+</div>
+<div class="card">
+  <div class="hd">阶段状态机</div>
+  空地 → 已播种 → 发芽期 → 花苗期 → 花蕾期 → 成熟 → 收获 → 空地<br>
+  发芽/花苗/花蕾期各需一次操作：浇水/除草/除虫<br>
+  完成2+护理 → 产量+1；不操作不毁花，仅影响收益
+</div>
+<div class="card">
+  <div class="hd">好友互动</div>
+  <b>偷花</b>：成熟花可偷1朵，每盆限偷1次，被偷有消息提醒<br>
+  <b>帮忙</b>：帮好友浇水/除草/除虫，+2经验+5金币<br>
+  <b>送花</b>：送好友花朵，强社交<br>
+  <b>上锁</b>：花盆可上锁防偷
+</div>
+<div class="card">
+  <div class="hd">稀有花获取</div>
+  1. 随机掉落：种植有概率出稀有色<br>
+  2. 合成路线：用基础花/材料换稀有花种（合成工坊）<br>
+  3. 活动兑换：材料换传说花种（兑换中心）<br>
+  最稀有花不直接卖商城
+</div>
+<div class="card">
+  <div class="hd">事件上报</div>
+  模块只上报事件，平台统一处理：<br>
+  花谱点亮→图标/成就/排行；被偷→消息提醒；收获→成就进度
+</div>
+<div class="content"><a class="btn ghost" href="/games/garden">返回花园</a></div>
 {{ footer(user) }}
 {% endblock %}

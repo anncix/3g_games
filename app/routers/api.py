@@ -235,9 +235,15 @@ async def api_town_state(request: Request, db: AsyncSession = Depends(get_db)):
 async def api_garden_state(request: Request, db: AsyncSession = Depends(get_db)):
     user = await _auth(request, db)
     st = await db.get(models.GardenState, user.id)
-    res = await db.execute(select(models.FlowerCollection).where(models.FlowerCollection.user_id == user.id))
-    lit = len(res.scalars().all())
-    return ok({"level": st.level if st else 1, "exp": st.exp if st else 0, "flower_lit": lit})
+    res = await db.execute(select(models.GardenCollection).where(models.GardenCollection.user_id == user.id))
+    lit = sum(1 for c in res.scalars().all() if c.lit)
+    return ok({
+        "level": st.level if st else 1,
+        "exp": st.exp if st else 0,
+        "coins": st.coins if st else 0,
+        "pot_count": st.pot_count if st else 4,
+        "flower_lit": lit,
+    })
 
 
 @router.get("/sea/state")

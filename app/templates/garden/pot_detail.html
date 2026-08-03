@@ -3,30 +3,60 @@
 {% block title %}第{{ pot.slot+1 }}盆{% endblock %}
 {% block body %}
 {{ topbar("花盆详情", user) }}
-<div class="crumb"><a href="/games/garden/pots">花盆</a> › 第{{ pot.slot+1 }}盆</div>
+<div class="crumb"><a href="/games/garden/pots">花圃</a> › 第{{ pot.slot+1 }}盆</div>
 <div class="card">
-  <div class="hd">{{ flower.name if flower else '空盆' }}</div>
-  {% if flower %}
-    状态：<b>{{ stage }}</b><br>
-    {% if remain > 0 %}剩余 {{ remain }} 秒盛开{% else %}<span class="tag green">已盛开，可收获</span>{% endif %}<br>
-    {% if locked %}<span class="lock">花盆已上锁(防偷)</span>{% endif %}
-  {% else %}<span class="muted">种点什么花吧</span>{% endif %}
+  <div class="hd">{{ seed.name if seed else '空盆' }}</div>
+  {% if seed %}
+    阶段：<b>{{ ainfo.stage_label }}</b><br>
+    {% if ainfo.stage == 4 %}
+      <span class="tag green">已成熟，可收获</span>
+    {% elif ainfo.remain > 0 %}
+      剩余 <b>{{ ainfo.remain }}</b> 秒成熟<br>
+      {% if ainfo.action and not ainfo.action_done %}
+        <span class="tag orange">需{{ action_names[ainfo.action] }}</span>
+      {% endif %}
+    {% endif %}
+    <br>稀有度：<b>{{ seed.rarity }}</b> · 成长时间：{{ seed.grow_seconds }}秒<br>
+    护理状态：
+    {% if pot.watered %}<span class="tag green">已浇</span>{% else %}<span class="muted">未浇</span>{% endif %}
+    {% if pot.weeded %}<span class="tag green">已除</span>{% else %}<span class="muted">未除</span>{% endif %}
+    {% if pot.debugged %}<span class="tag green">已虫</span>{% else %}<span class="muted">未虫</span>{% endif %}
+    <br><span class="muted">完成2+护理可+1产量</span>
+    {% if locked %}<br><span class="lock">🔒 花盆已上锁(防偷)</span>{% endif %}
+  {% else %}
+    <span class="muted">种点什么花吧</span>
+  {% endif %}
 </div>
 <div class="section-title">操作</div>
 <div class="content">
-  {% if not flower %}
-  <form method="post" action="/games/garden/plant/{{ pot.slot }}">
-    <label>选择花种</label>
-    <select name="flower_key">{% for f in flowers %}<option value="{{ f.key }}">{{ f.name }}({{ f.grow_seconds }}秒)</option>{% endfor %}</select>
-    <button class="btn green" type="submit">种植</button>
-  </form>
-  {% if not seeds %}<div class="muted">没有花种，<a href="/games/garden/craft">去合成</a> 或 <a href="/shop?m=garden">购买</a></div>{% endif %}
-  <hr><div class="muted">已有花种：</div>
-  {% for f, n in seeds %}<span class="icon-badge">{{ f.name }}×{{ n }}</span>{% endfor %}
+  {% if not seed %}
+    {% if plantable %}
+    <form method="post" action="/games/garden/plant/{{ pot.slot }}">
+      <label>选择花种</label>
+      <select name="seed_key">
+        {% for s, n in plantable %}<option value="{{ s.key }}">{{ s.name }}(Lv{{ s.min_level }},{{ s.grow_seconds }}s) ×{{ n }}</option>{% endfor %}
+      </select>
+      <button class="btn green" type="submit">播种</button>
+    </form>
+    {% else %}
+    <div class="muted">没有可种花种，<a href="/games/garden/shop">去商店</a> 或 <a href="/games/garden/craft">去合成</a></div>
+    {% endif %}
   {% else %}
-  {% if stage == '盛开' %}<form method="post" action="/games/garden/harvest/{{ pot.slot }}"><button class="btn green" type="submit">收获</button></form>{% endif %}
-  <form method="post" action="/games/garden/lock/{{ pot.slot }}"><button class="btn {{ 'danger' if locked else 'ghost' }}" type="submit">{{ '解锁' if locked else '上锁(防偷)' }}</button></form>
+    {% if ainfo.action and not ainfo.action_done and ainfo.stage < 4 %}
+    <form method="post" action="/games/garden/action/{{ pot.slot }}/{{ ainfo.action }}">
+      <button class="btn green" type="submit">{{ action_names[ainfo.action] }}（+3经验）</button>
+    </form>
+    {% endif %}
+    {% if ainfo.stage == 4 %}
+    <form method="post" action="/games/garden/harvest/{{ pot.slot }}">
+      <button class="btn green" type="submit">收获</button>
+    </form>
+    {% endif %}
+    <form method="post" action="/games/garden/lock/{{ pot.slot }}">
+      <button class="btn {{ 'danger' if locked else 'ghost' }}" type="submit">{{ '解锁' if locked else '上锁(防偷)' }}</button>
+    </form>
   {% endif %}
 </div>
+<div class="content"><a class="btn ghost" href="/games/garden/pots">返回花圃</a></div>
 {{ footer(user) }}
 {% endblock %}

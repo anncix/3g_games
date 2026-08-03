@@ -1,0 +1,26 @@
+{% extends "base.html" %}
+{% from "macros.html" import topbar, footer %}
+{% block title %}花种商店{% endblock %}
+{% block body %}
+{{ topbar("花种商店", user) }}
+<div class="crumb"><a href="/games/garden">花园</a> › 花种商店</div>
+<div class="card">花园金币 <b>{{ st.coins }}</b> · 等级 <b>{{ st.level }}</b></div>
+<div class="muted">只上架基础花种，稀有花需合成/兑换获取</div>
+{% for item in shop_list %}
+<div class="card">
+  <div class="hd">{{ item.seed.name }}种子</div>
+  稀有度：<b>{{ item.seed.rarity }}</b> · 成长：{{ item.seed.grow_seconds }}秒<br>
+  需要等级：Lv{{ item.seed.min_level }} · 持有：{{ item.have }}<br>
+  价格：{% set p = 30 if item.seed.rarity == '普通' else 60 %}<b>{{ p }}</b> 花园金币<br>
+  {% if item.locked_level %}
+    <span class="muted">等级不足</span>
+  {% else %}
+    <form method="post" action="/games/garden/shop/buy/{{ item.seed.key }}">
+      <button class="btn green" type="submit">购买</button>
+    </form>
+  {% endif %}
+</div>
+{% endfor %}
+<div class="content"><a class="btn ghost" href="/games/garden">返回花园</a></div>
+{{ footer(user) }}
+{% endblock %}

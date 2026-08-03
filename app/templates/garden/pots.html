@@ -1,19 +1,30 @@
 {% extends "base.html" %}
 {% from "macros.html" import topbar, footer %}
-{% block title %}我的花盆{% endblock %}
+{% block title %}我的花圃{% endblock %}
 {% block body %}
-{{ topbar("我的花盆", user) }}
-<div class="crumb"><a href="/games/garden">花园</a> › 花盆</div>
+{{ topbar("我的花圃", user) }}
+<div class="crumb"><a href="/games/garden">花园</a> › 花圃</div>
+<div class="card">
+  等级 <b>{{ st.level }}</b> · 经验 <b>{{ st.exp }}/{{ exp_need }}</b> · 金币 <b>{{ st.coins }}</b>
+</div>
+<div class="section-title">花盆列表（共{{ pot_info|length }}盆）</div>
 <div class="content">
   {% for info in pot_info %}
   <a class="li" href="/games/garden/pot/{{ info.pot.slot }}">
-    <span>第{{ info.pot.slot+1 }}盆 · {{ info.flower.name if info.flower else '空盆' }} · {{ info.stage }}
-      {% if info.stage == '盛开' %}<span class="tag green">可收</span>{% endif %}
-      {% if info.locked %}<span class="lock">已锁</span>{% endif %}
+    <span>第{{ info.pot.slot+1 }}盆 · {{ info.seed.name if info.seed else '空地' }}
+      {% if info.locked %} 🔒{% endif %}
     </span>
-    <span class="r">{% if info.remain>0 %}{{ info.remain }}秒{% else %}›{% endif %}</span>
+    <span class="r">
+      {% if info.stage == -1 %}<span class="muted">空</span>
+      {% elif info.stage == 4 %}<span class="tag green">成熟</span>
+      {% else %}{{ info.stage_label }}
+        {% if info.action and not info.action_done %}<span class="tag orange">{{ action_names[info.action] if action_names else info.action }}</span>
+        {% elif info.remain > 0 %}{{ info.remain }}s{% endif %}
+      {% endif %}
+    </span>
   </a>
   {% endfor %}
 </div>
+<div class="content"><a class="btn ghost" href="/games/garden">返回花园</a></div>
 {{ footer(user) }}
 {% endblock %}
