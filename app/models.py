@@ -927,6 +927,110 @@ class SeaUserEquip(Base):
     __table_args__ = (UniqueConstraint("user_id", "equip_key", name="uq_sea_equip"),)
 
 
+# v0.1.5：纵横四海大全级资料库（spec 物品/副本/宠物/坐骑/羽翼/随从/宝石/卡片/圣痕）
+class SeaDungeon(Base):
+    """副本定义（spec 副本等级要求表）
+
+    difficulties: JSON ["普通","精英","困难","噩梦","炼狱"]
+    level_reqs:   JSON [5,15,25,35,45] 对应各难度等级要求
+    exps:         JSON 各难度经验
+    drops:        JSON 掉落物 key 列表
+    open_days:    JSON 开放星期 [1,6,0]=周一/六/日
+    """
+    __tablename__ = "sea_dungeons"
+    key: Mapped[str] = mapped_column(String(32), primary_key=True)
+    name: Mapped[str] = mapped_column(String(32))
+    entry_city: Mapped[str] = mapped_column(String(32))  # 入口城市
+    difficulties: Mapped[str] = mapped_column(Text, default="[]")
+    level_reqs: Mapped[str] = mapped_column(Text, default="[]")
+    exps: Mapped[str] = mapped_column(Text, default="[]")
+    drops: Mapped[str] = mapped_column(Text, default="[]")
+    open_days: Mapped[str] = mapped_column(Text, default="[]")
+
+
+class SeaPet(Base):
+    """宠物定义（spec 宠物列表：白/紫/橙品质，等级上限40）"""
+    __tablename__ = "sea_pets"
+    key: Mapped[str] = mapped_column(String(32), primary_key=True)
+    name: Mapped[str] = mapped_column(String(32))
+    quality: Mapped[str] = mapped_column(String(16))  # 白/紫/橙
+    atk: Mapped[int] = mapped_column(Integer, default=10)
+    defense: Mapped[int] = mapped_column(Integer, default=10)
+    agile: Mapped[int] = mapped_column(Integer, default=10)
+    hp: Mapped[int] = mapped_column(Integer, default=100)
+    skill_tag: Mapped[str] = mapped_column(String(64), default="")  # 推荐技能标签
+    source: Mapped[str] = mapped_column(String(64), default="")  # 获取来源
+
+
+class SeaMount(Base):
+    """坐骑定义（spec 坐骑列表：等级要求 + 属性加成）"""
+    __tablename__ = "sea_mounts"
+    key: Mapped[str] = mapped_column(String(32), primary_key=True)
+    name: Mapped[str] = mapped_column(String(32))
+    level_req: Mapped[int] = mapped_column(Integer, default=80)
+    stat_type: Mapped[str] = mapped_column(String(16))  # flat 固定值 / pct 百分比
+    stat_value: Mapped[int] = mapped_column(Integer, default=100)  # 攻防敏体各加成
+    category: Mapped[str] = mapped_column(String(32), default="普通")  # 普通/稀有/黑暗军团/神圣军团
+
+
+class SeaWing(Base):
+    """羽翼定义（spec 羽翼列表：体魄/吸血/连击/铁壁）"""
+    __tablename__ = "sea_wings"
+    key: Mapped[str] = mapped_column(String(32), primary_key=True)
+    name: Mapped[str] = mapped_column(String(32))
+    level_req: Mapped[int] = mapped_column(Integer, default=80)
+    effects: Mapped[str] = mapped_column(Text)  # JSON {"体魄":3,"吸血":3}
+
+
+class SeaFollower(Base):
+    """随从定义（spec 随从列表：海贼王角色 + 传说技能）"""
+    __tablename__ = "sea_followers"
+    key: Mapped[str] = mapped_column(String(32), primary_key=True)
+    name: Mapped[str] = mapped_column(String(32))
+    skill_name: Mapped[str] = mapped_column(String(32))
+    skill_desc: Mapped[str] = mapped_column(String(255))
+    quality: Mapped[str] = mapped_column(String(16), default="普通")  # 普通/优秀/精锐/完美/传说
+
+
+class SeaGem(Base):
+    """宝石定义（spec 宝石列表：效果 + 可镶嵌部位）"""
+    __tablename__ = "sea_gems"
+    key: Mapped[str] = mapped_column(String(32), primary_key=True)
+    name: Mapped[str] = mapped_column(String(32))
+    effect: Mapped[str] = mapped_column(String(64))  # 毒攻/麻痹/致命/体力上限...
+    slots: Mapped[str] = mapped_column(Text)  # JSON 可镶嵌部位列表
+    tier: Mapped[int] = mapped_column(Integer, default=1)  # 碎片1/小2/中3/大4/完美5
+
+
+class SeaCard(Base):
+    """卡片定义（spec 卡片列表：附魔装备，普通/精致效果）"""
+    __tablename__ = "sea_cards"
+    key: Mapped[str] = mapped_column(String(32), primary_key=True)
+    name: Mapped[str] = mapped_column(String(32))
+    slot: Mapped[str] = mapped_column(String(32))  # 附魔部位（手持/腰/头/躯体/脚/配饰/全部位）
+    normal_effect: Mapped[str] = mapped_column(String(64))
+    refine_effect: Mapped[str] = mapped_column(String(64))
+    drop_source: Mapped[str] = mapped_column(String(64), default="")
+
+
+class SeaHolyMark(Base):
+    """圣痕定义（spec 圣痕种类：10种，白/绿/蓝/紫品质）"""
+    __tablename__ = "sea_holy_marks"
+    key: Mapped[str] = mapped_column(String(32), primary_key=True)
+    name: Mapped[str] = mapped_column(String(32))
+    quality: Mapped[str] = mapped_column(String(16))  # 白/绿/蓝/紫
+
+
+class SeaEquipSet(Base):
+    """装备套装定义（spec 装备套装路线：等级 + 获取方式）"""
+    __tablename__ = "sea_equip_sets"
+    key: Mapped[str] = mapped_column(String(32), primary_key=True)
+    name: Mapped[str] = mapped_column(String(32))
+    level_req: Mapped[int] = mapped_column(Integer, default=1)
+    source: Mapped[str] = mapped_column(String(128))  # 获取方式
+    pieces: Mapped[int] = mapped_column(Integer, default=4)  # 套装件数
+
+
 # ============================================================
 # 召唤之王（v0.0.6）：召唤师 + 幻兽 + 战斗 + 日常任务
 # 静态配置（经验表/120图鉴/60技能/属性公式/捕捉公式/掉落表/日常任务）见 routers/summon_data.py

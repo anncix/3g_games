@@ -13,6 +13,7 @@ from . import models
 from .platform import goods, icons
 from .deps import hash_password
 from .seed_garden_large import seed_garden_large
+from .seed_sea_large import seed_sea_large
 
 
 async def seed():
@@ -474,6 +475,10 @@ async def seed():
         # ---------- v0.1.4：魔法花园超大数据（spec 大全级资料库）----------
         # 作物 520 / 材料 1024 / 配方 1536 / 订单模板 3072（幂等，已达标则跳过）
         await seed_garden_large(db)
+
+        # ---------- v0.1.5：纵横四海大全级资料库（spec 物品/副本/宠物/坐骑/羽翼/随从/宝石/卡片/圣痕）----------
+        # 城市20 / 装备套装24 / 宝石60 / 卡片21 / 圣痕40 / 宠物60 / 坐骑12 / 羽翼8 / 随从9 / 副本10 / 消耗品40+（幂等）
+        await seed_sea_large(db)
 
         print("✅ 种子数据已写入。管理员: admin/admin123  演示: demo/demo123")
 
