@@ -1,5 +1,5 @@
 {% extends "base.html" %}
-{% from "macros.html" import topbar, footer %}
+{% from "macros.html" import topbar, footer, wap_back %}
 {% block title %}纵横四海{% endblock %}
 {% block body %}
 {{ topbar("纵横四海", user) }}
@@ -41,6 +41,6 @@
   <a href="/games/sea/rules">规则</a>
   <a href="/ranking?m=sea&metric=level">排行</a>
 </div>
-<div class="content"><a class="btn ghost" href="/lobby">返回大厅</a><a class="btn ghost" href="/">返回家园</a></div>
+{{ wap_back() }}
 {{ footer(user) }}
 {% endblock %}

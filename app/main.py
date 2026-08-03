@@ -11,7 +11,7 @@ from .database import init_db
 from .routers import (
     auth, profile, lobby, friends, family, forum, chat, city, message,
     activity, ranking, icons, settings as settings_router, support,
-    inventory, shop, farm, town, garden, sea, summon, martial, fengyun, xyou, admin, api,
+    inventory, shop, farm, town, garden, sea, summon, martial, fengyun, xyou, admin, api, story,
 )
 
 
@@ -40,6 +40,7 @@ routers = [
     fengyun.router,
     xyou.router,
     admin.router, api.router,
+    story.router,
 ]
 for r in routers:
     app.include_router(r)

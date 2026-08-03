@@ -1,5 +1,5 @@
 {% extends "base.html" %}
-{% from "macros.html" import topbar, footer %}
+{% from "macros.html" import topbar, footer, wap_back %}
 {% block title %}风云三国{% endblock %}
 {% block body %}
 {{ topbar("风云三国", user) }}
@@ -54,9 +54,6 @@
   <a href="/games/fengyun/rules">规则</a>
   <a href="/inventory?m=fengyun">背包</a>
 </div>
-<div class="content">
-  <a class="btn ghost" href="/lobby">返回大厅</a>
-  <a class="btn ghost" href="/">返回家园</a>
-</div>
+{{ wap_back() }}
 {{ footer(user) }}
 {% endblock %}

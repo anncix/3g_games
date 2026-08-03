@@ -1,6 +1,6 @@
 # QQ家园 — 怀旧平台化复刻
 
-> 版本：**v0.2.8** （2026-08-04 魔法花园原版 WAP 布局重设计：首页对齐原版菜单/玩家栏/花盆区/消息/设施/底导航，新增精灵花册·花之图谱·普通/独特/珍稀计数）
+> 版本：**v0.2.9** （2026-08-04 平台化复刻交互层：WAP 返回导航统一（wap_back 宏×8 模块）+ 平台剧情总览页（/story 聚合 8 模块主线）+ 家园页面结构树参考层）
 >
 > 基于 **FastAPI + SQLite + Jinja2(简版 WAP 风)** 实现的怀旧 QQ 家园平台复刻。
 > 严格遵循《怀旧QQ家园平台设计规范》：平台统一、模块自治、旧逻辑优先、一页只做一件事。
@@ -10,6 +10,63 @@
 ---
 
 ## 更新日志
+
+### v0.2.9 （2026-08-04）— 平台化复刻交互层（WAP 返回导航统一 + 平台剧情总览页 + 家园页面结构树参考层）
+
+以用户确认的《QQ家园平台化复刻总体架构》（方案B：平台化复刻 + 旧逻辑）为依据，落实"先到家园，再去游戏"的旧逻辑。本次聚焦交互逻辑统一：把分散在各游戏首页的返回按钮收拢为统一 `wap_back` 宏，新增平台层 `/story` 剧情总览页把 8 个模块的主线任务链串成统一看板，并新增家园页面结构树参考层文档化"家园底座 + 游戏模块 + 公共能力层"三层架构。策略与前版一致（保守增量，不破坏现有玩法）。
+
+**一、WAP 返回导航统一（macros.html +8 游戏首页，落实"每页都有上级返回"）**
+
+- 新增 `wap_back(parent_href, parent_text)` 宏：渲染统一的"返回上级 + 返回家园"按钮行，默认返回大厅+家园，可指定上级
+- 应用到 8 个游戏首页（farm/town/garden/sea/summon/martial/fengyun/xyou 的 home.html），替换各自 ad-hoc 的返回按钮 div
+- 统一交互节奏：玩家在任何游戏首页底部都能看到一致的返回入口，符合 WAP"列表页→功能页→操作页→返回上级"层级
+
+**二、平台层剧情总览页（/story 路由 + 模板，补全剧情系统）**
+
+新增 `GET /story` 平台层路由，聚合 8 个游戏模块的 MAIN_QUESTS 主线任务链为统一进度看板：
+- `story.py`：惰性 import 各模块 MAIN_QUESTS，`_normalize_quests` 归一化两种结构（标准 5 元组 + sea 的 `(key,name,lv,reward,sort)`）为统一 `(sort,name,lv,desc,reward)`
+- `story.html`：展示 8 模块主线进度（每模块任务数/最高解锁等级/逐条任务名+解锁等级+奖励）+ WAP 三原则 + 公共能力层入口 + 统一品质色系
+- 聚合统计：farm 8 / town 8 / garden 7(交互链) / sea 12 / summon 8 / martial 8 / fengyun 8 / xyou 8 = 共 67 条主线任务
+- 入口：家园首页快捷栏 + 游戏大厅公共栏 均新增"剧情总览"链接
+
+**三、家园页面结构树参考层（wap_layout.py，交互逻辑统一文档化）**
+
+新增纯静态常量文件，描述平台化三层架构（不入库，供 /story 等平台层页面引用）：
+
+| 常量 | 内容 | 对应架构层 |
+|------|------|-----------|
+| `HOME_BASE` | 12 项家园底座入口（首页/我的/好友/家族/论坛/聊天室/同城/大厅/消息/活动/排行/剧情总览） | 家园底座 |
+| `GAME_MODULES` | 8 游戏模块（4 经典 farm/town/garden/sea + 4 扩展 summon/martial/fengyun/xyou，含前缀/玩法循环） | 游戏模块 |
+| `GAME_FEATURE_PAGES` | 6 项标准功能页（主页/主线任务/商店/背包/排行/规则） | 游戏模块 |
+| `PUBLIC_CAPABILITY` | 10 项公共能力（账号/好友/家族/消息/货币/背包/排行/活动/图标/运营） | 公共能力层 |
+| `WAP_PRINCIPLES` | WAP 三原则（一页一事/每页上级返回/文字链接进入） | 交互规范 |
+| `RARITY_COLORS` | 6 级统一品质色系（普通白/稀有蓝/史诗紫/传说金/神红/圣橙黄） | 物品系统统一 |
+
+**四、设计原则：交互层统一，玩法不动**
+
+- 现有各模块玩法（花盆/合成/战斗/装备/订单/任务）**完全保留**，仅统一返回导航与新增平台层看板
+- `wap_back` 宏为纯展示组件，不改变任何路由逻辑；`/story` 为只读聚合页，不写库
+- 品质色系为参考层，供后续模块对齐，不强制改写现有模板
+
+**五、闭环验证**
+- ✅ IMPORT OK：`VERSION = 0.2.9`；wap_layout 6 组常量全部可访问（HOME_BASE 12 / GAME_MODULES 8 / PUBLIC_CAPABILITY 10 / WAP_PRINCIPLES 3 / RARITY_COLORS 6）
+- ✅ 剧情归一化：8 模块 MAIN_QUESTS 全部归一为 5 元组；sea 特殊结构正确处理（sort 从 1 开始，count=12）；标准模块各 8 条
+- ✅ 路由注册：`/story` 已加入 `story.router` 并在 main.py 注册
+- ✅ 返回导航：8 游戏首页均使用 `wap_back()`，无残留 ad-hoc 返回按钮
+- ✅ 入口：home.html + lobby.html 均含 `/story` 链接
+- ✅ py_compile OK（story.py / wap_layout.py / main.py / config.py）
+
+**文件变更**
+- `app/templates/macros.html`：+`wap_back` 宏
+- `app/templates/{farm,town,garden,sea,summon,martial,fengyun,xyou}/home.html`：8 文件应用 `wap_back`
+- `app/routers/story.py`：+1 新路由 `/story`（平台剧情总览，聚合 8 模块主线）
+- `app/templates/story.html`：+1 剧情总览模板
+- `app/routers/wap_layout.py`：+1 家园页面结构树参考层（6 组常量）
+- `app/main.py`：注册 story.router
+- `app/templates/home.html` / `lobby.html`：+剧情总览入口
+- `app/config.py`：版本号 0.2.8 → 0.2.9
+
+---
 
 ### v0.2.8 （2026-08-04）— 魔法花园原版 WAP 布局重设计（首页对齐原版菜单 + 玩家栏 + 花盆区 + 消息 + 设施 + 底导航）
 

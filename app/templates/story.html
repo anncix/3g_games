@@ -1,0 +1,66 @@
+{% extends "base.html" %}
+{% from "macros.html" import topbar, footer, wap_back %}
+{% block title %}剧情总览{% endblock %}
+{% block body %}
+{{ topbar("剧情总览", user) }}
+<div class="crumb"><a href="/">家园</a> › 剧情总览</div>
+
+<div class="card">
+  <div class="hd">家园剧情总览（v0.2.9）</div>
+  <span class="muted">平台化复刻：8 个游戏模块的主线任务链统一看板。先到家园，再去游戏。</span><br>
+  共 <b>{{ modules|length }}</b> 个模块 · <b>{{ total_quests }}</b> 条主线任务
+</div>
+
+{# WAP 三原则 #}
+<div class="card">
+  <div class="hd">WAP 页面组织三原则</div>
+  {% for p in W.WAP_PRINCIPLES %}
+  <div class="li">{{ loop.index }}. {{ p }}</div>
+  {% endfor %}
+</div>
+
+{# 各模块主线任务链 #}
+<div class="section-title">各模块主线进度</div>
+{% for m in modules %}
+<div class="card">
+  <div class="hd">
+    <span class="tag">{{ m.key }}</span> {{ m.name }}
+    <span class="r"><a href="{{ m.href }}">进入 ›</a></span>
+  </div>
+  <span class="muted">{{ m.loop }} · {{ m.total }} 条主线 · 最高解锁 Lv{{ m.max_level }}</span>
+  {% if m.quests %}
+  <div class="content">
+    {% for sort, name, lv, desc, reward in m.quests %}
+    <div class="li">
+      <b>{{ sort }}.{{ name }}</b>
+      {% if lv %}<span class="tag blue">Lv{{ lv }}</span>{% endif %}
+      {% if desc %}<br><span class="muted">{{ desc }}</span>{% endif %}
+      {% if reward %}<br><span class="tag green">{{ reward }}</span>{% endif %}
+    </div>
+    {% endfor %}
+  </div>
+  {% else %}
+  <div class="muted">该模块主线以交互式任务链形式呈现，<a href="{{ m.href }}">前往查看 ›</a></div>
+  {% endif %}
+</div>
+{% endfor %}
+
+{# 平台公共能力层 #}
+<div class="section-title">公共能力层（跨模块共用）</div>
+<div class="grid2">
+  {% for cap, href, desc in W.PUBLIC_CAPABILITY %}
+  {% if href %}<a href="{{ href }}">{{ cap }}</a>{% else %}<span class="muted">{{ cap }}</span>{% endif %}
+  {% endfor %}
+</div>
+
+{# 统一品质色系 #}
+<div class="card">
+  <div class="hd">统一物品品质色系</div>
+  {% for name, color, alias in W.RARITY_COLORS %}
+  <span class="tag" style="background:{{ color }};color:#333">{{ name }}·{{ alias }}</span>
+  {% endfor %}
+</div>
+
+{{ wap_back("/", "返回家园") }}
+{{ footer(user) }}
+{% endblock %}

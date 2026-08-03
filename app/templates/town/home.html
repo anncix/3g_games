@@ -1,5 +1,5 @@
 {% extends "base.html" %}
-{% from "macros.html" import topbar, footer %}
+{% from "macros.html" import topbar, footer, wap_back %}
 {% block title %}美味小镇{% endblock %}
 {% block body %}
 {{ topbar("美味小镇", user) }}
@@ -57,9 +57,6 @@
   <a href="/ranking?m=town&metric=dishes">排行</a>
   <a href="/games/town/rules">规则</a>
 </div>
-<div class="content">
-  <a class="btn ghost" href="/lobby">返回大厅</a>
-  <a class="btn ghost" href="/">返回家园</a>
-</div>
+{{ wap_back() }}
 {{ footer(user) }}
 {% endblock %}

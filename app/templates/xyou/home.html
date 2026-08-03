@@ -1,5 +1,5 @@
 {% extends "base.html" %}
-{% from "macros.html" import topbar, footer %}
+{% from "macros.html" import topbar, footer, wap_back %}
 {% block title %}幻想西游{% endblock %}
 {% block body %}
 {{ topbar("幻想西游", user) }}
@@ -67,9 +67,6 @@
   <a href="/games/xyou/rules">规则</a>
   <a href="/inventory?m=xyou">背包</a>
 </div>
-<div class="content">
-  <a class="btn ghost" href="/lobby">返回大厅</a>
-  <a class="btn ghost" href="/">返回家园</a>
-</div>
+{{ wap_back() }}
 {{ footer(user) }}
 {% endblock %}

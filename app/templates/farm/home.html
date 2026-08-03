@@ -1,5 +1,5 @@
 {% extends "base.html" %}
-{% from "macros.html" import topbar, footer %}
+{% from "macros.html" import topbar, footer, wap_back %}
 {% block title %}阳光农场{% endblock %}
 {% block body %}
 {{ topbar("阳光农场", user) }}
@@ -30,9 +30,6 @@
   <a href="/games/farm/rules">规则</a>
   <a href="/friends">去好友家</a>
 </div>
-<div class="content">
-  <a class="btn ghost" href="/lobby">返回大厅</a>
-  <a class="btn ghost" href="/">返回家园</a>
-</div>
+{{ wap_back() }}
 {{ footer(user) }}
 {% endblock %}

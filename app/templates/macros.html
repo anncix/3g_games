@@ -26,6 +26,15 @@
 <a class="li" href="{{ href }}"><span>{{ text }}</span>{% if right %}<span class="r">{{ right }}</span>{% endif %}</a>
 {% endmacro %}
 
+{# v0.2.9 WAP返回上级导航（落实"每页都有上级返回"原则）
+   用法：{{ wap_back() }} 默认返回大厅+家园；{{ wap_back("/games/xxx", "返回XX") }} 指定上级 #}
+{% macro wap_back(parent_href="/lobby", parent_text="返回大厅") %}
+<div class="content wap-back">
+  <a class="btn ghost" href="{{ parent_href }}">{{ parent_text }}</a>
+  <a class="btn ghost" href="/">返回家园</a>
+</div>
+{% endmacro %}
+
 {# 操作结果页通用 #}
 {% macro result(ok, msg, back_href, back_text="返回") %}
 <div class="result {{ 'ok' if ok else 'fail' }}">
