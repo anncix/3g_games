@@ -578,6 +578,77 @@ class TownFacility(Base):
     expire_at: Mapped[datetime] = mapped_column(DateTime)
 
 
+# ---------- v0.1.1：赛厨 / 厨艺大赛 ----------
+class TownChefTool(Base):
+    """玩家厨具（5 类：铲/刀/锅/味/意）
+
+    level: 厨具等级（强化等级，影响厨力）
+    equipped: 是否装备（每类只能装备 1 件）
+    """
+    __tablename__ = "town_chef_tools"
+    id: Mapped[int] = mapped_column(Integer, primary_key=True)
+    user_id: Mapped[int] = mapped_column(ForeignKey("users.id", ondelete="CASCADE"), index=True)
+    tool_key: Mapped[str] = mapped_column(String(16))  # spade/knife/pot/flavor/mind
+    level: Mapped[int] = mapped_column(Integer, default=1)
+    equipped: Mapped[bool] = mapped_column(Boolean, default=True)
+    created_at: Mapped[datetime] = mapped_column(DateTime, default=_now)
+    __table_args__ = (UniqueConstraint("user_id", "tool_key", name="uq_town_chef_tool"),)
+
+
+class TownChefSkill(Base):
+    """玩家技能点分配（火候/刀功/厨艺/调味，共 40 点）
+
+    spec 示例：15 火候 / 9 刀功 / 8 厨艺 / 8 调味
+    allocated: 已分配点数（剩余 = 40 - allocated）
+    """
+    __tablename__ = "town_chef_skills"
+    user_id: Mapped[int] = mapped_column(ForeignKey("users.id", ondelete="CASCADE"), primary_key=True)
+    huohou: Mapped[int] = mapped_column(Integer, default=0)    # 火候
+    daogong: Mapped[int] = mapped_column(Integer, default=0)  # 刀功
+    chuyi: Mapped[int] = mapped_column(Integer, default=0)    # 厨艺
+    tiaowei: Mapped[int] = mapped_column(Integer, default=0)  # 调味
+
+
+class TownMatchLog(Base):
+    """赛厨对战记录（spec：3 评委打分，总分高者胜，平局被挑战方胜）
+
+    attacker_id: 主动挑战者
+    defender_id: 被挑战者
+    attacker_score / defender_score: 三评委总分
+    winner_id: 胜者 user_id
+    """
+    __tablename__ = "town_match_logs"
+    id: Mapped[int] = mapped_column(Integer, primary_key=True)
+    attacker_id: Mapped[int] = mapped_column(ForeignKey("users.id", ondelete="CASCADE"), index=True)
+    defender_id: Mapped[int] = mapped_column(ForeignKey("users.id", ondelete="CASCADE"), index=True)
+    attacker_score: Mapped[int] = mapped_column(Integer, default=0)
+    defender_score: Mapped[int] = mapped_column(Integer, default=0)
+    winner_id: Mapped[int] = mapped_column(Integer, default=0)
+    detail: Mapped[str] = mapped_column(Text, default="")  # JSON：评委打分明细
+    created_at: Mapped[datetime] = mapped_column(DateTime, default=_now)
+
+
+class TownContestEntry(Base):
+    """厨艺大赛报名记录（spec：4 赛区，每日 8-23 时报名，23 时匹配，次日 8 时公布）
+
+    zone: junior/middle/senior/super
+    signup_date: 报名日期 YYYY-MM-DD
+    matched: 是否已匹配
+    result: win/lose/pending
+    """
+    __tablename__ = "town_contest_entries"
+    id: Mapped[int] = mapped_column(Integer, primary_key=True)
+    user_id: Mapped[int] = mapped_column(ForeignKey("users.id", ondelete="CASCADE"), index=True)
+    zone: Mapped[str] = mapped_column(String(16))
+    signup_date: Mapped[str] = mapped_column(String(10))  # YYYY-MM-DD
+    matched: Mapped[bool] = mapped_column(Boolean, default=False)
+    opponent_id: Mapped[int] = mapped_column(Integer, default=0)
+    result: Mapped[str] = mapped_column(String(16), default="pending")  # pending/win/lose
+    reward_coin: Mapped[int] = mapped_column(Integer, default=0)
+    created_at: Mapped[datetime] = mapped_column(DateTime, default=_now)
+    __table_args__ = (UniqueConstraint("user_id", "signup_date", name="uq_town_contest_daily"),)
+
+
 # ============================================================
 # 模块3：魔法花园 Garden
 # 老味道点：成长阶段操作(发芽/花苗/花蕾) / 合成花种 / 花谱点亮核心目标 / 偷花送花展示

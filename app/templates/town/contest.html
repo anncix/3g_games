@@ -1,0 +1,65 @@
+{% extends "base.html" %}
+{% from "macros.html" import topbar, footer %}
+{% block title %}厨艺大赛{% endblock %}
+{% block body %}
+{{ topbar("厨艺大赛", user) }}
+<div class="crumb"><a href="/games/town">小镇</a> › <a href="/games/town/chef">赛厨中心</a> › 厨艺大赛</div>
+<div class="card">
+  <div class="hd">赛区划分（按等级）</div>
+  {% for k, (name, lo, hi) in contest_zones.items() %}
+  <b>{{ name }}</b>：Lv{{ lo }}-{{ hi if hi < 999 else '∞' }}
+  {% if zone == k %}<span class="tag green">我的赛区</span>{% endif %}<br>
+  {% endfor %}
+</div>
+<div class="card">
+  <div class="hd">规则</div>
+  报名消耗 <b>{{ signup_cost }} 体力</b>（折算 {{ signup_cost * 10 }} 金币）<br>
+  报名时段 <b>每日 8-23 时</b> · 23 时后系统匹配 · 次日 8 时前公布<br>
+  <span class="muted">本平台简化：报名后点"立即结算"匹配同赛区对手，单场决胜负</span>
+</div>
+
+{% if not zone %}
+<div class="card"><span class="tag red">等级不足，需 Lv40+ 才能参加</span></div>
+{% else %}
+<div class="section-title">今日报名</div>
+<div class="card">
+  {% if entry %}
+    已报名赛区：<b>{{ contest_zones[entry.zone][0] }}</b><br>
+    {% if entry.matched %}
+      结果：<b>{{ '胜利' if entry.result == 'win' else '失利' }}</b> · 奖励 {{ entry.reward_coin }} 金币
+    {% else %}
+      <span class="tag orange">已报名，待结算</span>
+      <form method="post" action="/games/town/contest/settle" style="margin-top:6px">
+        <button class="btn green" type="submit">立即结算</button>
+      </form>
+    {% endif %}
+  {% else %}
+    {% if signup_open %}
+      <form method="post" action="/games/town/contest/signup">
+        <button class="btn green" type="submit">报名（{{ signup_cost * 10 }} 金币）</button>
+      </form>
+    {% else %}
+      <span class="tag red">非报名时段（8-23 时）</span>
+    {% endif %}
+  {% endif %}
+</div>
+{% endif %}
+
+{% if history %}
+<div class="section-title">历史记录</div>
+<div class="content">
+  {% for h in history %}
+  <div class="li">{{ h.signup_date }} · {{ contest_zones[h.zone][0] }}
+    <span class="r">
+      {% if h.matched %}{{ '胜' if h.result == 'win' else '负' }} +{{ h.reward_coin }}金
+      {% else %}未结算{% endif %}
+    </span></div>
+  {% endfor %}
+</div>
+{% endif %}
+
+<div class="content">
+  <a class="btn ghost" href="/games/town/chef">返回赛厨中心</a>
+</div>
+{{ footer(user) }}
+{% endblock %}

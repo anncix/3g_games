@@ -1,0 +1,27 @@
+{% extends "base.html" %}
+{% from "macros.html" import topbar, footer %}
+{% block title %}赛厨结果{% endblock %}
+{% block body %}
+{{ topbar("赛厨结果", user) }}
+<div class="crumb"><a href="/games/town">小镇</a> › <a href="/games/town/chef">赛厨中心</a> › 结果</div>
+<div class="card">
+  <div class="hd">{{ '胜利' if winner_id == user.id else '失利' }}</div>
+  我 <b>{{ a_total }}</b> : <b>{{ d_total }}</b> {{ defender.nickname if defender else '对手' }}<br>
+  <span class="muted">spec：平局或分低，被挑战方胜</span>
+</div>
+<div class="section-title">评委打分明细</div>
+<div class="card">
+  <table class="grid">
+    <tr><th>评委关注</th><th>我</th><th>对手</th></tr>
+    {% for j in judge_detail %}
+    <tr><td>{{ j.focus }}</td><td>{{ j.a_score }}</td><td>{{ j.d_score }}</td></tr>
+    {% endfor %}
+    <tr><td><b>总分</b></td><td><b>{{ a_total }}</b></td><td><b>{{ d_total }}</b></td></tr>
+  </table>
+</div>
+<div class="content">
+  <a class="btn green" href="/games/town/match">继续赛厨</a>
+  <a class="btn ghost" href="/games/town/chef">返回赛厨中心</a>
+</div>
+{{ footer(user) }}
+{% endblock %}

@@ -1,0 +1,91 @@
+{% extends "base.html" %}
+{% from "macros.html" import topbar, footer %}
+{% block title %}赛厨中心{% endblock %}
+{% block body %}
+{{ topbar("赛厨中心", user) }}
+<div class="crumb"><a href="/games/town">小镇</a> › 赛厨中心</div>
+<div class="card">
+  <div class="hd">综合厨力</div>
+  <b style="font-size:1.2em">{{ power }}</b> · 等级 Lv{{ st.level }} · 星级 {{ st.stars }}★<br>
+  <span class="muted">厨力 = 等级×10 + 星级×200 + 已学菜×5 + 金牌菜×20 + 厨具等级和×15 + 技能点×8</span>
+</div>
+
+<div class="section-title">技能点（共 {{ skill_total }} 点）</div>
+<div class="card">
+  剩余 <b>{{ skill_remain }}</b> 点
+  <table class="grid">
+    <tr><th>技能</th><th>已分配</th><th>操作</th></tr>
+    {% for k in ['huohou','daogong','chuyi','tiaowei'] %}
+    <tr>
+      <td>{{ skill_names[k] }}</td>
+      <td>{{ sk | attr(k) }}</td>
+      <td>
+        {% if skill_remain > 0 %}
+        <form method="post" action="/games/town/chef/skill_alloc/{{ k }}" style="display:inline">
+          <button class="btn green" type="submit">+1</button>
+        </form>
+        {% else %}<span class="muted">无点</span>{% endif %}
+      </td>
+    </tr>
+    {% endfor %}
+  </table>
+  <form method="post" action="/games/town/chef/skill_reset" style="margin-top:6px">
+    <button class="btn ghost" type="submit">重置技能点（2000金币）</button>
+  </form>
+</div>
+
+<div class="section-title">厨具（5 类：铲/刀/锅/味/意）</div>
+<div class="content">
+  {% for k, (name, base, price) in chef_tools_cfg.items() %}
+  {% set owned = tools | selectattr('tool_key','equalto',k) | first %}
+  <a class="li" href="#">
+    <span class="tag {{ 'green' if owned else 'muted' }}">{{ name }}</span>
+    {% if owned %}
+      Lv{{ owned.level }} {% if owned.equipped %}·已装备{% endif %}
+      <span class="r">
+        {% if owned.level < 10 %}
+        <form method="post" action="/games/town/chef/tool_upgrade/{{ k }}" style="display:inline">
+          <button class="btn small" type="submit">强化({{ 1000 * owned.level }}金)</button>
+        </form>
+        {% else %}满级{% endif %}
+      </span>
+    {% else %}
+      未拥有
+      <span class="r">
+        <form method="post" action="/games/town/chef/tool_buy/{{ k }}" style="display:inline">
+          <button class="btn small" type="submit">购买({{ price }}金)</button>
+        </form>
+      </span>
+    {% endif %}
+  </a>
+  {% endfor %}
+</div>
+
+<div class="section-title">菜系 / 街道映射</div>
+<div class="card">
+  {% for cuisine, street in cuisine_streets.items() %}
+  <b>{{ cuisine }}</b> → {{ street }}<br>
+  {% endfor %}
+</div>
+
+<div class="section-title">入口</div>
+<div class="grid2">
+  <a href="/games/town/match">赛厨挑战</a>
+  <a href="/games/town/contest">厨艺大赛</a>
+</div>
+
+{% if recent %}
+<div class="section-title">最近赛厨记录</div>
+<div class="content">
+  {% for m in recent %}
+  <div class="li">vs {{ m.defender_id }} · 我{{ m.attacker_score }}:{{ m.defender_score }}
+    <span class="r">{{ '胜' if m.winner_id == user.id else '负' }}</span></div>
+  {% endfor %}
+</div>
+{% endif %}
+
+<div class="content">
+  <a class="btn ghost" href="/games/town">返回小镇首页</a>
+</div>
+{{ footer(user) }}
+{% endblock %}

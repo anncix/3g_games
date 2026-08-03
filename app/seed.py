@@ -87,6 +87,13 @@ async def seed():
         # 升级材料
         await goods.ensure_item(db, "town_dish_fragment", "菜谱碎片", "material", "town", True, 15, "升极品/金牌材料")
         await goods.ensure_item(db, "town_special_condiment", "特殊调料", "material", "town", True, 40, "升金牌专用材料")
+        # v0.1.1 万能食材（spec：合成时只差 1 个食材，可用对应级别万能食材补齐）
+        await goods.ensure_item(db, "town_wild_ing_1", "1级万能食材", "ingredient", "town", True, 30, "替代1级缺失食材（限1个）")
+        await goods.ensure_item(db, "town_wild_ing_2", "2级万能食材", "ingredient", "town", True, 50, "替代2级缺失食材（限1个）")
+        await goods.ensure_item(db, "town_wild_ing_3", "3级万能食材", "ingredient", "town", True, 80, "替代3级缺失食材（限1个）")
+        await goods.ensure_item(db, "town_wild_ing_4", "4级万能食材", "ingredient", "town", True, 120, "替代4级缺失食材（限1个）")
+        await goods.ensure_item(db, "town_wild_ing_5", "5级万能食材", "ingredient", "town", True, 180, "替代5级缺失食材（限1个）")
+        await goods.ensure_item(db, "town_wild_ing_6", "6级万能食材", "ingredient", "town", True, 260, "替代6级缺失食材（限1个）")
         # 花园物品字典已在下方"花种/花朵/花谱"小节统一注册
         # 航海装备
         await goods.ensure_item(db, "sea_equip_sail", "船帆", "equip", "sea", False, 50, "提升战力")
@@ -326,6 +333,11 @@ async def seed():
             await goods.add_item(db, demo_user.id, "town_ing_veg", "town", 4)
             await goods.add_item(db, demo_user.id, "town_ing_meat", "town", 2)
             await goods.add_item(db, demo_user.id, "town_ing_noodle", "town", 2)
+            # v0.1.1：万能食材 + 菜谱碎片 + 特殊调料（便于体验万能替代与品质升级）
+            await goods.add_item(db, demo_user.id, "town_wild_ing_1", "town", 2)
+            await goods.add_item(db, demo_user.id, "town_wild_ing_2", "town", 1)
+            await goods.add_item(db, demo_user.id, "town_dish_fragment", "town", 5)
+            await goods.add_item(db, demo_user.id, "town_special_condiment", "town", 1)
             # 给 lily 也一些食材，便于 demo 去翻橱柜
             lily_user = (await db.execute(select(models.User).where(models.User.username == "lily"))).scalar_one_or_none()
             if lily_user:
@@ -357,6 +369,13 @@ async def seed():
                     aptitudes=_json.dumps(aptitudes, ensure_ascii=False),
                     skills=_json.dumps(["SK_001", "SK_003"]), **stats)
                 db.add(starter)
+            # v0.1.1：美味小镇赛厨系统 —— 给 demo 一件初始厨具(铲)便于上手赛厨
+            existing_tool = (await db.execute(select(models.TownChefTool).where(
+                models.TownChefTool.user_id == demo_user.id,
+                models.TownChefTool.tool_key == "spade"))).scalar_one_or_none()
+            if not existing_tool:
+                db.add(models.TownChefTool(user_id=demo_user.id, tool_key="spade",
+                                           level=1, equipped=True))
             # 精武堂：给 demo 初始强化石 + 玄铁精华，便于体验强化与打造
             await goods.add_item(db, demo_user.id, "MT_STRENGTH_STONE", "martial", 5)
             await goods.add_item(db, demo_user.id, "MT_IRON_ESSENCE", "martial", 3)
