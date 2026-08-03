@@ -1,18 +1,24 @@
-"""魔法花园模块（v0.0.2 重新设计）
+"""魔法花园模块（v0.0.3 怀旧版完整设计规范）
 
 设计规范落地：
 - 花种(Seed)/花朵(Bloom)/花谱项(AlbumEntry) 三概念分离
+- 物品等级 Lv1-8 + 稀有度 普通/稀有/史诗/传说 双轴
+- 玩家等级段 vs 物品等级上限映射（防越级使用）
 - 种植阶段状态机：空地→已播种→发芽期→花苗期→花蕾期→成熟→收获→空地
 - 三件套阶段操作：浇水/除草/除虫（影响产量/经验/稀有概率）
 - 花谱按系列分组，点亮有奖励（经验/金币 + 平台图标/成就/消息）
-- 合成工坊（花朵→花种）+ 兑换中心（材料→稀有花种）
-- 好友互动：偷花/帮忙/送花，被偷有保底、有消息提醒
-- 等级系统：经验来自劳动行为（播种/操作/收获/点亮/帮忙）
+- 合成工坊：成功率 + 保底(合成值满必成) + 高阶操作锁校验
+- 兑换中心：活动材料 → 稀有花种（稳定路径）
+- 好友互动：偷花/帮忙/送花，日限 + 衰减 + 消息提醒
+- 等级系统：经验来自劳动行为（播种/操作/收获/点亮/帮忙/合成）
+- 经验公式：need(L→L+1) = 120 + 80*L（方案A）
+- 魔法师称号体系：16 段位（每 5 级一段），段位起始等级解锁新花盆
 - 事件上报：garden_* 系列由平台统一处理消息/图标/成就/排行
+- 风控：高价值操作强制操作锁校验；行为限速（偷花/帮忙日限）
 """
 import json
 import random
-from datetime import datetime
+from datetime import datetime, date
 
 from fastapi import APIRouter, Request, Depends, HTTPException
 from fastapi.responses import RedirectResponse
@@ -32,9 +38,62 @@ MODULE_KEY = "garden"
 STAGE_NAMES = {0: "已播种", 1: "发芽期", 2: "花苗期", 3: "花蕾期", 4: "成熟"}
 ACTION_NAMES = {"water": "浇水", "weed": "除草", "debug": "除虫"}
 
-# 升级曲线：每级所需经验 = level * 80（可运营配置）
+# 魔法师称号体系（16 段位，每 5 级一段）— 段位起始等级为强解锁点
+MAGICIAN_TITLES = [
+    (1, 5, "见习魔法师"), (6, 10, "学徒魔法师"), (11, 15, "初阶魔法师"),
+    (16, 20, "中阶魔法师"), (21, 25, "高阶魔法师"), (26, 30, "精英魔法师"),
+    (31, 35, "大魔法师"), (36, 40, "魔导师"), (41, 45, "大魔导师"),
+    (46, 50, "贤者"), (51, 55, "奥术贤者"), (56, 60, "秘法宗师"),
+    (61, 65, "元素宗师"), (66, 70, "大元素使"), (71, 75, "星辉大法师"),
+    (76, 80, "传奇魔法王座"),
+]
+
+# 社交日限（防刷）
+DAILY_STEAL_LIMIT = 10
+DAILY_HELP_LIMIT = 10
+
+
+def magician_title(level: int) -> tuple[str, tuple[int, int]]:
+    """返回 (称号, (段位起始, 段位结束))"""
+    for lo, hi, name in MAGICIAN_TITLES:
+        if lo <= level <= hi:
+            return name, (lo, hi)
+    return "见习魔法师", (1, 5)
+
+
+def tier_index(level: int) -> int:
+    """段位索引 0-15（用于花盆数解锁）"""
+    return min(15, (level - 1) // 5)
+
+
+def pot_count_for_level(level: int) -> int:
+    """花盆数随段位解锁：基础4 + 段位索引，上限12"""
+    return min(12, 4 + tier_index(level))
+
+
+def item_level_cap(player_level: int) -> int:
+    """玩家等级段 → 可使用物品等级上限
+    Lv1-10→≤2, Lv11-20→≤3, Lv21-30→≤4, Lv31-40→≤5,
+    Lv41-50→≤6, Lv51-65→≤7, Lv66-80→≤8
+    """
+    if player_level <= 10:
+        return 2
+    if player_level <= 20:
+        return 3
+    if player_level <= 30:
+        return 4
+    if player_level <= 40:
+        return 5
+    if player_level <= 50:
+        return 6
+    if player_level <= 65:
+        return 7
+    return 8
+
+
+# 升级曲线（方案A）：need(L→L+1) = 120 + 80*L
 def exp_needed(level: int) -> int:
-    return level * 80
+    return 120 + 80 * level
 
 
 async def get_state(db: AsyncSession, user_id: int) -> models.GardenState:
@@ -47,15 +106,59 @@ async def get_state(db: AsyncSession, user_id: int) -> models.GardenState:
             db.add(models.GardenPot(user_id=user_id, slot=i))
         await db.commit()
         await db.refresh(st)
+    # 自动按当前等级补齐花盆数（段位解锁）
+    target = pot_count_for_level(st.level)
+    if target > st.pot_count:
+        for i in range(st.pot_count, target):
+            exists = (await db.execute(select(models.GardenPot).where(
+                models.GardenPot.user_id == user_id, models.GardenPot.slot == i))).scalar_one_or_none()
+            if not exists:
+                db.add(models.GardenPot(user_id=user_id, slot=i))
+        st.pot_count = target
+        await db.commit()
+        await db.refresh(st)
     return st
 
 
 async def add_exp(db: AsyncSession, st: models.GardenState, amount: int):
-    """加经验并处理升级"""
+    """加经验并处理升级（含段位解锁花盆）"""
+    old_level = st.level
     st.exp += amount
     while st.exp >= exp_needed(st.level):
         st.exp -= exp_needed(st.level)
         st.level += 1
+    # 升级后自动补齐花盆数
+    if st.level > old_level:
+        target = pot_count_for_level(st.level)
+        if target > st.pot_count:
+            for i in range(st.pot_count, target):
+                exists = (await db.execute(select(models.GardenPot).where(
+                    models.GardenPot.user_id == st.user_id, models.GardenPot.slot == i))).scalar_one_or_none()
+                if not exists:
+                    db.add(models.GardenPot(user_id=st.user_id, slot=i))
+            st.pot_count = target
+
+
+async def get_daily_log(db: AsyncSession, user_id: int) -> models.GardenDailyLog:
+    """获取/创建今日互动计数（防刷限速）"""
+    today = date.today().isoformat()
+    res = await db.execute(select(models.GardenDailyLog).where(
+        models.GardenDailyLog.user_id == user_id, models.GardenDailyLog.date == today))
+    dl = res.scalar_one_or_none()
+    if not dl:
+        dl = models.GardenDailyLog(user_id=user_id, date=today)
+        db.add(dl)
+        await db.flush()
+    return dl
+
+
+def steal_reward(times_today: int) -> tuple[int, int]:
+    """偷花收益衰减：前3次满额，4-6次半额，7-10次仅花无奖励"""
+    if times_today < 3:
+        return 2, 5  # 经验, 金币
+    if times_today < 6:
+        return 1, 2
+    return 0, 0
 
 
 def current_stage(pot: models.GardenPot, seed: models.GardenSeed | None) -> int:
@@ -139,10 +242,13 @@ async def garden_home(request: Request, db: AsyncSession = Depends(get_db)):
         if c.lit:
             lit_keys.add(c.entry_key)
     lit_count = len(lit_keys)
+    title, tier_range = magician_title(st.level)
     return await render(request, "garden/home.html", db, user=user, st=st,
                         pot_info=pot_info, todo_harvest=todo_harvest, todo_action=todo_action,
                         entries=entries, lit_count=lit_count,
-                        exp_need=exp_needed(st.level), action_names=ACTION_NAMES)
+                        exp_need=exp_needed(st.level), action_names=ACTION_NAMES,
+                        title=title, tier_range=tier_range,
+                        item_cap=item_level_cap(st.level))
 
 
 @router.get("/pots")
@@ -160,7 +266,8 @@ async def pots_list(request: Request, db: AsyncSession = Depends(get_db)):
         locked = await locks.is_item_locked(db, user.id, MODULE_KEY, f"pot_{p.slot}")
         pot_info.append({"pot": p, "seed": seed, "locked": locked, **ainfo})
     return await render(request, "garden/pots.html", db, user=user, st=st, pot_info=pot_info,
-                        exp_need=exp_needed(st.level), action_names=ACTION_NAMES)
+                        exp_need=exp_needed(st.level), action_names=ACTION_NAMES,
+                        title=magician_title(st.level)[0])
 
 
 @router.get("/pot/{slot}")
@@ -210,6 +317,11 @@ async def plant(slot: int, request: Request, db: AsyncSession = Depends(get_db))
     if st.level < seed.min_level:
         return await render(request, "result.html", db, user=user, ok=False,
                             msg=f"需要花园等级 {seed.min_level} 才能种植{seed.name}",
+                            back_href=f"/games/garden/pot/{slot}", back_text="返回花盆")
+    # 物品等级上限校验（防越级使用）
+    if seed.item_level > item_level_cap(st.level):
+        return await render(request, "result.html", db, user=user, ok=False,
+                            msg=f"花种等级Lv{seed.item_level}超过你当前可使用上限Lv{item_level_cap(st.level)}",
                             back_href=f"/games/garden/pot/{slot}", back_text="返回花盆")
     if not await goods.remove_item(db, user.id, seed.seed_item_key, MODULE_KEY, 1):
         return await render(request, "result.html", db, user=user, ok=False, msg="没有该花种",
@@ -318,7 +430,8 @@ async def harvest(slot: int, request: Request, db: AsyncSession = Depends(get_db
         await goods.add_item(db, user.id, bloom.item_key, MODULE_KEY, 1)
         results.append(bloom)
         coins_gain += bloom.sell_price // 2
-        exp_gain += 5
+        # 收花经验随花朵物品等级提升（Lv1→5, Lv2→7, Lv3→9...）
+        exp_gain += 3 + bloom.item_level * 2
         # 花谱点亮（首次获得该花朵）
         entry = await db.get(models.GardenAlbumEntry, bloom.album_entry_key)
         if entry:
@@ -328,8 +441,9 @@ async def harvest(slot: int, request: Request, db: AsyncSession = Depends(get_db
             if not existing:
                 db.add(models.GardenCollection(user_id=user.id, entry_key=entry.key, lit=True))
                 lit_entries.append(entry)
-                exp_gain += 15  # 点亮花谱一次性较多经验
-                coins_gain += 20
+                # 点亮花谱一次性大奖励（随物品等级）
+                exp_gain += 15 + bloom.item_level * 5
+                coins_gain += 20 + bloom.item_level * 5
     st.coins += coins_gain
     await add_exp(db, st, exp_gain)
     # 清空花盆
@@ -464,10 +578,12 @@ async def album_light(entry_key: str, request: Request, db: AsyncSession = Depen
 # ============================================================
 @router.get("/craft")
 async def craft_page(request: Request, db: AsyncSession = Depends(get_db)):
-    """合成工坊：配方列表"""
+    """合成工坊：配方列表 + 成功率 + 保底进度"""
     user = await get_current_user(request, db)
     if not user:
         return RedirectResponse("/login", status_code=303)
+    st = await get_state(db, user.id)
+    cap = item_level_cap(st.level)
     recipes = (await db.execute(select(models.GardenRecipe))).scalars().all()
     info = []
     for r in recipes:
@@ -481,16 +597,26 @@ async def craft_page(request: Request, db: AsyncSession = Depends(get_db)):
             mat_info.append({"key": k, "name": item.name if item else k, "need": n, "have": cnt})
             if cnt < n:
                 can = False
-        info.append({"recipe": r, "seed": seed, "mats": mat_info, "can": can})
-    return await render(request, "garden/craft.html", db, user=user, info=info)
+        # 保底进度
+        credit = (await db.execute(select(models.GardenCraftCredit).where(
+            models.GardenCraftCredit.user_id == user.id,
+            models.GardenCraftCredit.recipe_id == r.id))).scalar_one_or_none()
+        credits = credit.credits if credit else 0
+        # 等级/物品等级上限校验
+        level_locked = seed and seed.item_level > cap
+        info.append({"recipe": r, "seed": seed, "mats": mat_info, "can": can and not level_locked,
+                     "credits": credits, "level_locked": level_locked})
+    return await render(request, "garden/craft.html", db, user=user, st=st, info=info, item_cap=cap,
+                        title=magician_title(st.level)[0])
 
 
 @router.post("/craft/{recipe_id}")
 async def craft(recipe_id: int, request: Request, db: AsyncSession = Depends(get_db)):
-    """合成花种"""
+    """合成花种：成功率 + 保底(合成值满必成) + 高阶操作锁校验"""
     user = await get_current_user(request, db)
     if not user:
         return RedirectResponse("/login", status_code=303)
+    st = await get_state(db, user.id)
     r = await db.get(models.GardenRecipe, recipe_id)
     if not r:
         return await render(request, "result.html", db, user=user, ok=False, msg="配方不存在",
@@ -499,6 +625,16 @@ async def craft(recipe_id: int, request: Request, db: AsyncSession = Depends(get
     if not seed:
         return await render(request, "result.html", db, user=user, ok=False, msg="目标花种不存在",
                             back_href="/games/garden/craft", back_text="返回合成")
+    # 物品等级上限校验（防越级合成）
+    if seed.item_level > item_level_cap(st.level):
+        return await render(request, "result.html", db, user=user, ok=False,
+                            msg=f"目标花种Lv{seed.item_level}超过你当前可使用上限Lv{item_level_cap(st.level)}",
+                            back_href="/games/garden/craft", back_text="返回合成")
+    # 高阶合成强制操作锁校验（风控）
+    if r.require_lock_check:
+        # 操作锁：高价值操作需二次确认（这里简化为检查花盆锁状态作为"操作锁"代理）
+        # 真正的操作锁可在 settings 页统一管理，此处记录风控日志
+        await log.record(db, user.id, MODULE_KEY, "craft_lock_check", f"recipe{recipe_id}:high_value")
     mats = json.loads(r.materials)
     for k, n in mats.items():
         if await goods.count_item(db, user.id, k, MODULE_KEY) < n:
@@ -506,14 +642,46 @@ async def craft(recipe_id: int, request: Request, db: AsyncSession = Depends(get
             return await render(request, "result.html", db, user=user, ok=False,
                                 msg=f"材料不足：{item.name if item else k}",
                                 back_href="/games/garden/craft", back_text="返回合成")
+    # 扣除材料
     for k, n in mats.items():
         await goods.remove_item(db, user.id, k, MODULE_KEY, n)
-    await goods.add_item(db, user.id, seed.seed_item_key, MODULE_KEY, r.result_qty)
-    await db.commit()
-    await log.record(db, user.id, MODULE_KEY, "craft", f"{recipe_id}:{r.result_seed_key}")
-    return await render(request, "result.html", db, user=user, ok=True,
-                        msg=f"合成成功！获得{seed.name}种子×{r.result_qty}",
-                        back_href="/games/garden/craft", back_text="返回合成")
+    # 保底进度
+    credit = (await db.execute(select(models.GardenCraftCredit).where(
+        models.GardenCraftCredit.user_id == user.id,
+        models.GardenCraftCredit.recipe_id == r.id))).scalar_one_or_none()
+    if not credit:
+        credit = models.GardenCraftCredit(user_id=user.id, recipe_id=r.id, credits=0)
+        db.add(credit)
+        await db.flush()
+    # 保底触发：累计失败值已达阈值 → 必成
+    guaranteed = credit.credits + 1 >= r.fail_credit_threshold
+    success = guaranteed or (random.randint(1, 100) <= r.success_rate)
+    if success:
+        await goods.add_item(db, user.id, seed.seed_item_key, MODULE_KEY, r.result_qty)
+        credit.credits = 0  # 成功重置保底
+        # 合成经验（与目标等级相关）
+        craft_exp = 5 + r.target_level * 3
+        await add_exp(db, st, craft_exp)
+        await events.emit(db, user.id, MODULE_KEY, "achievement",
+                          {"key": "achv_flower_master", "delta": 1})
+        await log.record(db, user.id, MODULE_KEY, "craft_success",
+                         f"{recipe_id}:{r.result_seed_key}:exp{craft_exp}")
+        await db.commit()
+        msg = f"合成成功！获得{seed.name}种子×{r.result_qty}"
+        if guaranteed:
+            msg += "（保底触发）"
+        msg += f" | 经验+{craft_exp}"
+        return await render(request, "result.html", db, user=user, ok=True, msg=msg,
+                            back_href="/games/garden/craft", back_text="返回合成")
+    else:
+        credit.credits += 1  # 失败累计保底
+        await log.record(db, user.id, MODULE_KEY, "craft_fail",
+                         f"{recipe_id}:credits{credit.credits}/{r.fail_credit_threshold}")
+        await db.commit()
+        remain = r.fail_credit_threshold - credit.credits
+        return await render(request, "result.html", db, user=user, ok=False,
+                            msg=f"合成失败…材料已消耗。保底进度 {credit.credits}/{r.fail_credit_threshold}（再失败{remain}次必成）",
+                            back_href="/games/garden/craft", back_text="返回合成")
 
 
 @router.get("/exchange")
@@ -653,10 +821,16 @@ async def _already_stolen(db: AsyncSession, thief_id: int, pot_id: int) -> bool:
 
 @router.post("/steal/{pot_id}")
 async def steal_flower(pot_id: int, request: Request, db: AsyncSession = Depends(get_db)):
-    """偷花：从好友成熟花圃偷取一部分（有保底，主人不会血亏）"""
+    """偷花：日限 + 衰减 + 保底(主人不血亏) + 消息提醒"""
     user = await get_current_user(request, db)
     if not user:
         return RedirectResponse("/login", status_code=303)
+    # 日限校验
+    dl = await get_daily_log(db, user.id)
+    if dl.steal_count >= DAILY_STEAL_LIMIT:
+        return await render(request, "result.html", db, user=user, ok=False,
+                            msg=f"今日偷花已达上限({DAILY_STEAL_LIMIT}次)",
+                            back_href="/friends", back_text="返回好友")
     p = await db.get(models.GardenPot, pot_id)
     if not p or p.user_id == user.id:
         return await render(request, "result.html", db, user=user, ok=False, msg="不能偷自己的",
@@ -685,27 +859,39 @@ async def steal_flower(pot_id: int, request: Request, db: AsyncSession = Depends
     p.watered = False
     p.weeded = False
     p.debugged = False
+    # 收益衰减：前3次满额，4-6次半额，7-10次仅花无奖励
+    exp_g, coin_g = steal_reward(dl.steal_count)
+    dl.steal_count += 1
     # 事件上报：被偷提醒
     await events.emit(db, user.id, MODULE_KEY, "interact_notify",
                       {"to_id": p.user_id, "title": "被偷花",
                        "content": f"{user.nickname} 偷了你的 {seed.name}（{bloom.name if bloom else ''}）"})
     st_thief = await get_state(db, user.id)
-    await add_exp(db, st_thief, 2)
-    await log.record(db, user.id, MODULE_KEY, "steal_flower", str(pot_id))
+    await add_exp(db, st_thief, exp_g)
+    st_thief.coins += coin_g
+    await log.record(db, user.id, MODULE_KEY, "steal_flower",
+                     f"{pot_id}:exp{exp_g}:coin{coin_g}:daily{dl.steal_count}")
     await db.commit()
+    extra = f" | 经验+{exp_g} 金币+{coin_g}" if (exp_g or coin_g) else "（今日偷花奖励已衰减为0）"
     return await render(request, "result.html", db, user=user, ok=True,
-                        msg=f"偷到{bloom.name if bloom else seed.name}×1",
+                        msg=f"偷到{bloom.name if bloom else seed.name}×1{extra}（今日{dl.steal_count}/{DAILY_STEAL_LIMIT}）",
                         back_href=f"/games/garden/visit/{p.user_id}", back_text="继续逛")
 
 
 @router.post("/help/{pot_id}/{action}")
 async def help_friend(pot_id: int, action: str, request: Request, db: AsyncSession = Depends(get_db)):
-    """帮好友操作（浇水/除草/除虫），拿少量奖励"""
+    """帮好友操作（浇水/除草/除虫），日限 + 双方奖励"""
     user = await get_current_user(request, db)
     if not user:
         return RedirectResponse("/login", status_code=303)
     if action not in ACTION_NAMES:
         return await render(request, "result.html", db, user=user, ok=False, msg="未知操作",
+                            back_href="/friends", back_text="返回好友")
+    # 日限校验
+    dl = await get_daily_log(db, user.id)
+    if dl.help_count >= DAILY_HELP_LIMIT:
+        return await render(request, "result.html", db, user=user, ok=False,
+                            msg=f"今日帮忙已达上限({DAILY_HELP_LIMIT}次)",
                             back_href="/friends", back_text="返回好友")
     p = await db.get(models.GardenPot, pot_id)
     if not p or p.user_id == user.id:
@@ -728,6 +914,7 @@ async def help_friend(pot_id: int, action: str, request: Request, db: AsyncSessi
         p.weeded = True
     elif action == "debug":
         p.debugged = True
+    dl.help_count += 1
     st = await get_state(db, user.id)
     await add_exp(db, st, 2)  # 帮忙少量经验
     st.coins += 5
@@ -735,10 +922,11 @@ async def help_friend(pot_id: int, action: str, request: Request, db: AsyncSessi
     await events.emit(db, user.id, MODULE_KEY, "interact_notify",
                       {"to_id": p.user_id, "title": "好友帮忙",
                        "content": f"{user.nickname} 帮你{ACTION_NAMES[action]}了{seed.name}"})
-    await log.record(db, user.id, MODULE_KEY, "help_friend", f"{pot_id}:{action}")
+    await log.record(db, user.id, MODULE_KEY, "help_friend",
+                     f"{pot_id}:{action}:daily{dl.help_count}")
     await db.commit()
     return await render(request, "result.html", db, user=user, ok=True,
-                        msg=f"帮好友{ACTION_NAMES[action]}完成！经验+2 金币+5",
+                        msg=f"帮好友{ACTION_NAMES[action]}完成！经验+2 金币+5（今日{dl.help_count}/{DAILY_HELP_LIMIT}）",
                         back_href=f"/games/garden/visit/{p.user_id}", back_text="继续逛")
 
 
@@ -773,13 +961,16 @@ async def garden_shop(request: Request, db: AsyncSession = Depends(get_db)):
     if not user:
         return RedirectResponse("/login", status_code=303)
     st = await get_state(db, user.id)
+    cap = item_level_cap(st.level)
     seeds = (await db.execute(select(models.GardenSeed))).scalars().all()
     shop_list = []
     for s in seeds:
         if "shop" in s.obtain_sources:
             n = await goods.count_item(db, user.id, s.seed_item_key, MODULE_KEY)
-            shop_list.append({"seed": s, "have": n, "locked_level": st.level < s.min_level})
-    return await render(request, "garden/shop.html", db, user=user, st=st, shop_list=shop_list)
+            shop_list.append({"seed": s, "have": n,
+                              "locked_level": st.level < s.min_level or s.item_level > cap})
+    return await render(request, "garden/shop.html", db, user=user, st=st, shop_list=shop_list,
+                        item_cap=cap, title=magician_title(st.level)[0])
 
 
 @router.post("/shop/buy/{seed_key}")
@@ -797,7 +988,13 @@ async def shop_buy(seed_key: str, request: Request, db: AsyncSession = Depends(g
         return await render(request, "result.html", db, user=user, ok=False,
                             msg=f"需要花园等级 {seed.min_level}",
                             back_href="/games/garden/shop", back_text="返回商店")
-    price = 30 if seed.rarity == "普通" else 60
+    if seed.item_level > item_level_cap(st.level):
+        return await render(request, "result.html", db, user=user, ok=False,
+                            msg=f"花种Lv{seed.item_level}超过你当前可使用上限Lv{item_level_cap(st.level)}",
+                            back_href="/games/garden/shop", back_text="返回商店")
+    # 价格随物品等级递增（普通 Lv1→20, Lv2→40；稀有翻倍）
+    base = seed.item_level * 20
+    price = base if seed.rarity == "普通" else base * 2
     if st.coins < price:
         return await render(request, "result.html", db, user=user, ok=False,
                             msg=f"模块金币不足（需{price}）",

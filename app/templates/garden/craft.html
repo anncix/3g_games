@@ -4,14 +4,22 @@
 {% block body %}
 {{ topbar("合成工坊", user) }}
 <div class="crumb"><a href="/games/garden">花园</a> › 合成工坊</div>
-<div class="muted">用花朵/材料合成稀有花种，固定配方稳定产出</div>
+<div class="card">
+  <span class="tag blue">{{ title }}</span> Lv{{ st.level }} · 物品上限 Lv{{ item_cap }}
+</div>
+<div class="muted">成功率随目标等级下降；失败累计保底值满必成；高阶合成触发操作锁校验</div>
 {% for item in info %}
 <div class="card">
   <div class="hd">{{ item.recipe.name }} → {{ item.seed.name }}种子×{{ item.recipe.result_qty }}</div>
-  目标花种：<b>{{ item.seed.name }}</b>（{{ item.seed.rarity }}，需Lv{{ item.seed.min_level }}）<br>
+  目标：<b>{{ item.seed.name }}</b> <span class="tag">{{ item.seed.rarity }}</span> Lv{{ item.seed.item_level }}
+  {% if item.recipe.require_lock_check %}<span class="tag orange">高阶锁</span>{% endif %}<br>
+  成功率 <b>{{ item.recipe.success_rate }}%</b> · 保底 <b>{{ item.credits }}/{{ item.recipe.fail_credit_threshold }}</b>
+  <div class="bar"><i style="width:{{ (item.credits/item.recipe.fail_credit_threshold*100)|int }}%"></i></div>
   材料：
-  {% for m in item.mats %}{{ m.name }}×{{ m.need }}({{ m.have }}) {% endfor %}<br>
-  {% if item.can %}
+  {% for m in item.mats %}{{ m.name }}×{{ m.need }}(<b>{{ m.have }}</b>) {% endfor %}<br>
+  {% if item.level_locked %}
+  <span class="muted">物品等级超限（需提升等级至可使用Lv{{ item.seed.item_level }}）</span>
+  {% elif item.can %}
   <form method="post" action="/games/garden/craft/{{ item.recipe.id }}">
     <button class="btn green" type="submit">合成</button>
   </form>

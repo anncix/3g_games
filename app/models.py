@@ -474,6 +474,8 @@ class GardenSeed(Base):
 
     possible_blooms: JSON {bloom_key: weight} 同一种花种可能产出多种颜色花朵
     stage_actions: JSON {"1":"water","2":"weed","3":"debug"} 各阶段需要的操作
+    item_level: 物品等级 1-8（强度轴），受玩家等级段上限约束
+    rarity: 普通/稀有/史诗/传说（获取难度轴）
     """
     __tablename__ = "garden_seeds"
     key: Mapped[str] = mapped_column(String(32), primary_key=True)
@@ -485,7 +487,8 @@ class GardenSeed(Base):
     yield_min: Mapped[int] = mapped_column(Integer, default=1)
     yield_max: Mapped[int] = mapped_column(Integer, default=2)
     possible_blooms: Mapped[str] = mapped_column(Text, default="")  # JSON {bloom_key: weight}
-    rarity: Mapped[str] = mapped_column(String(16), default="普通")  # 普通/稀有/传说
+    rarity: Mapped[str] = mapped_column(String(16), default="普通")  # 普通/稀有/史诗/传说
+    item_level: Mapped[int] = mapped_column(Integer, default=1)  # 物品等级 1-8
     sellable: Mapped[bool] = mapped_column(Boolean, default=True)
     seed_item_key: Mapped[str] = mapped_column(String(64))  # 关联平台物品字典（种子）
     obtain_sources: Mapped[str] = mapped_column(String(128), default="shop")  # shop/craft/exchange/drop
@@ -495,12 +498,14 @@ class GardenBloom(Base):
     """花朵定义（Bloom）：收获得到的实体花朵定义
 
     一个花种可产出多种花朵（颜色/稀有度不同）
+    item_level: 物品等级（与产出花种一致或略低）
     """
     __tablename__ = "garden_blooms"
     key: Mapped[str] = mapped_column(String(32), primary_key=True)
     name: Mapped[str] = mapped_column(String(32))
     color: Mapped[str] = mapped_column(String(16), default="白")  # 白/红/黄/紫...
-    rarity: Mapped[str] = mapped_column(String(16), default="普通")  # 普通/稀有/传说
+    rarity: Mapped[str] = mapped_column(String(16), default="普通")  # 普通/稀有/史诗/传说
+    item_level: Mapped[int] = mapped_column(Integer, default=1)  # 物品等级 1-8
     sell_price: Mapped[int] = mapped_column(Integer, default=10)
     album_entry_key: Mapped[str] = mapped_column(String(32))  # 对应花谱项
     item_key: Mapped[str] = mapped_column(String(64))  # 关联平台物品字典（花朵）
@@ -557,13 +562,24 @@ class GardenCollection(Base):
 
 
 class GardenRecipe(Base):
-    """合成配方：花朵 -> 花种（固定配方，可运营配置）"""
+    """合成配方：花朵/材料 -> 花种
+
+    怀旧但可控的合成：
+    - success_rate: 基础成功率(0-100)，随目标物品等级上升而下降
+    - fail_credit_threshold: 失败累计阈值，满值必成（防挫败保底）
+    - target_level: 目标花种物品等级（用于经验奖励与操作锁判定）
+    - require_lock_check: 高阶合成是否强制操作锁校验
+    """
     __tablename__ = "garden_recipes"
     id: Mapped[int] = mapped_column(Integer, primary_key=True)
     name: Mapped[str] = mapped_column(String(32))
     result_seed_key: Mapped[str] = mapped_column(String(32))  # 合成产出花种
     result_qty: Mapped[int] = mapped_column(Integer, default=1)
     materials: Mapped[str] = mapped_column(Text)  # JSON {item_key: qty}
+    success_rate: Mapped[int] = mapped_column(Integer, default=80)  # 基础成功率%
+    fail_credit_threshold: Mapped[int] = mapped_column(Integer, default=5)  # 保底阈值
+    target_level: Mapped[int] = mapped_column(Integer, default=1)  # 目标物品等级
+    require_lock_check: Mapped[bool] = mapped_column(Boolean, default=False)  # 高阶强制操作锁
 
 
 class GardenExchange(Base):
@@ -575,6 +591,27 @@ class GardenExchange(Base):
     result_qty: Mapped[int] = mapped_column(Integer, default=1)
     materials: Mapped[str] = mapped_column(Text)  # JSON {item_key: qty}
     activity_key: Mapped[str] = mapped_column(String(32), default="")  # 关联活动（可空）
+
+
+class GardenCraftCredit(Base):
+    """合成保底值记录：失败累计，满值必成（防挫败）"""
+    __tablename__ = "garden_craft_credits"
+    id: Mapped[int] = mapped_column(Integer, primary_key=True)
+    user_id: Mapped[int] = mapped_column(ForeignKey("users.id", ondelete="CASCADE"), index=True)
+    recipe_id: Mapped[int] = mapped_column(ForeignKey("garden_recipes.id", ondelete="CASCADE"))
+    credits: Mapped[int] = mapped_column(Integer, default=0)  # 已累计失败值
+    __table_args__ = (UniqueConstraint("user_id", "recipe_id", name="uq_craft_credit"),)
+
+
+class GardenDailyLog(Base):
+    """每日社交互动计数（防刷限速：偷花/帮忙日限 + 衰减）"""
+    __tablename__ = "garden_daily_logs"
+    id: Mapped[int] = mapped_column(Integer, primary_key=True)
+    user_id: Mapped[int] = mapped_column(ForeignKey("users.id", ondelete="CASCADE"), index=True)
+    date: Mapped[str] = mapped_column(String(10))  # YYYY-MM-DD
+    steal_count: Mapped[int] = mapped_column(Integer, default=0)
+    help_count: Mapped[int] = mapped_column(Integer, default=0)
+    __table_args__ = (UniqueConstraint("user_id", "date", name="uq_garden_daily"),)
 
 
 # ============================================================

@@ -6,9 +6,10 @@
 <div class="crumb"><a href="/">家园</a> › <a href="/lobby">大厅</a> › 魔法花园</div>
 <div class="card">
   <div class="hd">我的花园</div>
-  等级 <b>{{ st.level }}</b> · 经验 <b>{{ st.exp }}/{{ exp_need }}</b>
+  <span class="tag blue">{{ title }}</span> Lv <b>{{ st.level }}</b>（{{ tier_range[0] }}-{{ tier_range[1] }}段）<br>
+  经验 <b>{{ st.exp }}/{{ exp_need }}</b>
   <div class="bar"><i style="width:{{ (st.exp/exp_need*100)|int }}%"></i></div>
-  花园金币 <b>{{ st.coins }}</b> · 花盆 <b>{{ st.pot_count }}</b>个<br>
+  花园金币 <b>{{ st.coins }}</b> · 花盆 <b>{{ st.pot_count }}</b>个 · 物品上限 <b>Lv{{ item_cap }}</b><br>
   花谱点亮 <b>{{ lit_count }}/{{ entries|length }}</b>
   <div class="bar"><i style="width:{{ (lit_count/entries|length*100)|int if entries else 0 }}%"></i></div>
 </div>

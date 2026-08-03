@@ -88,33 +88,49 @@ async def seed():
                                          output_item_key=out, price=price, unlock_stars=stars))
         await db.commit()
 
-        # ---------- 花种/花朵/花谱 三概念分离（魔法花园） ----------
-        # 平台物品字典：花种 + 花朵 + 合成材料
-        await goods.ensure_item(db, "garden_seed_wild", "野花种子", "flower", "garden", True, 5, "基础花种，60秒盛开")
-        await goods.ensure_item(db, "garden_seed_rose", "玫瑰种子", "flower", "garden", True, 10, "需等级2")
-        await goods.ensure_item(db, "garden_seed_lily", "百合种子", "flower", "garden", True, 15, "合成获得")
-        await goods.ensure_item(db, "garden_seed_legend", "传说花种", "flower", "garden", True, 0, "兑换获得，传说级")
-        # 花朵（收获物）
-        await goods.ensure_item(db, "garden_bloom_wild_w", "白色野花", "flower", "garden", True, 8, "可送可展示")
-        await goods.ensure_item(db, "garden_bloom_wild_r", "红色野花", "flower", "garden", True, 8, "可送可展示")
-        await goods.ensure_item(db, "garden_bloom_wild_y", "黄色野花", "flower", "garden", True, 8, "可送可展示")
-        await goods.ensure_item(db, "garden_bloom_rose_r", "红玫瑰", "flower", "garden", True, 20, "稀有花")
-        await goods.ensure_item(db, "garden_bloom_rose_p", "紫玫瑰", "flower", "garden", True, 35, "稀有花")
-        await goods.ensure_item(db, "garden_bloom_lily", "百合花", "flower", "garden", True, 30, "高级花")
-        await goods.ensure_item(db, "garden_bloom_legend", "传说之花", "flower", "garden", True, 100, "传说级")
+        # ---------- 花种/花朵/花谱 三概念分离（魔法花园 v0.0.3） ----------
+        # 物品等级 Lv1-8 + 稀有度 普通/稀有/史诗/传说 双轴
+        # 玩家等级段 vs 物品等级上限：1-10→≤2, 11-20→≤3, 21-30→≤4, 31-40→≤5, 41-50→≤6, 51-65→≤7, 66-80→≤8
+        # 花种物品字典（8 个花种，跨 Lv1-8，解锁点对齐段位起始等级 1/6/11/16/21/31/46/66）
+        await goods.ensure_item(db, "garden_seed_wild", "野花种子", "flower", "garden", True, 5, "Lv1基础花种，60秒")
+        await goods.ensure_item(db, "garden_seed_rose", "玫瑰种子", "flower", "garden", True, 12, "Lv2稀有，需6级")
+        await goods.ensure_item(db, "garden_seed_lily", "百合种子", "flower", "garden", True, 18, "Lv3稀有，合成获得")
+        await goods.ensure_item(db, "garden_seed_tulip", "郁金香种子", "flower", "garden", True, 28, "Lv4稀有，合成获得")
+        await goods.ensure_item(db, "garden_seed_orchid", "兰花种子", "flower", "garden", True, 40, "Lv5史诗，合成获得")
+        await goods.ensure_item(db, "garden_seed_lotus", "莲花种子", "flower", "garden", True, 55, "Lv6史诗，合成获得")
+        await goods.ensure_item(db, "garden_seed_peony", "牡丹种子", "flower", "garden", True, 80, "Lv7传说，合成获得")
+        await goods.ensure_item(db, "garden_seed_legend", "传说花种", "flower", "garden", True, 120, "Lv8传说，兑换获得")
+        # 花朵物品字典（收获物，含史诗稀有度）
+        await goods.ensure_item(db, "garden_bloom_wild_w", "白色野花", "flower", "garden", True, 8, "野花·白")
+        await goods.ensure_item(db, "garden_bloom_wild_r", "红色野花", "flower", "garden", True, 8, "野花·红")
+        await goods.ensure_item(db, "garden_bloom_wild_y", "黄色野花", "flower", "garden", True, 8, "野花·黄")
+        await goods.ensure_item(db, "garden_bloom_rose_r", "红玫瑰", "flower", "garden", True, 20, "玫瑰·红")
+        await goods.ensure_item(db, "garden_bloom_rose_p", "紫玫瑰", "flower", "garden", True, 35, "玫瑰·紫")
+        await goods.ensure_item(db, "garden_bloom_lily", "百合花", "flower", "garden", True, 30, "百合·白")
+        await goods.ensure_item(db, "garden_bloom_tulip", "郁金香", "flower", "garden", True, 45, "郁金香·黄")
+        await goods.ensure_item(db, "garden_bloom_orchid", "兰花", "flower", "garden", True, 60, "兰花·紫")
+        await goods.ensure_item(db, "garden_bloom_lotus", "莲花", "flower", "garden", True, 80, "莲花·粉")
+        await goods.ensure_item(db, "garden_bloom_peony", "牡丹", "flower", "garden", True, 110, "牡丹·红")
+        await goods.ensure_item(db, "garden_bloom_legend", "传说之花", "flower", "garden", True, 200, "传说·金")
         # 合成材料
         await goods.ensure_item(db, "garden_petal_red", "红花瓣", "material", "garden", True, 2, "合成材料")
         await goods.ensure_item(db, "garden_petal_white", "白花瓣", "material", "garden", True, 2, "合成材料")
-        await goods.ensure_item(db, "garden_essence", "花之精华", "material", "garden", True, 10, "兑换材料")
+        await goods.ensure_item(db, "garden_petal_purple", "紫花瓣", "material", "garden", True, 5, "中阶合成材料")
+        await goods.ensure_item(db, "garden_dust", "花之粉尘", "material", "garden", True, 8, "高阶合成材料")
+        await goods.ensure_item(db, "garden_essence", "花之精华", "material", "garden", True, 15, "兑换/传说合成材料")
 
-        # 花谱项（AlbumEntry）— 按系列分组
+        # 花谱项（AlbumEntry）— 按系列分组（野花/玫瑰/百合/郁金香/兰花/莲花/牡丹/传说系列）
         album_entries = [
             ("album_wild_w", "野花系列", "白色野花", "朴素的白色野花", "bloom_wild_w"),
             ("album_wild_r", "野花系列", "红色野花", "热烈的红色野花", "bloom_wild_r"),
             ("album_wild_y", "野花系列", "黄色野花", "明亮的黄色野花", "bloom_wild_y"),
             ("album_rose_r", "玫瑰系列", "红玫瑰", "经典的红玫瑰", "bloom_rose_r"),
             ("album_rose_p", "玫瑰系列", "紫玫瑰", "罕见的紫玫瑰", "bloom_rose_p"),
-            ("album_lily", "野花系列", "百合花", "纯洁的百合", "bloom_lily"),
+            ("album_lily", "百合系列", "百合花", "纯洁的百合", "bloom_lily"),
+            ("album_tulip", "郁金香系列", "郁金香", "高雅的郁金香", "bloom_tulip"),
+            ("album_orchid", "兰花系列", "兰花", "幽谷的兰花", "bloom_orchid"),
+            ("album_lotus", "莲花系列", "莲花", "出淤泥的莲花", "bloom_lotus"),
+            ("album_peony", "牡丹系列", "牡丹", "富贵的牡丹", "bloom_peony"),
             ("album_legend", "传说系列", "传说之花", "传说中的花朵", "bloom_legend"),
         ]
         for key, series, name, desc, bloom_key in album_entries:
@@ -122,55 +138,75 @@ async def seed():
                 db.add(models.GardenAlbumEntry(key=key, series=series, name=name, description=desc, bloom_key=bloom_key))
         await db.commit()
 
-        # 花朵定义（Bloom）— 一个花种可产出多种颜色
+        # 花朵定义（Bloom）— (key, name, color, rarity, item_level, sell_price, album_key, item_key, tag)
         blooms = [
-            ("bloom_wild_w", "白色野花", "白", "普通", 8, "album_wild_w", "garden_bloom_wild_w", ""),
-            ("bloom_wild_r", "红色野花", "红", "普通", 8, "album_wild_r", "garden_bloom_wild_r", ""),
-            ("bloom_wild_y", "黄色野花", "黄", "普通", 8, "album_wild_y", "garden_bloom_wild_y", ""),
-            ("bloom_rose_r", "红玫瑰", "红", "稀有", 20, "album_rose_r", "garden_bloom_rose_r", ""),
-            ("bloom_rose_p", "紫玫瑰", "紫", "稀有", 35, "album_rose_p", "garden_bloom_rose_p", ""),
-            ("bloom_lily", "百合花", "白", "稀有", 30, "album_lily", "garden_bloom_lily", ""),
-            ("bloom_legend", "传说之花", "金", "传说", 100, "album_legend", "garden_bloom_legend", "活动限定"),
+            ("bloom_wild_w", "白色野花", "白", "普通", 1, 8, "album_wild_w", "garden_bloom_wild_w", ""),
+            ("bloom_wild_r", "红色野花", "红", "普通", 1, 8, "album_wild_r", "garden_bloom_wild_r", ""),
+            ("bloom_wild_y", "黄色野花", "黄", "普通", 1, 8, "album_wild_y", "garden_bloom_wild_y", ""),
+            ("bloom_rose_r", "红玫瑰", "红", "稀有", 2, 20, "album_rose_r", "garden_bloom_rose_r", ""),
+            ("bloom_rose_p", "紫玫瑰", "紫", "稀有", 2, 35, "album_rose_p", "garden_bloom_rose_p", ""),
+            ("bloom_lily", "百合花", "白", "稀有", 3, 30, "album_lily", "garden_bloom_lily", ""),
+            ("bloom_tulip", "郁金香", "黄", "稀有", 4, 45, "album_tulip", "garden_bloom_tulip", ""),
+            ("bloom_orchid", "兰花", "紫", "史诗", 5, 60, "album_orchid", "garden_bloom_orchid", ""),
+            ("bloom_lotus", "莲花", "粉", "史诗", 6, 80, "album_lotus", "garden_bloom_lotus", ""),
+            ("bloom_peony", "牡丹", "红", "传说", 7, 110, "album_peony", "garden_bloom_peony", ""),
+            ("bloom_legend", "传说之花", "金", "传说", 8, 200, "album_legend", "garden_bloom_legend", "活动限定"),
         ]
-        for key, name, color, rarity, price, album_key, item_key, tag in blooms:
+        for key, name, color, rarity, ilev, price, album_key, item_key, tag in blooms:
             if not await db.get(models.GardenBloom, key):
-                db.add(models.GardenBloom(key=key, name=name, color=color, rarity=rarity, sell_price=price,
-                                          album_entry_key=album_key, item_key=item_key, special_tag=tag))
+                db.add(models.GardenBloom(key=key, name=name, color=color, rarity=rarity, item_level=ilev,
+                                          sell_price=price, album_entry_key=album_key, item_key=item_key, special_tag=tag))
         await db.commit()
 
-        # 花种定义（Seed）— possible_blooms: {bloom_key: weight}；stage_actions: {"1":"water","2":"weed","3":"debug"}
+        # 花种定义（Seed）
+        # (key, name, min_level, grow_seconds, stages, actions, ymin, ymax, blooms_map, rarity, item_level, sellable, seed_item, sources)
+        # 解锁点对齐段位起始等级：1/6/11/16/21/31/46/66
         seeds = [
             ("wild", "野花", 1, 60, 4, {"1": "water", "2": "weed", "3": "debug"}, 1, 2,
-             {"bloom_wild_w": 60, "bloom_wild_r": 25, "bloom_wild_y": 15}, "普通", True, "garden_seed_wild", "shop"),
-            ("rose", "玫瑰", 2, 90, 4, {"1": "water", "2": "weed", "3": "debug"}, 1, 2,
-             {"bloom_rose_r": 70, "bloom_rose_p": 30}, "稀有", True, "garden_seed_rose", "shop"),
-            ("lily", "百合", 3, 120, 4, {"1": "water", "2": "weed", "3": "debug"}, 1, 2,
-             {"bloom_lily": 100}, "稀有", True, "garden_seed_lily", "craft"),
-            ("legend", "传说花", 5, 180, 4, {"1": "water", "2": "weed", "3": "debug"}, 1, 1,
-             {"bloom_legend": 100}, "传说", False, "garden_seed_legend", "exchange"),
+             {"bloom_wild_w": 60, "bloom_wild_r": 25, "bloom_wild_y": 15}, "普通", 1, True, "garden_seed_wild", "shop"),
+            ("rose", "玫瑰", 6, 90, 4, {"1": "water", "2": "weed", "3": "debug"}, 1, 2,
+             {"bloom_rose_r": 70, "bloom_rose_p": 30}, "稀有", 2, True, "garden_seed_rose", "shop"),
+            ("lily", "百合", 11, 120, 4, {"1": "water", "2": "weed", "3": "debug"}, 1, 2,
+             {"bloom_lily": 100}, "稀有", 3, True, "garden_seed_lily", "craft"),
+            ("tulip", "郁金香", 16, 150, 4, {"1": "water", "2": "weed", "3": "debug"}, 1, 2,
+             {"bloom_tulip": 100}, "稀有", 4, True, "garden_seed_tulip", "craft"),
+            ("orchid", "兰花", 21, 180, 4, {"1": "water", "2": "weed", "3": "debug"}, 1, 2,
+             {"bloom_orchid": 100}, "史诗", 5, True, "garden_seed_orchid", "craft"),
+            ("lotus", "莲花", 31, 210, 4, {"1": "water", "2": "weed", "3": "debug"}, 1, 2,
+             {"bloom_lotus": 100}, "史诗", 6, True, "garden_seed_lotus", "craft"),
+            ("peony", "牡丹", 46, 240, 4, {"1": "water", "2": "weed", "3": "debug"}, 1, 1,
+             {"bloom_peony": 100}, "传说", 7, True, "garden_seed_peony", "craft"),
+            ("legend", "传说花", 66, 300, 4, {"1": "water", "2": "weed", "3": "debug"}, 1, 1,
+             {"bloom_legend": 100}, "传说", 8, False, "garden_seed_legend", "exchange"),
         ]
-        for key, name, mlvl, gs, st, actions, ymin, ymax, blooms_map, rarity, sellable, seed_item, sources in seeds:
+        for key, name, mlvl, gs, st, actions, ymin, ymax, blooms_map, rarity, ilev, sellable, seed_item, sources in seeds:
             if not await db.get(models.GardenSeed, key):
                 db.add(models.GardenSeed(key=key, name=name, min_level=mlvl, grow_seconds=gs, stages=st,
                                          stage_actions=json.dumps(actions), yield_min=ymin, yield_max=ymax,
-                                         possible_blooms=json.dumps(blooms_map), rarity=rarity, sellable=sellable,
-                                         seed_item_key=seed_item, obtain_sources=sources))
+                                         possible_blooms=json.dumps(blooms_map), rarity=rarity, item_level=ilev,
+                                         sellable=sellable, seed_item_key=seed_item, obtain_sources=sources))
         await db.commit()
 
-        # 合成配方（Recipe）— 花朵 -> 花种
+        # 合成配方（Recipe）— 花朵/材料 -> 花种
+        # (name, result_key, qty, mats, success_rate, fail_threshold, target_level, require_lock)
+        # 成功率随目标等级上升而下降；保底值累计满必成；高阶(≥6)强制操作锁校验
         recipes = [
-            ("百合花种配方", "lily", 1, {"garden_petal_red": 2, "garden_petal_white": 2}),
-            ("传说花种配方", "legend", 1, {"garden_bloom_rose_p": 1, "garden_essence": 3}),
+            ("百合花种配方", "lily", 1, {"garden_petal_red": 2, "garden_petal_white": 2}, 90, 3, 3, False),
+            ("郁金香花种配方", "tulip", 1, {"garden_petal_purple": 2, "garden_bloom_lily": 1}, 80, 4, 4, False),
+            ("兰花花种配方", "orchid", 1, {"garden_bloom_rose_p": 1, "garden_dust": 2}, 70, 4, 5, False),
+            ("莲花花种配方", "lotus", 1, {"garden_bloom_orchid": 1, "garden_dust": 3}, 60, 5, 6, True),
+            ("牡丹花种配方", "peony", 1, {"garden_bloom_lotus": 1, "garden_essence": 2}, 50, 5, 7, True),
         ]
-        for name, result_key, qty, mats in recipes:
+        for name, result_key, qty, mats, sr, ft, tl, rl in recipes:
             exists = (await db.execute(select(models.GardenRecipe).where(
                 models.GardenRecipe.name == name))).scalar_one_or_none()
             if not exists:
                 db.add(models.GardenRecipe(name=name, result_seed_key=result_key, result_qty=qty,
-                                           materials=json.dumps(mats)))
+                                           materials=json.dumps(mats), success_rate=sr,
+                                           fail_credit_threshold=ft, target_level=tl, require_lock_check=rl))
         await db.commit()
 
-        # 兑换（Exchange）— 活动材料 -> 花种
+        # 兑换（Exchange）— 活动材料 -> 花种（稳定路径，非纯概率）
         exchanges = [
             ("精华兑换传说花种", "legend", 1, {"garden_essence": 5}, ""),
         ]
@@ -186,8 +222,10 @@ async def seed():
         demo_user = (await db.execute(select(models.User).where(models.User.username == "demo"))).scalar_one_or_none()
         if demo_user:
             await goods.add_item(db, demo_user.id, "garden_seed_wild", "garden", 3)
-            await goods.add_item(db, demo_user.id, "garden_petal_red", "garden", 3)
-            await goods.add_item(db, demo_user.id, "garden_petal_white", "garden", 3)
+            await goods.add_item(db, demo_user.id, "garden_petal_red", "garden", 4)
+            await goods.add_item(db, demo_user.id, "garden_petal_white", "garden", 4)
+            await goods.add_item(db, demo_user.id, "garden_petal_purple", "garden", 2)
+            await goods.add_item(db, demo_user.id, "garden_dust", "garden", 3)
             await goods.add_item(db, demo_user.id, "garden_essence", "garden", 2)
         await db.commit()
 

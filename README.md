@@ -1,6 +1,6 @@
 # QQ家园 — 怀旧平台化复刻
 
-> 版本：**v0.0.2** （2026-08-03 魔法花园重新设计）
+> 版本：**v0.0.3** （2026-08-03 魔法花园怀旧版完整设计规范落地）
 >
 > 基于 **FastAPI + SQLite + Jinja2(简版 WAP 风)** 实现的怀旧 QQ 家园平台复刻。
 > 严格遵循《怀旧QQ家园平台设计规范》：平台统一、模块自治、旧逻辑优先、一页只做一件事。
@@ -10,6 +10,75 @@
 ---
 
 ## 更新日志
+
+### v0.0.3 （2026-08-03）— 魔法花园怀旧版完整设计规范落地
+
+按《怀旧版（旧逻辑）完整设计规范》合并稿重构魔法花园：物品等级×稀有度双轴、魔法师 16 段位称号体系、方案A 经验曲线、合成成功率+保底+操作锁、社交日限+衰减、物品等级上限防越级、风控留痕。
+
+**物品等级 × 稀有度 双轴体系**
+- 物品等级 Lv1–Lv8（强度/效率轴）：影响成长时间、产量、售价、合成目标
+- 稀有度 4 档（普通/稀有/史诗/传说，获取难度轴）
+- 玩家等级段 → 物品等级上限映射（防越级使用）：
+  - Lv1–10 → ≤Lv2 / Lv11–20 → ≤Lv3 / Lv21–30 → ≤Lv4 / Lv31–40 → ≤Lv5
+  - Lv41–50 → ≤Lv6 / Lv51–65 → ≤Lv7 / Lv66–80 → ≤Lv8
+- `GardenSeed.item_level` / `GardenBloom.item_level` 字段；播种/购买/合成均校验上限
+
+**魔法师称号体系（16 段位，每 5 级一段）**
+- 1–5 见习 / 6–10 学徒 / 11–15 初阶 / 16–20 中阶 / 21–25 高阶 / 26–30 精英
+- 31–35 大魔法师 / 36–40 魔导师 / 41–45 大魔导师 / 46–50 贤者 / 51–55 奥术贤者
+- 56–60 秘法宗师 / 61–65 元素宗师 / 66–70 大元素使 / 71–75 星辉大法师 / 76–80 传奇魔法王座
+- 段位起始等级（1/6/11/16/21/31/46/66）为强解锁点：新花盆/新花种/新合成栏位
+- 显示方式：`称号 + Lv`，段位内可用 I–V 细分
+- 花盆数随段位解锁：基础 4 + 段位索引，上限 12
+
+**等级经验（方案A）**
+- 升级公式：`need(L→L+1) = 120 + 80×L`（1 级需 200，80 级需 6520，满级累计 268800）
+- 动作经验（怀旧简单）：播种+2 / 浇水除草除虫+3 / 收获(3+物品等级×2) / 点亮花谱(15+物品等级×5) / 帮忙+2 / 合成(5+目标等级×3)
+
+**合成工坊（怀旧但可控）**
+- `GardenRecipe` 新增字段：`success_rate`(基础成功率%) / `fail_credit_threshold`(保底阈值) / `target_level`(目标物品等级) / `require_lock_check`(高阶操作锁)
+- 新增 `GardenCraftCredit` 表：按 (user_id, recipe_id) 累计失败值
+- 成功率随目标等级上升而下降（百合 90% → 牡丹 50%）
+- 保底机制：失败累计"合成值"，满值必成（防挫败）；成功重置保底
+- 高阶合成（≥Lv6）强制 `require_lock_check=True`，记录 `craft_lock_check` 风控日志
+- 物品等级上限校验：防越级合成（Lv1 玩家不能合成 Lv3 百合）
+
+**社交互动（日限 + 衰减 + 防刷）**
+- 新增 `GardenDailyLog` 表：按 (user_id, date) 记录偷花/帮忙次数
+- 偷花：每日 10 次上限；收益衰减（前 3 次满额 exp+2/coin+5，4–6 次半额 exp+1/coin+2，7–10 次仅花无奖励）
+- 帮忙：每日 10 次上限；双方奖励（exp+2/coin+5）
+- 保底：被偷花盆清空但只损失 1 朵，主人不血亏
+- 花盆可上锁防偷（物品锁域）
+
+**风控与客服（怀旧但必须有）**
+- 高价值操作强制校验：高阶合成（≥Lv6）触发 `craft_lock_check` 风控日志
+- 行为限速：偷花/帮忙/合成尝试均有日限
+- 操作留痕：`OperationLog` 记录全部关键动作（plant/stage_action/harvest/steal_flower/help_friend/craft_success/craft_fail/exchange/shop_buy/album_lit 等）
+- 客服追溯：可按 `用户 + 时间` 拉出操作流水（含资源变化与拦截原因）
+
+**页面与模板更新**
+- `garden/home.html`：显示称号 + 段位范围 + 物品等级上限
+- `garden/craft.html`：显示成功率、保底进度条、目标物品等级、高阶锁标识
+- `garden/shop.html`：显示物品等级、稀有度，动态定价（普通 Lv×20，稀有翻倍）
+- `garden/rules.html`：完整更新规则页（方案A 经验 / 16 段位称号 / 双轴体系 / 合成规则 / 社交日限）
+
+**API 扩展**
+- `/api/garden/state` 新增字段：`title`(称号) / `tier_range`(段位范围) / `item_level_cap`(物品等级上限) / `exp_needed`(下级所需经验)
+
+**数据模型变更**
+- `GardenSeed` 新增 `item_level`、`rarity`、`obtain_sources`
+- `GardenBloom` 新增 `item_level`、`rarity`、`color`、`special_tag`
+- `GardenRecipe` 新增 `success_rate`、`fail_credit_threshold`、`target_level`、`require_lock_check`
+- 新增表：`GardenCraftCredit`(合成保底累计) / `GardenDailyLog`(社交日限计数)
+
+**端到端验证**
+- ✅ 物品等级上限拦截（Lv1 防合成 Lv3 百合）
+- ✅ 合成工坊页面渲染（成功率 + 保底进度条）
+- ✅ 等级提升后解锁合成（Lv11 可合成百合）
+- ✅ 保底机制（失败累计 + 成功重置）
+- ✅ 高阶合成操作锁校验留痕（craft_lock_check 日志记录）
+
+---
 
 ### v0.0.2 （2026-08-03）— 魔法花园完整重新设计
 
@@ -341,7 +410,7 @@ curl -X POST http://localhost:8000/api/events/emit \
 **模块表**：
 - 农场：`farm_crops / farm_plots / farm_state / farm_steal_logs`
 - 小镇：`town_recipes / town_state`
-- 花园：`garden_flowers / garden_pots / garden_state / garden_collection`
+- 花园：`garden_seeds / garden_blooms / garden_album_entries / garden_pots / garden_state / garden_collection / garden_recipes / garden_exchanges / garden_craft_credits / garden_daily_logs`
 - 航海：`sea_cities / sea_routes / sea_equipment / sea_state / sea_quests / sea_user_equips`
 
 ---
@@ -361,11 +430,14 @@ curl -X POST http://localhost:8000/api/events/emit \
 3. 油量低于30 → 添油(消耗食用油)
 4. 食材不足 → 去 `lily` 的橱柜翻食材
 
-### 魔法花园
-1. 买玫瑰种子 → 种植 → 经历发芽/花苗/花蕾/盛开
-2. 收获 → 点亮花谱(核心目标)
-3. 合成花种(百合需红花瓣+白花瓣)
-4. 去 `lily` 花园偷花 或 送花给她
+### 魔法花园（v0.0.3 怀旧版）
+1. 买野花种子（Lv1）→ 种植 → 经历发芽/花苗/花蕾/盛开（三件套操作提升产量）
+2. 收获 → 点亮花谱（核心目标，奖励经验+金币）
+3. 升级解锁：Lv6 玫瑰 / Lv11 百合 / Lv16 郁金香 / Lv21 兰花 / Lv31 莲花 / Lv46 牡丹 / Lv66 传说花
+4. 合成工坊：成功率+保底（百合 90% → 牡丹 50%；失败累计合成值满必成）
+5. 高阶合成（≥Lv6 莲花/牡丹）触发操作锁校验，记录风控日志
+6. 去 `lily` 花园偷花（日限 10 次，收益衰减）或 送花给她
+7. 段位称号：见习→学徒→初阶→…→传奇魔法王座（每 5 级一段，段位起始解锁新花盆）
 
 ### 纵横四海
 1. 启航港 → 航线图 → 启航前往珊瑚礁岛(需2级)

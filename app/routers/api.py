@@ -237,12 +237,20 @@ async def api_garden_state(request: Request, db: AsyncSession = Depends(get_db))
     st = await db.get(models.GardenState, user.id)
     res = await db.execute(select(models.GardenCollection).where(models.GardenCollection.user_id == user.id))
     lit = sum(1 for c in res.scalars().all() if c.lit)
+    level = st.level if st else 1
+    # 魔法师称号 + 物品等级上限（v0.0.3）
+    from ..routers.garden import magician_title, item_level_cap, exp_needed
+    title, tier_range = magician_title(level)
     return ok({
-        "level": st.level if st else 1,
+        "level": level,
         "exp": st.exp if st else 0,
+        "exp_needed": exp_needed(level),
         "coins": st.coins if st else 0,
         "pot_count": st.pot_count if st else 4,
         "flower_lit": lit,
+        "title": title,
+        "tier_range": list(tier_range),
+        "item_level_cap": item_level_cap(level),
     })
 
 
