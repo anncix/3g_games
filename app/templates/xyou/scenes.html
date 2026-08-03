@@ -1,0 +1,47 @@
+{% extends "base.html" %}
+{% from "macros.html" import topbar, footer %}
+{% block title %}世界地图{% endblock %}
+{% block body %}
+{{ topbar("世界地图", user) }}
+<div class="crumb"><a href="/games/xyou">幻想西游</a> › 世界地图</div>
+<div class="card">
+  当前位置：<b>{{ current.name if current else st.current_scene }}</b><br>
+  等级 <b>{{ st.level }}</b>
+</div>
+{% if current %}
+<div class="card">
+  <div class="hd">{{ current.name }}（{{ current.region }}）</div>
+  <div class="muted">{{ current.intro }}</div>
+  <div class="muted">推荐等级 ≥ {{ current.level_min }} 级</div>
+</div>
+{% endif %}
+{% if exits %}
+<div class="section-title">出口（可移动）</div>
+<div class="content">
+  {% for s in exits %}
+  <div class="card">
+    <div class="hd">{{ s.name }}<span class="r">{{ s.region }}</span></div>
+    <div class="muted">{{ s.intro }}</div>
+    <div class="muted">推荐等级 ≥ {{ s.level_min }} 级</div>
+    {% if st.level >= s.level_min %}
+    <form method="post" action="/games/xyou/scene/move/{{ s.key }}">
+      <button class="btn" type="submit">移动到{{ s.name }}</button>
+    </form>
+    {% else %}
+    <div class="muted">{{ s.level_min }}级开启</div>
+    {% endif %}
+  </div>
+  {% endfor %}
+</div>
+{% endif %}
+<div class="section-title">全部场景</div>
+<div class="content">
+  {% for s in all_scenes %}
+  <a class="li" href="#"><span>{{ s.name }}（{{ s.region }}）</span><span class="r">Lv{{ s.level_min }}+</span></a>
+  {% endfor %}
+</div>
+<div class="content">
+  <a class="btn ghost" href="/games/xyou">返回首页</a>
+</div>
+{{ footer(user) }}
+{% endblock %}

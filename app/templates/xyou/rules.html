@@ -1,0 +1,85 @@
+{% extends "base.html" %}
+{% from "macros.html" import topbar, footer %}
+{% block title %}幻想西游规则{% endblock %}
+{% block body %}
+{{ topbar("规则", user) }}
+<div class="crumb"><a href="/games/xyou">幻想西游</a> › 规则</div>
+<div class="content">
+  <div class="card">
+    <div class="hd">核心定位</div>
+    以<b>五大门派 / 200 级转职 / 西行取经</b>为基础的怀旧西游 MMORPG。<br>
+    主循环：修炼/战斗/副本 → 获得经验银两 → 转职升级换装学技能 → 挑战更高副本 → 继续西行养成
+  </div>
+  <div class="card">
+    <div class="hd">门派系统（5 门派）</div>
+    {% for k, n, role, attr, desc in sects %}
+    <b>{{ n }}</b>（{{ role }}）：{{ desc }}<br>
+    {% endfor %}
+    新角色初始为<b>普通百姓</b>，9 级必须到长安十字街头选择门派才能继续升级
+  </div>
+  <div class="card">
+    <div class="hd">等级与转职</div>
+    等级上限 <b>{{ max_level }}</b><br>
+    转职节点：<b>{{ promotion_levels|join(' / ') }} 级</b><br>
+    达到节点时经验锁死，需回师门完成转职任务才能继续升级
+  </div>
+  <div class="card">
+    <div class="hd">技能系统（4 类型）</div>
+    主动 / 被动 / 辅助 / 封印<br>
+    5 门派 × 9 技能 = 45 技能，按解锁等级消耗银两学习
+  </div>
+  <div class="card">
+    <div class="hd">装备系统（6 品质 × 6 部位）</div>
+    品质：白 → 蓝 → 紫 → 金 → 神 → 圣（属性 1.0x → 6.5x）<br>
+    部位：武器 / 头盔 / 盔甲 / 靴子 / 戒指 / 手镯<br>
+    龙宫专属武器：黄袍武器 → 龙鳞叉 → 龙鳞破天叉 → 青龙叉 → 青龙在天叉 → 天龙叉 → 龙王叉 → 诛仙叉
+  </div>
+  <div class="card">
+    <div class="hd">副本系统</div>
+    15-90+ 级副本，含普通/困难双难度<br>
+    普通掉落白/蓝/紫装，困难掉落金/神装<br>
+    副本按区域分布：长安 / 宝象国 / 乌鸡国 / 傲来国 / 天宫 / 地府
+  </div>
+  <div class="card">
+    <div class="hd">宠物系统</div>
+    最多携带 8 只，同时只能出战 1 只<br>
+    出战宠物获得人物 20% 经验<br>
+    宠物等级不能超过人物等级
+  </div>
+  <div class="card">
+    <div class="hd">世界地图（9 区域）</div>
+    新手村 → 长安城 → 开封府 / 宝象国 / 乌鸡国 / 傲来国 / 天宫 / 地府 / 蓬莱仙岛 → 西天灵山
+  </div>
+  <div class="card">
+    <div class="hd">货币系统</div>
+    <b>银两</b>：基础货币（日常交易/升级装备）<br>
+    <b>金豆</b>：充值货币（购买稀有道具）<br>
+    <b>声望</b>：区域声望 + 师门声望 + 阵营声望（升级高级套装必须）
+  </div>
+  <div class="card">
+    <div class="hd">修炼挂机</div>
+    封顶 <b>4 小时</b><br>
+    每小时 500 经验 / 200 银两<br>
+    到时间领取收益自动升级
+  </div>
+  <div class="card">
+    <div class="hd">师徒系统（55 级开启）</div>
+    拜 139 级以上玩家为师<br>
+    拜师成功直接奖励 <b>1000 万经验</b><br>
+    徒弟升级出师，师傅获得大量声望/经验/道具
+  </div>
+  <div class="card">
+    <div class="hd">婚姻子女系统</div>
+    求婚需双方好友且同时在线<br>
+    三档婚礼：简朴（1 条属性）/ 热闹（2 条）/ 豪华（3 条）<br>
+    子女：双方亲密度≥2000 + 等级≥55，千年人参 30% / 万年人参 100% / 连续 7 个千年必成
+  </div>
+  <div class="card">
+    <div class="hd">战斗公式</div>
+    伤害 = 攻击 × 倍率 − 防御 × 0.5<br>
+    普攻倍率 1.0，技能倍率 1.2-3.2 不等
+  </div>
+</div>
+<div class="content"><a class="btn" href="/games/xyou">返回首页</a></div>
+{{ footer(user) }}
+{% endblock %}

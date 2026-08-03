@@ -1407,3 +1407,125 @@ class FengyunCity(Base):
     faction: Mapped[str] = mapped_column(String(16))  # wei/shu/wu/neutral
     intro: Mapped[str] = mapped_column(String(128), default="")
 
+
+# ==================== 幻想西游（v0.2.2 新增模块）====================
+class XyouState(Base):
+    """幻想西游玩家状态（spec：五门派/转职/200级/气血法力）"""
+    __tablename__ = "xyou_state"
+    user_id: Mapped[int] = mapped_column(ForeignKey("users.id", ondelete="CASCADE"), primary_key=True)
+    sect_key: Mapped[str] = mapped_column(String(16), default="")  # jiangjun/fangcun/longgong/yuegong/putuo 空=未转职
+    level: Mapped[int] = mapped_column(Integer, default=1)
+    exp: Mapped[int] = mapped_column(Integer, default=0)
+    silver: Mapped[int] = mapped_column(Integer, default=1000)  # 银两
+    gold_bean: Mapped[int] = mapped_column(Integer, default=0)  # 金豆（充值货币）
+    hp: Mapped[int] = mapped_column(Integer, default=150)
+    mp: Mapped[int] = mapped_column(Integer, default=80)
+    atk: Mapped[int] = mapped_column(Integer, default=15)
+    defense: Mapped[int] = mapped_column(Integer, default=10)
+    speed: Mapped[int] = mapped_column(Integer, default=8)
+    lingli: Mapped[int] = mapped_column(Integer, default=10)  # 灵力
+    shengwang: Mapped[int] = mapped_column(Integer, default=0)  # 声望
+    current_scene: Mapped[str] = mapped_column(String(32), default="xinshoucun")  # 当前场景
+    cultivate_end_at: Mapped[datetime] = mapped_column(DateTime, nullable=True)  # 修炼结束时间
+    daily_counters: Mapped[str] = mapped_column(Text, default="{}")  # JSON: 日常计数
+
+
+class XyouSkill(Base):
+    """技能字典（spec：五门派技能系统）"""
+    __tablename__ = "xyou_skills"
+    key: Mapped[str] = mapped_column(String(32), primary_key=True)
+    name: Mapped[str] = mapped_column(String(32))
+    sect_key: Mapped[str] = mapped_column(String(16))  # jiangjun/fangcun/longgong/yuegong/putuo
+    skill_type: Mapped[str] = mapped_column(String(16))  # active/passive/auxiliary/seal
+    unlock_level: Mapped[int] = mapped_column(Integer, default=1)
+    cost_silver: Mapped[int] = mapped_column(Integer, default=0)
+    cost_mp: Mapped[int] = mapped_column(Integer, default=0)  # 法力消耗
+    effect: Mapped[str] = mapped_column(String(255), default="")
+
+
+class XyouUserSkill(Base):
+    """玩家已学技能"""
+    __tablename__ = "xyou_user_skills"
+    id: Mapped[int] = mapped_column(Integer, primary_key=True)
+    user_id: Mapped[int] = mapped_column(ForeignKey("users.id", ondelete="CASCADE"), index=True)
+    skill_key: Mapped[str] = mapped_column(String(32))
+    level: Mapped[int] = mapped_column(Integer, default=1)  # 技能熟练度等级
+    __table_args__ = (UniqueConstraint("user_id", "skill_key", name="uq_xyou_us"),)
+
+
+class XyouEquip(Base):
+    """装备字典（spec：武器/头盔/盔甲/靴子/戒指/手镯）"""
+    __tablename__ = "xyou_equips"
+    key: Mapped[str] = mapped_column(String(32), primary_key=True)
+    name: Mapped[str] = mapped_column(String(32))
+    quality: Mapped[str] = mapped_column(String(16))  # 白/蓝/紫/金/神/圣
+    slot: Mapped[str] = mapped_column(String(16))  # 武器/头盔/盔甲/靴子/戒指/手镯
+    sect_req: Mapped[str] = mapped_column(String(16), default="")  # 限定门派，空=通用
+    level_req: Mapped[int] = mapped_column(Integer, default=1)
+    atk_bonus: Mapped[int] = mapped_column(Integer, default=0)
+    def_bonus: Mapped[int] = mapped_column(Integer, default=0)
+    hp_bonus: Mapped[int] = mapped_column(Integer, default=0)
+    mp_bonus: Mapped[int] = mapped_column(Integer, default=0)
+    price: Mapped[int] = mapped_column(Integer, default=100)
+
+
+class XyouUserEquip(Base):
+    """玩家装备实例"""
+    __tablename__ = "xyou_user_equips"
+    id: Mapped[int] = mapped_column(Integer, primary_key=True)
+    user_id: Mapped[int] = mapped_column(ForeignKey("users.id", ondelete="CASCADE"), index=True)
+    equip_key: Mapped[str] = mapped_column(String(32))
+    slot: Mapped[str] = mapped_column(String(16))
+    worn: Mapped[bool] = mapped_column(Boolean, default=False)
+
+
+class XyouDungeon(Base):
+    """副本字典（spec：15-90级副本）"""
+    __tablename__ = "xyou_dungeons"
+    key: Mapped[str] = mapped_column(String(32), primary_key=True)
+    name: Mapped[str] = mapped_column(String(32))
+    level_min: Mapped[int] = mapped_column(Integer, default=1)
+    level_max: Mapped[int] = mapped_column(Integer, default=200)
+    scene: Mapped[str] = mapped_column(String(32))  # 入口场景
+    difficulty: Mapped[str] = mapped_column(String(16), default="普通")  # 普通/困难
+    reward_exp: Mapped[int] = mapped_column(Integer, default=0)
+    reward_silver: Mapped[int] = mapped_column(Integer, default=0)
+    drop_quality: Mapped[str] = mapped_column(String(16), default="白")
+
+
+class XyouPet(Base):
+    """宠物字典（spec：捕捉/8只/出战/经验20%）"""
+    __tablename__ = "xyou_pets"
+    key: Mapped[str] = mapped_column(String(32), primary_key=True)
+    name: Mapped[str] = mapped_column(String(32))
+    level_req: Mapped[int] = mapped_column(Integer, default=1)  # 携带等级
+    base_hp: Mapped[int] = mapped_column(Integer, default=100)
+    base_atk: Mapped[int] = mapped_column(Integer, default=10)
+    base_def: Mapped[int] = mapped_column(Integer, default=5)
+    skill: Mapped[str] = mapped_column(String(64), default="")  # 天赋技能
+    capture_rate: Mapped[float] = mapped_column(Float, default=0.3)  # 捕捉概率
+
+
+class XyouUserPet(Base):
+    """玩家宠物实例"""
+    __tablename__ = "xyou_user_pets"
+    id: Mapped[int] = mapped_column(Integer, primary_key=True)
+    user_id: Mapped[int] = mapped_column(ForeignKey("users.id", ondelete="CASCADE"), index=True)
+    pet_key: Mapped[str] = mapped_column(String(32))
+    nickname: Mapped[str] = mapped_column(String(32), default="")
+    level: Mapped[int] = mapped_column(Integer, default=1)
+    exp: Mapped[int] = mapped_column(Integer, default=0)
+    loyalty: Mapped[int] = mapped_column(Integer, default=80)  # 忠诚度
+    in_battle: Mapped[bool] = mapped_column(Boolean, default=False)  # 是否出战
+
+
+class XyouScene(Base):
+    """场景字典（spec：世界地图区域）"""
+    __tablename__ = "xyou_scenes"
+    key: Mapped[str] = mapped_column(String(32), primary_key=True)
+    name: Mapped[str] = mapped_column(String(32))
+    region: Mapped[str] = mapped_column(String(16))  # 新手/长安/宝象/乌鸡/傲来/天宫/地府/蓬莱/灵山
+    level_min: Mapped[int] = mapped_column(Integer, default=1)
+    intro: Mapped[str] = mapped_column(String(128), default="")
+    exits: Mapped[str] = mapped_column(Text, default="[]")  # JSON: 出口场景key列表
+

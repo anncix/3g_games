@@ -19,6 +19,7 @@ from .seed_farm_large import seed_farm_large
 from .seed_town_large import seed_town_large
 from .seed_sea_v018 import seed_sea_v018
 from .seed_fengyun import seed_fengyun
+from .seed_xyou import seed_xyou
 
 
 async def seed():
@@ -47,6 +48,7 @@ async def seed():
             ("summon", "召唤之王", "图鉴抓捕回合战斗，种族克制段位推进", "/games/summon", 5, True),
             ("martial", "精武堂", "修炼加点装备强化，比武对抗帮派社交", "/games/martial", 6, True),
             ("fengyun", "风云三国", "三职业三阵营副本军团，演武荣誉称号成就", "/games/fengyun", 7, True),
+            ("xyou", "幻想西游", "五门派西行取经，200级转职副本宠物修炼", "/games/xyou", 8, True),
         ]
         for key, name, intro, entry, sort, en in modules:
             m = await db.get(models.Module, key)
@@ -458,6 +460,7 @@ async def seed():
             ("icon_captain", "航海家", "航海等级达到5", "sea", "sea_level>=5"),
             ("icon_martial", "武林高手", "精武堂达到10级", "martial", "martial_level>=10"),
             ("icon_fengyun", "三国名将", "风云三国达到10级", "fengyun", "fengyun_level>=10"),
+            ("icon_xyou", "西行取经人", "幻想西游达到10级", "xyou", "xyou_level>=10"),
             ("icon_family", "家族之光", "加入家族", "platform", "join_family"),
             ("icon_forum", "论坛达人", "论坛发帖5次", "platform", "forum_post>=5"),
             ("icon_signin", "签到达人", "累计签到", "platform", "signin"),
@@ -520,6 +523,10 @@ async def seed():
         # ---------- v0.2.0：风云三国（spec 三国 MMORPG 全系统 + 全网检索补全）----------
         # 13城市 + 30技能 + 105装备(5品质×7部位×3档) + 48官方系列(7系列×7件套) + 11名器 + 14BOSS + 13副本 + 5军团等级 + 15称号 + 21成就 + 虎符/消耗品
         await seed_fengyun(db)
+
+        # ---------- v0.2.2：幻想西游（spec 五门派西行 MMORPG 全系统 + 全网检索补全）----------
+        # 10场景(9区域) + 45技能(5门派×9) + 108装备(6品质×6部位×3档) + 8龙宫叉系列 + 19副本(含普通/困难) + 13宠物 + 14药品/经验道具
+        await seed_xyou(db)
 
         print("✅ 种子数据已写入。管理员: admin/admin123  演示: demo/demo123")
 

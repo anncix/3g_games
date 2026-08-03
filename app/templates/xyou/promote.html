@@ -1,0 +1,35 @@
+{% extends "base.html" %}
+{% from "macros.html" import topbar, footer %}
+{% block title %}转职{% endblock %}
+{% block body %}
+{{ topbar("转职", user) }}
+<div class="crumb"><a href="/games/xyou">幻想西游</a> › 转职</div>
+<div class="card">
+  当前等级 <b>{{ st.level }}</b>
+</div>
+{% if promo %}
+<div class="card">
+  <div class="hd">{{ promo.name }}</div>
+  <div class="muted">{{ promo.desc }}</div>
+  {% if promo.reward_exp %}
+  <div>奖励经验 <b>{{ promo.reward_exp }}</b></div>
+  {% endif %}
+</div>
+<div class="card">
+  <div class="hd">完成转职</div>
+  <div class="muted">完成转职任务后，等级将提升至 {{ st.level + 1 }} 级，可以继续获得经验升级</div>
+  <form method="post" action="/games/xyou/promote/complete">
+    <button class="btn green" type="submit">完成转职任务</button>
+  </form>
+</div>
+{% else %}
+<div class="card">
+  <div class="hd">无需转职</div>
+  <div class="muted">当前等级未到转职节点，继续升级即可</div>
+</div>
+{% endif %}
+<div class="content">
+  <a class="btn ghost" href="/games/xyou">返回首页</a>
+</div>
+{{ footer(user) }}
+{% endblock %}

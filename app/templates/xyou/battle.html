@@ -1,0 +1,38 @@
+{% extends "base.html" %}
+{% from "macros.html" import topbar, footer %}
+{% block title %}战斗{% endblock %}
+{% block body %}
+{{ topbar("战斗", user) }}
+<div class="crumb"><a href="/games/xyou">幻想西游</a> › 战斗</div>
+<div class="card">
+  等级 <b>{{ st.level }}</b> · 银两 <b>{{ st.silver }}</b> · 当前场景 <b>{{ st.current_scene }}</b>
+</div>
+<div class="card">
+  <div class="muted">每日战斗上限 50 场（自动遇敌）</div>
+  <div class="muted">怪物等级若高于自身 10 级以上，不建议挑战</div>
+</div>
+<div class="section-title">场景内可战斗怪物</div>
+<div class="content">
+  {% for m in monsters %}
+  {% set m_key, m_name, m_lvl, m_hp, m_atk, m_def, m_exp, m_silver, m_scene = m %}
+  <div class="card">
+    <div class="hd">《{{ m_name }}》<span class="r">Lv{{ m_lvl }}</span></div>
+    <div class="muted">气血 {{ m_hp }} · 攻击 {{ m_atk }} · 防御 {{ m_def }}</div>
+    <div>奖励 经验+<b>{{ m_exp }}</b> 银两+<b>{{ m_silver }}</b></div>
+    {% if st.level >= m_lvl - 10 %}
+    <form method="post" action="/games/xyou/battle/fight/{{ m_key }}">
+      <button class="btn" type="submit">攻击</button>
+    </form>
+    {% else %}
+    <div class="muted">实力不足，建议升级</div>
+    {% endif %}
+  </div>
+  {% endfor %}
+  {% if not monsters %}<div class="muted">当前场景暂无可战斗怪物，请前往其他场景</div>{% endif %}
+</div>
+<div class="content">
+  <a class="btn ghost" href="/games/xyou/scenes">前往其他场景</a>
+  <a class="btn ghost" href="/games/xyou">返回首页</a>
+</div>
+{{ footer(user) }}
+{% endblock %}

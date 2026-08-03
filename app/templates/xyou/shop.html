@@ -1,0 +1,35 @@
+{% extends "base.html" %}
+{% from "macros.html" import topbar, footer %}
+{% block title %}商店{% endblock %}
+{% block body %}
+{{ topbar("商店", user) }}
+<div class="crumb"><a href="/games/xyou">幻想西游</a> › 商店</div>
+<div class="card">
+  等级 <b>{{ st.level }}</b> · 银两 <b>{{ st.silver }}</b>
+</div>
+<div class="section-title">装备商店</div>
+<div class="content">
+  {% for e in shop_list %}
+  <div class="card">
+    <div class="hd">{{ e.name }}<span class="r">{{ e.quality }}</span></div>
+    <div class="muted">{{ e.slot }}部 · 需求{{ e.level_req }}级{% if e.sect_req %} · {{ e.sect_req }}专属{% endif %}</div>
+    <div class="muted">攻击+{{ e.atk_bonus }} 防御+{{ e.def_bonus }} 气血+{{ e.hp_bonus }} 法力+{{ e.mp_bonus }}</div>
+    <div>价格 <b>{{ e.price }}</b> 银两</div>
+    {% if st.level >= e.level_req and st.silver >= e.price %}
+    <form method="post" action="/games/xyou/shop/buy/{{ e.key }}">
+      <button class="btn" type="submit">购买</button>
+    </form>
+    {% elif st.level < e.level_req %}
+    <div class="muted">{{ e.level_req }}级解锁</div>
+    {% else %}
+    <div class="muted">银两不足</div>
+    {% endif %}
+  </div>
+  {% endfor %}
+  {% if not shop_list %}<div class="muted">暂无商品</div>{% endif %}
+</div>
+<div class="content">
+  <a class="btn ghost" href="/games/xyou">返回首页</a>
+</div>
+{{ footer(user) }}
+{% endblock %}

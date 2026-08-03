@@ -1,0 +1,32 @@
+{% extends "base.html" %}
+{% from "macros.html" import topbar, footer %}
+{% block title %}选择门派{% endblock %}
+{% block body %}
+{{ topbar("选择门派", user) }}
+<div class="crumb"><a href="/games/xyou">幻想西游</a> › 创建角色</div>
+<div class="card">
+  <div class="muted">9 级前必须到长安十字街头选择五大门派之一。选择后将初始化对应基础属性，正式成为门派弟子。</div>
+</div>
+<form method="post" action="/games/xyou/create">
+<div class="section-title">五大门派</div>
+<div class="content">
+  {% for key, name, role, attr, desc in sects %}
+  <div class="card">
+    <div class="hd">
+      <label><input type="radio" name="sect_key" value="{{ key }}" {% if st.sect_key == key %}checked{% endif %}> <b>{{ name }}</b></label>
+      <span class="r">{{ role }}</span>
+    </div>
+    <div class="muted">{{ desc }}</div>
+    <div class="muted">武器类型：{{ sect_weapon[key] }}</div>
+    {% set b = base_attrs[key] %}
+    <div class="muted">气血{{ b.hp }} 法力{{ b.mp }} 攻击{{ b.atk }} 防御{{ b.defense }} 速度{{ b.speed }} 灵力{{ b.lingli }}</div>
+  </div>
+  {% endfor %}
+</div>
+<div class="content">
+  <button class="btn green" type="submit">确认选择</button>
+  <a class="btn ghost" href="/games/xyou">返回首页</a>
+</div>
+</form>
+{{ footer(user) }}
+{% endblock %}
