@@ -1,0 +1,20 @@
+{% extends "base.html" %}
+{% from "macros.html" import topbar, footer %}
+{% block title %}小镇规则{% endblock %}
+{% block body %}
+{{ topbar("小镇规则", user) }}
+<div class="content">
+  <div class="card">
+    <div class="hd">美味小镇怎么玩</div>
+    1. 买食材→按菜谱<b>烹饪</b>→出锅卖钱<br>
+    2. 烹饪消耗<b>油量</b>，油量随时间下降，低于30要<b>添油</b><br>
+    3. 食材短缺时去<b>翻好友橱柜</b>，每种食材限翻1次<br>
+    4. 出餐累计达<b>50份升1星</b>，最高5星，星级解锁高级菜谱<br>
+    5. 升星会触发<b>挑剔客人</b>门槛，需更高星级菜谱<br>
+    6. 可给食材上锁防翻<br>
+    <hr><span class="muted">老味道：食材短缺驱动互动，添油维持营业节奏</span>
+  </div>
+</div>
+<div class="content"><a class="btn" href="/games/town">返回小镇首页</a></div>
+{{ footer(user) }}
+{% endblock %}

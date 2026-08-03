@@ -1,0 +1,32 @@
+{% extends "base.html" %}
+{% from "macros.html" import topbar, footer %}
+{% block title %}第{{ pot.slot+1 }}盆{% endblock %}
+{% block body %}
+{{ topbar("花盆详情", user) }}
+<div class="crumb"><a href="/games/garden/pots">花盆</a> › 第{{ pot.slot+1 }}盆</div>
+<div class="card">
+  <div class="hd">{{ flower.name if flower else '空盆' }}</div>
+  {% if flower %}
+    状态：<b>{{ stage }}</b><br>
+    {% if remain > 0 %}剩余 {{ remain }} 秒盛开{% else %}<span class="tag green">已盛开，可收获</span>{% endif %}<br>
+    {% if locked %}<span class="lock">花盆已上锁(防偷)</span>{% endif %}
+  {% else %}<span class="muted">种点什么花吧</span>{% endif %}
+</div>
+<div class="section-title">操作</div>
+<div class="content">
+  {% if not flower %}
+  <form method="post" action="/games/garden/plant/{{ pot.slot }}">
+    <label>选择花种</label>
+    <select name="flower_key">{% for f in flowers %}<option value="{{ f.key }}">{{ f.name }}({{ f.grow_seconds }}秒)</option>{% endfor %}</select>
+    <button class="btn green" type="submit">种植</button>
+  </form>
+  {% if not seeds %}<div class="muted">没有花种，<a href="/games/garden/craft">去合成</a> 或 <a href="/shop?m=garden">购买</a></div>{% endif %}
+  <hr><div class="muted">已有花种：</div>
+  {% for f, n in seeds %}<span class="icon-badge">{{ f.name }}×{{ n }}</span>{% endfor %}
+  {% else %}
+  {% if stage == '盛开' %}<form method="post" action="/games/garden/harvest/{{ pot.slot }}"><button class="btn green" type="submit">收获</button></form>{% endif %}
+  <form method="post" action="/games/garden/lock/{{ pot.slot }}"><button class="btn {{ 'danger' if locked else 'ghost' }}" type="submit">{{ '解锁' if locked else '上锁(防偷)' }}</button></form>
+  {% endif %}
+</div>
+{{ footer(user) }}
+{% endblock %}

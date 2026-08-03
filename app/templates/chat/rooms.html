@@ -1,0 +1,12 @@
+{% extends "base.html" %}
+{% from "macros.html" import topbar, footer %}
+{% block title %}聊天室{% endblock %}
+{% block body %}
+{{ topbar("聊天室", user) }}
+<div class="content">
+  {% for r in rooms %}
+  <a class="li" href="/chat/room/{{ r.id }}">{{ r.name }}<span class="r">{{ r.topic }} ›</span></a>
+  {% endfor %}
+</div>
+{{ footer(user) }}
+{% endblock %}

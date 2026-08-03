@@ -1,0 +1,19 @@
+{% extends "base.html" %}
+{% from "macros.html" import topbar, footer %}
+{% block title %}我的花盆{% endblock %}
+{% block body %}
+{{ topbar("我的花盆", user) }}
+<div class="crumb"><a href="/games/garden">花园</a> › 花盆</div>
+<div class="content">
+  {% for info in pot_info %}
+  <a class="li" href="/games/garden/pot/{{ info.pot.slot }}">
+    <span>第{{ info.pot.slot+1 }}盆 · {{ info.flower.name if info.flower else '空盆' }} · {{ info.stage }}
+      {% if info.stage == '盛开' %}<span class="tag green">可收</span>{% endif %}
+      {% if info.locked %}<span class="lock">已锁</span>{% endif %}
+    </span>
+    <span class="r">{% if info.remain>0 %}{{ info.remain }}秒{% else %}›{% endif %}</span>
+  </a>
+  {% endfor %}
+</div>
+{{ footer(user) }}
+{% endblock %}

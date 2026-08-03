@@ -1,0 +1,20 @@
+{% extends "base.html" %}
+{% from "macros.html" import topbar, footer %}
+{% block title %}航海规则{% endblock %}
+{% block body %}
+{{ topbar("航海规则", user) }}
+<div class="content">
+  <div class="card">
+    <div class="hd">纵横四海怎么玩</div>
+    1. 从<b>启航港</b>出发，沿航线推进到下一港口<br>
+    2. 每个港口会自动生成<b>任务</b>(奇遇/战斗/贸易)<br>
+    3. 执行任务触发<b>遭遇结算</b>，战力越高成功率越高<br>
+    4. 任务成功得经验金币，升级解锁新航线<br>
+    5. <b>装备</b>是长期成长线，提升战力<br>
+    6. 装备系统可分期补全，逐步成长<br>
+    <hr><span class="muted">老味道：城市节点+航线推进，任务驱动，装备长期成长</span>
+  </div>
+</div>
+<div class="content"><a class="btn" href="/games/sea">返回航海首页</a></div>
+{{ footer(user) }}
+{% endblock %}

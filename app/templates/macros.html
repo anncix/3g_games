@@ -1,0 +1,46 @@
+{# 通用宏：怀旧WAP风组件 #}
+
+{# 顶部导航条 #}
+{% macro topbar(title, user) %}
+<div class="topbar">
+  <span class="title">{{ title }}</span>
+  {% if user %}
+  <span class="user">{{ user.nickname }} <em>{{ user.coins }}金</em></span>
+  {% endif %}
+</div>
+{% endmacro %}
+
+{# 底部固定入口（顶层入口必须一致） #}
+{% macro footer(user) %}
+<div class="footer">
+  <a href="/">家园</a>
+  <a href="/my">我的</a>
+  <a href="/friends">好友</a>
+  <a href="/lobby">大厅</a>
+  <a href="/messages">消息{% if unread %}<sup class="dot">{{ unread }}</sup>{% endif %}</a>
+</div>
+{% endmacro %}
+
+{# 列表项 #}
+{% macro li(href, text, right="") %}
+<a class="li" href="{{ href }}"><span>{{ text }}</span>{% if right %}<span class="r">{{ right }}</span>{% endif %}</a>
+{% endmacro %}
+
+{# 操作结果页通用 #}
+{% macro result(ok, msg, back_href, back_text="返回") %}
+<div class="result {{ 'ok' if ok else 'fail' }}">
+  <div class="r-icon">{{ '√' if ok else '×' }}</div>
+  <div class="r-msg">{{ msg }}</div>
+  <a class="btn" href="{{ back_href }}">{{ back_text }}</a>
+</div>
+{% endmacro %}
+
+{# 确认操作（可撤销/可确认） #}
+{% macro confirm(action, text, fields=[]) %}
+<form class="confirm" method="post" action="{{ action }}">
+  <div class="c-text">确认{{ text }}？此操作{% if fields.confirm_risk %}不可撤销{% else %}可撤销{% endif %}</div>
+  {% for f in fields %}<input type="hidden" name="{{ f.name }}" value="{{ f.value }}">{% endfor %}
+  <button class="btn danger" type="submit">确认{{ text }}</button>
+  <a class="btn ghost" href="javascript:history.back()">再想想</a>
+</form>
+{% endmacro %}

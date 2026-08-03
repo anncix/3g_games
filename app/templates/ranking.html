@@ -1,0 +1,23 @@
+{% extends "base.html" %}
+{% from "macros.html" import topbar, footer %}
+{% block title %}排行榜{% endblock %}
+{% block body %}
+{{ topbar("排行榜", user) }}
+<div class="content">
+  <a class="li" href="/ranking?m=farm&metric=harvest">农场·收获数</a>
+  <a class="li" href="/ranking?m=town&metric=dishes">小镇·出餐数</a>
+  <a class="li" href="/ranking?m=garden&metric=flower_lit">花园·花谱点亮</a>
+  <a class="li" href="/ranking?m=sea&metric=level">航海·等级</a>
+</div>
+<div class="section-title">{{ m }} · {{ metric }} 排行</div>
+<div class="content">
+  <table>
+    <tr><th>名次</th><th>昵称</th><th>分数</th></tr>
+    {% for re, u in rows %}
+    <tr><td>{{ loop.index }}</td><td><a href="/u/{{ u.id }}">{{ u.nickname }}</a></td><td>{{ re.score|int }}</td></tr>
+    {% endfor %}
+  </table>
+  {% if not rows %}<div class="muted">暂无数据</div>{% endif %}
+</div>
+{{ footer(user) }}
+{% endblock %}

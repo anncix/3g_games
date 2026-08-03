@@ -1,0 +1,36 @@
+{% extends "base.html" %}
+{% from "macros.html" import topbar, footer %}
+{% block title %}纵横四海{% endblock %}
+{% block body %}
+{{ topbar("纵横四海", user) }}
+<div class="crumb"><a href="/">家园</a> › <a href="/lobby">大厅</a> › 纵横四海</div>
+<div class="card">
+  <div class="hd">航海日志</div>
+  等级 <b>{{ st.level }}</b> · 战力 <b>{{ st.power }}</b> · 战舰 <b>{{ st.ship_name }}</b><br>
+  当前所在：<b>{{ city.name if city else '海上' }}</b>
+  <div class="bar"><i style="width:{{ (st.exp/(st.level*100)*100)|int }}%"></i></div>
+</div>
+{% if st.traveling_to %}
+<div class="section-title">航行中</div>
+<div class="content"><div class="li">前往下一港口<span class="r">{{ st.travel_arrive_at.strftime('%H:%M') }}到达</span></div></div>
+{% endif %}
+<div class="section-title">今日待办 ({{ todo }})</div>
+<div class="content">
+  {% if st.traveling_to %}<a class="li" href="/games/sea"><span class="tag">航行</span> 等待到达<span class="r">›</span></a>{% endif %}
+  {% for q in quests %}
+  <a class="li" href="/games/sea/quests"><span class="tag green">任务</span> {{ q.title }}<span class="r">执行 ›</span></a>
+  {% endfor %}
+  {% if todo == 0 %}<div class="muted">暂无待办，去航线图探索</div>{% endif %}
+</div>
+<div class="section-title">快捷入口</div>
+<div class="grid2">
+  <a href="/games/sea/map">航线图</a>
+  <a href="/games/sea/quests">任务</a>
+  <a href="/games/sea/shop">装备商店</a>
+  <a href="/inventory?m=sea">航海背包</a>
+  <a href="/games/sea/rules">规则</a>
+  <a href="/ranking?m=sea&metric=level">排行</a>
+</div>
+<div class="content"><a class="btn ghost" href="/lobby">返回大厅</a><a class="btn ghost" href="/">返回家园</a></div>
+{{ footer(user) }}
+{% endblock %}

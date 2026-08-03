@@ -1,0 +1,17 @@
+{% extends "base.html" %}
+{% from "macros.html" import topbar, footer %}
+{% block title %}花谱{% endblock %}
+{% block body %}
+{{ topbar("花谱 (核心目标)", user) }}
+<div class="crumb"><a href="/games/garden">花园</a> › 花谱</div>
+<div class="content">
+  <div class="notice">花谱点亮是花园的终极目标。收获盛开的鲜花即可点亮对应花谱。</div>
+  {% for f in flowers %}
+  <div class="card">
+    {% if f.key in lit_keys %}<span class="icon-badge lit">已点亮</span>{% else %}<span class="icon-badge off">未点亮</span>{% endif %}
+    <b>{{ f.name }}</b>
+  </div>
+  {% endfor %}
+</div>
+{{ footer(user) }}
+{% endblock %}

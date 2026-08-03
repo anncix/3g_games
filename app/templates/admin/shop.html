@@ -1,0 +1,19 @@
+{% extends "base.html" %}
+{% from "macros.html" import topbar, footer %}
+{% block title %}商店管理{% endblock %}
+{% block body %}
+{{ topbar("商店管理", user) }}
+<div class="crumb"><a href="/admin">后台</a> › 商店</div>
+<div class="notice">商店只上架物品字典里的物品。</div>
+<div class="content">
+  <table>
+    <tr><th>物品</th><th>模块</th><th>价格</th><th>分类</th><th>状态</th><th>操作</th></tr>
+    {% for si, item in items %}
+    <tr><td>{{ item.name }}</td><td>{{ item.module_key }}</td><td>{{ si.price }}</td><td>{{ si.category }}</td>
+    <td><span class="tag {{ 'green' if si.enabled else 'red' }}">{{ '上架' if si.enabled else '下架' }}</span></td>
+    <td><form method="post" action="/admin/shop/{{ si.id }}/toggle" style="display:inline"><button class="btn ghost" type="submit">切换</button></form></td></tr>
+    {% endfor %}
+  </table>
+</div>
+{{ footer(user) }}
+{% endblock %}

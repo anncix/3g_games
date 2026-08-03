@@ -1,0 +1,16 @@
+{% extends "base.html" %}
+{% from "macros.html" import topbar, footer %}
+{% block title %}留言板{% endblock %}
+{% block body %}
+{{ topbar("留言板", user) }}
+<div class="content">
+  {% for gb, author in gbs %}
+  <div class="card">
+    <div class="hd"><a href="/u/{{ author.id }}">{{ author.nickname }}</a> <span class="muted">{{ gb.created_at.strftime('%m-%d %H:%M') }}</span></div>
+    <div>{{ gb.content }}</div>
+  </div>
+  {% endfor %}
+  {% if not gbs %}<div class="muted">还没有留言</div>{% endif %}
+</div>
+{{ footer(user) }}
+{% endblock %}

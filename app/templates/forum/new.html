@@ -1,0 +1,15 @@
+{% extends "base.html" %}
+{% from "macros.html" import topbar, footer %}
+{% block title %}发帖{% endblock %}
+{% block body %}
+{{ topbar("发新帖", user) }}
+<div class="crumb"><a href="/forum">论坛</a> › 发帖</div>
+<div class="content">
+  <form method="post" action="/forum/new/{{ board.id }}">
+    <div class="row"><label>标题</label><input type="text" name="title" required></div>
+    <div class="row"><label>内容</label><textarea name="content" rows="6"></textarea></div>
+    <button class="btn green" type="submit">发布</button>
+  </form>
+</div>
+{{ footer(user) }}
+{% endblock %}

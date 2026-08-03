@@ -1,0 +1,37 @@
+{% extends "base.html" %}
+{% from "macros.html" import topbar, footer %}
+{% block title %}家族{% endblock %}
+{% block body %}
+{{ topbar("家族", user) }}
+{% if family %}
+<div class="card"><div class="hd">{{ family.name }}</div><div class="muted">{{ family.description }}</div></div>
+<div class="section-title">成员 ({{ members|length }})</div>
+<div class="content">
+  {% for fm, u in members %}
+  <a class="li" href="/u/{{ u.id }}">{{ u.nickname }}<span class="r">{{ fm.role }} ›</span></a>
+  {% endfor %}
+</div>
+<div class="content">
+  <form method="post" action="/family/leave"><button class="btn ghost" type="submit">退出家族</button></form>
+</div>
+{% else %}
+<div class="content">
+  <div class="notice">加入家族可点亮“家族之光”图标，还能结交同好。</div>
+  <form method="post" action="/family/create">
+    <div class="row"><label>家族名</label><input type="text" name="name" required></div>
+    <div class="row"><label>简介</label><input type="text" name="description"></div>
+    <button class="btn green" type="submit">创建家族</button>
+  </form>
+</div>
+<div class="section-title">可加入的家族</div>
+<div class="content">
+  {% for f in families %}
+  <div class="li">{{ f.name }}<span class="r">
+    <form method="post" action="/family/join/{{ f.id }}" style="display:inline"><button class="btn" type="submit">加入</button></form>
+  </span></div>
+  {% endfor %}
+  {% if not families %}<div class="muted">还没有家族，快来创建第一个</div>{% endif %}
+</div>
+{% endif %}
+{{ footer(user) }}
+{% endblock %}

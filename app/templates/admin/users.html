@@ -1,0 +1,30 @@
+{% extends "base.html" %}
+{% from "macros.html" import topbar, footer %}
+{% block title %}用户管理{% endblock %}
+{% block body %}
+{{ topbar("用户管理", user) }}
+<div class="crumb"><a href="/admin">后台</a> › 用户</div>
+<div class="content">
+  <table>
+    <tr><th>ID</th><th>账号</th><th>昵称</th><th>金币</th><th>管理</th><th>操作</th></tr>
+    {% for u in users %}
+    <tr>
+      <td>{{ u.id }}</td><td>{{ u.username }}</td><td>{{ u.nickname }}</td><td>{{ u.coins }}</td>
+      <td>{% if u.is_admin %}<span class="tag red">站长</span>{% else %}-{% endif %}</td>
+      <td>
+        <form method="post" action="/admin/users/{{ u.id }}/coins" style="display:inline">
+          <input type="number" name="delta" value="100" style="width:50px;display:inline">
+          <button class="btn ghost" type="submit">±金币</button>
+        </form>
+        {% if u.id != user.id %}
+        <form method="post" action="/admin/users/{{ u.id }}/admin" style="display:inline">
+          <button class="btn ghost" type="submit">{{ '取消管理' if u.is_admin else '设为管理' }}</button>
+        </form>
+        {% endif %}
+      </td>
+    </tr>
+    {% endfor %}
+  </table>
+</div>
+{{ footer(user) }}
+{% endblock %}

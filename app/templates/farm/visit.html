@@ -1,0 +1,28 @@
+{% extends "base.html" %}
+{% from "macros.html" import topbar, footer %}
+{% block title %}{{ host.nickname }}的农场{% endblock %}
+{% block body %}
+{{ topbar("好友农场", user) }}
+<div class="crumb"><a href="/friends">好友</a> › {{ host.nickname }}的农场</div>
+<div class="content">
+  {% for info in plot_info %}
+  <div class="li">
+    <span>第{{ info.plot.slot+1 }}块 · {{ info.crop.name if info.crop else '空地' }}
+      {% if info.mature %}<span class="tag green">成熟</span>{% endif %}
+      {% if info.locked %}<span class="lock">已锁</span>{% endif %}
+    </span>
+    <span class="r">
+      {% if info.mature and not info.locked and not info.already %}
+      <form method="post" action="/games/farm/steal/{{ info.plot.id }}" style="display:inline">
+        <button class="btn danger" type="submit">偷！</button>
+      </form>
+      {% elif info.already %}<span class="muted">已偷过</span>
+      {% elif info.locked %}<span class="muted">锁了</span>
+      {% else %}<span class="muted">未熟</span>{% endif %}
+    </span>
+  </div>
+  {% endfor %}
+  {% if not plot_info %}<div class="muted">好友还没种地</div>{% endif %}
+</div>
+{{ footer(user) }}
+{% endblock %}

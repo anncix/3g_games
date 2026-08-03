@@ -1,0 +1,20 @@
+{% extends "base.html" %}
+{% from "macros.html" import topbar, footer %}
+{% block title %}装备商店{% endblock %}
+{% block body %}
+{{ topbar("装备商店", user) }}
+<div class="crumb"><a href="/games/sea">航海</a> › 装备</div>
+<div class="content">
+  <div class="notice">装备是长期成长线，提升战力可提高任务成功率。</div>
+  {% for eq in equips %}
+  <div class="card">
+    <div class="hd">{{ eq.name }} <span class="tag">{{ eq.slot }}</span></div>
+    <div>战力 +{{ eq.stat }} · 价格 {{ eq.price }}金</div>
+    {% if eq.key in owned_keys %}<span class="tag green">已拥有</span>
+    {% elif user.coins >= eq.price %}<form method="post" action="/games/sea/buy/{{ eq.key }}"><button class="btn green" type="submit">购买装备</button></form>
+    {% else %}<span class="tag red">金币不足</span>{% endif %}
+  </div>
+  {% endfor %}
+</div>
+{{ footer(user) }}
+{% endblock %}

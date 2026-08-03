@@ -1,0 +1,45 @@
+{% extends "base.html" %}
+{% from "macros.html" import topbar, footer %}
+{% block title %}美味小镇{% endblock %}
+{% block body %}
+{{ topbar("美味小镇", user) }}
+<div class="crumb"><a href="/">家园</a> › <a href="/lobby">大厅</a> › 美味小镇</div>
+<div class="card">
+  <div class="hd">我的餐厅</div>
+  星级 <b>{{ st.stars }}★</b> · 等级 <b>{{ st.level }}</b><br>
+  油量 <b>{{ st.oil }}/100</b>
+  <div class="bar"><i style="width:{{ st.oil }}%; background:{{ '#c0392b' if st.oil<30 else '#2e8b57' }}"></i></div>
+  {% if st.oil < 30 %}<span class="tag red">油量告急！快添油</span>{% endif %}
+  累计出餐 <b>{{ st.dishes_served }}</b>
+</div>
+<div class="section-title">今日待办 ({{ todo }})</div>
+<div class="content">
+  {% if st.oil < 30 %}<a class="li" href="/games/town"><span class="tag red">缺油</span> 添油维持营业<span class="r">去添油 ›</span></a>{% endif %}
+  {% if cooking_recipe and cook_remain == 0 %}<a class="li" href="/games/town"><span class="tag green">完成</span> {{ cooking_recipe.name }} 出锅<span class="r">收菜 ›</span></a>{% endif %}
+  {% if todo == 0 %}<div class="muted">暂无待办，去做菜吧</div>{% endif %}
+</div>
+{% if cooking_recipe %}
+<div class="section-title">烹饪中</div>
+<div class="content">
+  <div class="li">{{ cooking_recipe.name }}<span class="r">{% if cook_remain>0 %}{{ cook_remain }}秒{% else %}<span class="tag green">完成</span>{% endif %}</span></div>
+  {% if cook_remain == 0 %}
+  <form method="post" action="/games/town/finish"><button class="btn green" type="submit">出锅收菜</button></form>
+  {% endif %}
+</div>
+{% endif %}
+<div class="section-title">快捷入口</div>
+<div class="grid2">
+  <a href="/games/town/recipes">菜谱</a>
+  <a href="/inventory?m=town">食材柜</a>
+  <a href="/shop?m=town">食材商店</a>
+  <a href="/friends">翻好友橱柜</a>
+  <a href="/games/town/rules">规则</a>
+  <a href="/ranking?m=town&metric=dishes">排行</a>
+</div>
+<div class="content">
+  {% if st.oil < 100 %}<form method="post" action="/games/town/addoil"><button class="btn" type="submit">添油(+30)</button></form>{% endif %}
+  <a class="btn ghost" href="/lobby">返回大厅</a>
+  <a class="btn ghost" href="/">返回家园</a>
+</div>
+{{ footer(user) }}
+{% endblock %}

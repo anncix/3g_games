@@ -1,0 +1,32 @@
+{% extends "base.html" %}
+{% from "macros.html" import topbar, footer %}
+{% block title %}{{ host.nickname }}的花园{% endblock %}
+{% block body %}
+{{ topbar("好友花园", user) }}
+<div class="crumb"><a href="/friends">好友</a> › {{ host.nickname }}的花园</div>
+<div class="section-title">盛开的花（可偷）</div>
+<div class="content">
+  {% for info in pot_info %}
+  <div class="li">
+    <span>第{{ info.pot.slot+1 }}盆 · {{ info.flower.name if info.flower else '空' }} · {{ info.stage }}
+      {% if info.locked %}<span class="lock">已锁</span>{% endif %}
+    </span>
+    <span class="r">
+      {% if info.mature and not info.locked and not info.already %}
+      <form method="post" action="/games/garden/steal/{{ info.pot.id }}" style="display:inline"><button class="btn danger" type="submit">偷</button></form>
+      {% elif info.already %}<span class="muted">偷过</span>{% elif info.locked %}<span class="muted">锁了</span>{% else %}<span class="muted">未开</span>{% endif %}
+    </span>
+  </div>
+  {% endfor %}
+</div>
+<div class="section-title">送花给TA</div>
+<div class="content">
+  {% for item, n in my_flowers %}
+  <div class="li">{{ item.name }} ×{{ n }}<span class="r">
+    <form method="post" action="/games/garden/gift/{{ host.id }}/{{ item.key }}" style="display:inline"><button class="btn" type="submit">送</button></form>
+  </span></div>
+  {% endfor %}
+  {% if not my_flowers %}<div class="muted">你还没有花可送</div>{% endif %}
+</div>
+{{ footer(user) }}
+{% endblock %}

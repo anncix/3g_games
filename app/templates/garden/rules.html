@@ -1,0 +1,19 @@
+{% extends "base.html" %}
+{% from "macros.html" import topbar, footer %}
+{% block title %}花园规则{% endblock %}
+{% block body %}
+{{ topbar("花园规则", user) }}
+<div class="content">
+  <div class="card">
+    <div class="hd">魔法花园怎么玩</div>
+    1. 买/合成花种→种入花盆→经历<b>发芽/花苗/花蕾/盛开</b><br>
+    2. 盛开后收获，<b>点亮花谱</b>(核心目标)<br>
+    3. 部分花种需<b>合成</b>(消耗花瓣材料)<br>
+    4. 可去好友花园<b>偷花</b>或<b>送花</b><br>
+    5. 花盆可<b>上锁</b>防偷<br>
+    <hr><span class="muted">老味道：成长阶段操作 + 合成花种 + 花谱点亮为核心</span>
+  </div>
+</div>
+<div class="content"><a class="btn" href="/games/garden">返回花园首页</a></div>
+{{ footer(user) }}
+{% endblock %}

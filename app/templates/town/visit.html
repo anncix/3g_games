@@ -1,0 +1,23 @@
+{% extends "base.html" %}
+{% from "macros.html" import topbar, footer %}
+{% block title %}{{ host.nickname }}的橱柜{% endblock %}
+{% block body %}
+{{ topbar("翻橱柜", user) }}
+<div class="crumb"><a href="/friends">好友</a> › {{ host.nickname }}的橱柜</div>
+<div class="content">
+  {% for d in items %}
+  <div class="li">
+    <span>{{ d.item.name }} ×{{ d.inv.quantity }}
+      {% if d.locked %}<span class="lock">已锁</span>{% endif %}
+    </span>
+    <span class="r">
+      {% if d.locked %}<span class="muted">锁了</span>
+      {% elif d.already %}<span class="muted">翻过了</span>
+      {% else %}<form method="post" action="/games/town/raid/{{ host.id }}/{{ d.item.key }}" style="display:inline"><button class="btn danger" type="submit">翻</button></form>{% endif %}
+    </span>
+  </div>
+  {% endfor %}
+  {% if not items %}<div class="muted">好友橱柜空空如也</div>{% endif %}
+</div>
+{{ footer(user) }}
+{% endblock %}

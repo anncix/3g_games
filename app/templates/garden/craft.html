@@ -1,0 +1,23 @@
+{% extends "base.html" %}
+{% from "macros.html" import topbar, footer %}
+{% block title %}合成花种{% endblock %}
+{% block body %}
+{{ topbar("合成花种", user) }}
+<div class="crumb"><a href="/games/garden">花园</a> › 合成</div>
+<div class="content">
+  {% for d in info %}
+  <div class="card">
+    <div class="hd">{{ d.fl.name }}种子</div>
+    {% if d.need_recipe %}
+    <div>配方：
+      {% for k, n, cnt in d.mats %}<span class="{{ 'tag green' if cnt>=n else 'tag red' }}">{{ k }}×{{ n }}(有{{ cnt }})</span>{% endfor %}
+    </div>
+    {% if d.can %}
+    <form method="post" action="/games/garden/craft/{{ d.fl.key }}"><button class="btn green" type="submit">合成</button></form>
+    {% else %}<span class="tag red">材料不足</span>{% endif %}
+    {% else %}<span class="muted">基础花种，请去商店购买</span>{% endif %}
+  </div>
+  {% endfor %}
+</div>
+{{ footer(user) }}
+{% endblock %}

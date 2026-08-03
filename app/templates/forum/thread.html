@@ -1,0 +1,26 @@
+{% extends "base.html" %}
+{% from "macros.html" import topbar, footer %}
+{% block title %}{{ t.title }}{% endblock %}
+{% block body %}
+{{ topbar("帖子", user) }}
+<div class="crumb"><a href="/forum">论坛</a> › {{ t.title }}</div>
+<div class="card">
+  <div class="hd">{{ t.title }}</div>
+  <div class="muted">作者：<a href="/u/{{ author.id }}">{{ author.nickname }}</a> · {{ t.created_at.strftime('%m-%d %H:%M') }} · {{ t.views }}浏览</div>
+  <hr>{{ t.content }}
+</div>
+<div class="section-title">回复 ({{ t.replies }})</div>
+<div class="content">
+  {% for p, pa in posts %}
+  <div class="card"><div class="hd"><a href="/u/{{ pa.id }}">{{ pa.nickname }}</a> <span class="muted">{{ p.created_at.strftime('%m-%d %H:%M') }}</span></div>{{ p.content }}</div>
+  {% endfor %}
+  {% if not posts %}<div class="muted">暂无回复</div>{% endif %}
+</div>
+<div class="content">
+  <form method="post" action="/forum/reply/{{ t.id }}">
+    <textarea name="content" rows="3" placeholder="回复..."></textarea>
+    <button class="btn" type="submit">回复</button>
+  </form>
+</div>
+{{ footer(user) }}
+{% endblock %}

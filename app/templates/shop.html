@@ -1,0 +1,29 @@
+{% extends "base.html" %}
+{% from "macros.html" import topbar, footer %}
+{% block title %}商店{% endblock %}
+{% block body %}
+{{ topbar("商店", user) }}
+<div class="content">金币：<b>{{ user.coins }}</b></div>
+<div class="section-title">商品分类</div>
+<div class="content">
+  <a class="li" href="/shop?m=platform">平台道具</a>
+  <a class="li" href="/shop?m=farm">农场种子</a>
+  <a class="li" href="/shop?m=town">小镇食材</a>
+  <a class="li" href="/shop?m=garden">花园花种</a>
+</div>
+<div class="section-title">{{ m }} 商品</div>
+<div class="content">
+  {% for si, item in items %}
+  <div class="li">
+    <span>{{ item.name }} <span class="muted">{{ item.description[:12] }}</span></span>
+    <span class="r">
+      {% if user.coins >= si.price %}
+      <form method="post" action="/shop/buy/{{ si.id }}?m={{ m }}" style="display:inline"><button class="btn green" type="submit">{{ si.price }}金</button></form>
+      {% else %}<span class="tag red">不足</span>{% endif %}
+    </span>
+  </div>
+  {% endfor %}
+  {% if not items %}<div class="muted">暂无商品</div>{% endif %}
+</div>
+{{ footer(user) }}
+{% endblock %}

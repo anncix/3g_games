@@ -1,0 +1,23 @@
+{% extends "base.html" %}
+{% from "macros.html" import topbar, footer %}
+{% block title %}与{{ other.nickname }}私聊{% endblock %}
+{% block body %}
+{{ topbar("私聊", user) }}
+<div class="crumb"><a href="/friends">好友</a> › {{ other.nickname }}</div>
+<div class="content">
+  {% for m in msgs %}
+  <div class="card">
+    <div class="hd">{% if m.from_id == user.id %}我{% else %}<a href="/u/{{ other.id }}">{{ other.nickname }}</a>{% endif %} <span class="muted">{{ m.created_at.strftime('%m-%d %H:%M') }}</span></div>
+    {{ m.content }}
+  </div>
+  {% endfor %}
+  {% if not msgs %}<div class="muted">还没有消息</div>{% endif %}
+</div>
+<div class="content">
+  <form method="post" action="/chat/private/{{ other.id }}">
+    <input type="text" name="content" placeholder="说点什么..." maxlength="500">
+    <button class="btn" type="submit">发送</button>
+  </form>
+</div>
+{{ footer(user) }}
+{% endblock %}

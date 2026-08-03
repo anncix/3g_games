@@ -1,0 +1,17 @@
+{% extends "base.html" %}
+{% from "macros.html" import topbar, footer %}
+{% block title %}物品锁管理{% endblock %}
+{% block body %}
+{{ topbar("物品锁", user) }}
+<div class="crumb"><a href="/settings">设置</a> › 物品锁</div>
+<div class="notice">上锁的物品/资源禁止被翻/偷/消耗/出售，需主动解锁。</div>
+<div class="content">
+  {% for lk in lks %}
+  <div class="li"><span><span class="lock">已锁</span> {{ lk.module_key }} · {{ lk.item_ref }}</span>
+    <span class="r"><form method="post" action="/settings/itemlocks/{{ lk.id }}" style="display:inline"><button class="btn ghost" type="submit">解锁</button></form></span>
+  </div>
+  {% endfor %}
+  {% if not lks %}<div class="muted">没有上锁的物品</div>{% endif %}
+</div>
+{{ footer(user) }}
+{% endblock %}

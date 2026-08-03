@@ -1,0 +1,582 @@
+"""全部数据模型：平台公共系统 + 四个游戏模块
+
+设计原则对应规范：
+- 平台统一：好友/加锁/货品/图标/消息/排行 均为平台公共表，模块只上报事件
+- 模块自治：每个模块拥有自己的玩法表，但背包走平台 inventory（带 module_key 分页）
+- 操作留痕：OperationLog 记录关键动作，便于客服申诉
+"""
+from __future__ import annotations
+
+from datetime import datetime
+from sqlalchemy import (
+    String, Integer, Boolean, Text, DateTime, ForeignKey, Float, UniqueConstraint, Index, func,
+)
+from sqlalchemy.orm import Mapped, mapped_column, relationship
+
+from .database import Base
+
+
+def _now():
+    return datetime.utcnow()
+
+
+# ============================================================
+# 平台核心：用户 / 会话
+# ============================================================
+class User(Base):
+    __tablename__ = "users"
+    id: Mapped[int] = mapped_column(Integer, primary_key=True)
+    username: Mapped[str] = mapped_column(String(32), unique=True, index=True)
+    password_hash: Mapped[str] = mapped_column(String(255))
+    nickname: Mapped[str] = mapped_column(String(32), default="")
+    avatar: Mapped[str] = mapped_column(String(255), default="")  # 头像 URL 或文字代号
+    signature: Mapped[str] = mapped_column(String(128), default="")  # 签名
+    gender: Mapped[int] = mapped_column(Integer, default=0)  # 0未知 1男 2女
+    city: Mapped[str] = mapped_column(String(32), default="")  # 同城用
+    coins: Mapped[int] = mapped_column(Integer, default=1000)  # 平台公共货币
+    is_admin: Mapped[bool] = mapped_column(Boolean, default=False)
+    created_at: Mapped[datetime] = mapped_column(DateTime, default=_now)
+    last_login: Mapped[datetime] = mapped_column(DateTime, default=_now)
+
+
+class Session(Base):
+    __tablename__ = "sessions"
+    token: Mapped[str] = mapped_column(String(64), primary_key=True)
+    user_id: Mapped[int] = mapped_column(ForeignKey("users.id", ondelete="CASCADE"), index=True)
+    expires_at: Mapped[datetime] = mapped_column(DateTime)
+    created_at: Mapped[datetime] = mapped_column(DateTime, default=_now)
+
+
+# ============================================================
+# 平台公共：好友 / 黑名单 / 来访 / 留言 / 私聊
+# ============================================================
+class Friend(Base):
+    __tablename__ = "friends"
+    id: Mapped[int] = mapped_column(Integer, primary_key=True)
+    user_id: Mapped[int] = mapped_column(ForeignKey("users.id", ondelete="CASCADE"), index=True)
+    friend_id: Mapped[int] = mapped_column(ForeignKey("users.id", ondelete="CASCADE"), index=True)
+    group_name: Mapped[str] = mapped_column(String(16), default="我的好友")
+    created_at: Mapped[datetime] = mapped_column(DateTime, default=_now)
+    __table_args__ = (UniqueConstraint("user_id", "friend_id", name="uq_friend_pair"),)
+
+
+class Blacklist(Base):
+    __tablename__ = "blacklist"
+    id: Mapped[int] = mapped_column(Integer, primary_key=True)
+    user_id: Mapped[int] = mapped_column(ForeignKey("users.id", ondelete="CASCADE"), index=True)
+    blocked_id: Mapped[int] = mapped_column(ForeignKey("users.id", ondelete="CASCADE"), index=True)
+    created_at: Mapped[datetime] = mapped_column(DateTime, default=_now)
+    __table_args__ = (UniqueConstraint("user_id", "blocked_id", name="uq_block_pair"),)
+
+
+class Visit(Base):
+    """来访记录"""
+    __tablename__ = "visits"
+    id: Mapped[int] = mapped_column(Integer, primary_key=True)
+    host_id: Mapped[int] = mapped_column(ForeignKey("users.id", ondelete="CASCADE"), index=True)
+    visitor_id: Mapped[int] = mapped_column(ForeignKey("users.id", ondelete="CASCADE"))
+    visited_at: Mapped[datetime] = mapped_column(DateTime, default=_now)
+
+
+class Guestbook(Base):
+    """留言板"""
+    __tablename__ = "guestbook"
+    id: Mapped[int] = mapped_column(Integer, primary_key=True)
+    host_id: Mapped[int] = mapped_column(ForeignKey("users.id", ondelete="CASCADE"), index=True)
+    author_id: Mapped[int] = mapped_column(ForeignKey("users.id", ondelete="CASCADE"))
+    content: Mapped[str] = mapped_column(String(200))
+    created_at: Mapped[datetime] = mapped_column(DateTime, default=_now)
+
+
+class ChatMessage(Base):
+    """私聊消息"""
+    __tablename__ = "chat_messages"
+    id: Mapped[int] = mapped_column(Integer, primary_key=True)
+    from_id: Mapped[int] = mapped_column(ForeignKey("users.id", ondelete="CASCADE"), index=True)
+    to_id: Mapped[int] = mapped_column(ForeignKey("users.id", ondelete="CASCADE"), index=True)
+    content: Mapped[str] = mapped_column(String(500))
+    is_read: Mapped[bool] = mapped_column(Boolean, default=False)
+    created_at: Mapped[datetime] = mapped_column(DateTime, default=_now)
+
+
+class ChatRoom(Base):
+    __tablename__ = "chat_rooms"
+    id: Mapped[int] = mapped_column(Integer, primary_key=True)
+    name: Mapped[str] = mapped_column(String(32))
+    topic: Mapped[str] = mapped_column(String(128), default="")
+    created_at: Mapped[datetime] = mapped_column(DateTime, default=_now)
+
+
+class ChatRoomMessage(Base):
+    __tablename__ = "chat_room_messages"
+    id: Mapped[int] = mapped_column(Integer, primary_key=True)
+    room_id: Mapped[int] = mapped_column(ForeignKey("chat_rooms.id", ondelete="CASCADE"), index=True)
+    user_id: Mapped[int] = mapped_column(ForeignKey("users.id", ondelete="CASCADE"))
+    content: Mapped[str] = mapped_column(String(500))
+    created_at: Mapped[datetime] = mapped_column(DateTime, default=_now)
+
+
+# ============================================================
+# 平台公共：加锁（隐私锁 / 物品锁）
+# ============================================================
+class PrivacyLock(Base):
+    """隐私锁：影响访问和交流"""
+    __tablename__ = "privacy_locks"
+    user_id: Mapped[int] = mapped_column(ForeignKey("users.id", ondelete="CASCADE"), primary_key=True)
+    # 访问可见范围: 0=所有人 1=仅好友 2=无人
+    allow_visit: Mapped[int] = mapped_column(Integer, default=0)
+    allow_guestbook: Mapped[int] = mapped_column(Integer, default=0)
+    allow_chat: Mapped[int] = mapped_column(Integer, default=0)
+    show_in_city: Mapped[bool] = mapped_column(Boolean, default=True)
+
+
+class ItemLock(Base):
+    """物品锁：影响资源安全（禁止翻/偷/消耗/出售）"""
+    __tablename__ = "item_locks"
+    id: Mapped[int] = mapped_column(Integer, primary_key=True)
+    user_id: Mapped[int] = mapped_column(ForeignKey("users.id", ondelete="CASCADE"), index=True)
+    module_key: Mapped[str] = mapped_column(String(32), index=True)
+    item_ref: Mapped[str] = mapped_column(String(64))  # 物品 key 或资源槽位标识
+    locked: Mapped[bool] = mapped_column(Boolean, default=True)
+    created_at: Mapped[datetime] = mapped_column(DateTime, default=_now)
+    __table_args__ = (UniqueConstraint("user_id", "module_key", "item_ref", name="uq_item_lock"),)
+
+
+# ============================================================
+# 平台公共：货品（物品字典 / 背包 / 商店）
+# ============================================================
+class Item(Base):
+    """物品字典：所有物品必须先登记在此"""
+    __tablename__ = "items"
+    id: Mapped[int] = mapped_column(Integer, primary_key=True)
+    key: Mapped[str] = mapped_column(String(64), unique=True, index=True)
+    name: Mapped[str] = mapped_column(String(32))
+    type: Mapped[str] = mapped_column(String(16))  # crop/ingredient/flower/material/equip/prop/decor
+    module_key: Mapped[str] = mapped_column(String(32), default="platform")  # 归属模块或 platform
+    stackable: Mapped[bool] = mapped_column(Boolean, default=True)
+    bindable: Mapped[bool] = mapped_column(Boolean, default=False)  # 绑定规则
+    expires: Mapped[int] = mapped_column(Integer, default=0)  # 过期秒数 0=永不过期
+    sell_price: Mapped[int] = mapped_column(Integer, default=0)
+    description: Mapped[str] = mapped_column(String(128), default="")
+
+
+class Inventory(Base):
+    """背包：平台统一入口，按 module_key 分页"""
+    __tablename__ = "inventory"
+    id: Mapped[int] = mapped_column(Integer, primary_key=True)
+    user_id: Mapped[int] = mapped_column(ForeignKey("users.id", ondelete="CASCADE"), index=True)
+    item_id: Mapped[int] = mapped_column(ForeignKey("items.id"))
+    module_key: Mapped[str] = mapped_column(String(32), index=True)  # farm/town/garden/sea/platform
+    quantity: Mapped[int] = mapped_column(Integer, default=1)
+    locked: Mapped[bool] = mapped_column(Boolean, default=False)  # 物品锁状态冗余
+    acquired_at: Mapped[datetime] = mapped_column(DateTime, default=_now)
+    expires_at: Mapped[datetime] = mapped_column(DateTime, nullable=True)
+    __table_args__ = (UniqueConstraint("user_id", "item_id", "module_key", name="uq_inv_slot"),)
+
+
+class ShopItem(Base):
+    """商店上架：只能引用物品字典里的物品"""
+    __tablename__ = "shop_items"
+    id: Mapped[int] = mapped_column(Integer, primary_key=True)
+    item_id: Mapped[int] = mapped_column(ForeignKey("items.id"))
+    price: Mapped[int] = mapped_column(Integer)  # 平台金币
+    currency: Mapped[str] = mapped_column(String(16), default="金币")
+    stock: Mapped[int] = mapped_column(Integer, default=-1)  # -1 无限
+    category: Mapped[str] = mapped_column(String(16), default="prop")  # prop/decor/accel
+    enabled: Mapped[bool] = mapped_column(Boolean, default=True)
+
+
+# ============================================================
+# 平台公共：图标 / 成就 / 模块注册
+# ============================================================
+class Module(Base):
+    """模块注册表"""
+    __tablename__ = "modules"
+    key: Mapped[str] = mapped_column(String(32), primary_key=True)
+    name: Mapped[str] = mapped_column(String(32))
+    intro: Mapped[str] = mapped_column(String(128), default="")
+    entry: Mapped[str] = mapped_column(String(64))  # 路由路径
+    sort: Mapped[int] = mapped_column(Integer, default=0)
+    enabled: Mapped[bool] = mapped_column(Boolean, default=True)
+
+
+class Icon(Base):
+    """图标定义：身份展示，点亮即展示"""
+    __tablename__ = "icons"
+    id: Mapped[int] = mapped_column(Integer, primary_key=True)
+    key: Mapped[str] = mapped_column(String(64), unique=True, index=True)
+    name: Mapped[str] = mapped_column(String(32))
+    description: Mapped[str] = mapped_column(String(128), default="")
+    source: Mapped[str] = mapped_column(String(16), default="platform")  # platform / module_key
+    trigger: Mapped[str] = mapped_column(String(128), default="")  # 触发条件描述
+
+
+class UserIcon(Base):
+    """用户图标点亮状态。模块只能上报事件，由平台统一判定点亮。"""
+    __tablename__ = "user_icons"
+    id: Mapped[int] = mapped_column(Integer, primary_key=True)
+    user_id: Mapped[int] = mapped_column(ForeignKey("users.id", ondelete="CASCADE"), index=True)
+    icon_id: Mapped[int] = mapped_column(ForeignKey("icons.id"))
+    lit: Mapped[bool] = mapped_column(Boolean, default=False)
+    lit_at: Mapped[datetime] = mapped_column(DateTime, nullable=True)
+    __table_args__ = (UniqueConstraint("user_id", "icon_id", name="uq_user_icon"),)
+
+
+class Achievement(Base):
+    """成就：记录/目标，可有进度与奖励"""
+    __tablename__ = "achievements"
+    id: Mapped[int] = mapped_column(Integer, primary_key=True)
+    key: Mapped[str] = mapped_column(String(64), unique=True, index=True)
+    name: Mapped[str] = mapped_column(String(32))
+    description: Mapped[str] = mapped_column(String(128), default="")
+    target: Mapped[int] = mapped_column(Integer, default=1)
+    reward_coins: Mapped[int] = mapped_column(Integer, default=0)
+    source: Mapped[str] = mapped_column(String(16), default="platform")
+
+
+class UserAchievement(Base):
+    __tablename__ = "user_achievements"
+    id: Mapped[int] = mapped_column(Integer, primary_key=True)
+    user_id: Mapped[int] = mapped_column(ForeignKey("users.id", ondelete="CASCADE"), index=True)
+    achievement_id: Mapped[int] = mapped_column(ForeignKey("achievements.id"))
+    progress: Mapped[int] = mapped_column(Integer, default=0)
+    completed: Mapped[bool] = mapped_column(Boolean, default=False)
+    completed_at: Mapped[datetime] = mapped_column(DateTime, nullable=True)
+    reward_claimed: Mapped[bool] = mapped_column(Boolean, default=False)
+    __table_args__ = (UniqueConstraint("user_id", "achievement_id", name="uq_user_achv"),)
+
+
+# ============================================================
+# 平台公共：消息中心 / 活动 / 排行 / 操作日志
+# ============================================================
+class Message(Base):
+    """消息中心。模块只能通过事件上报，不可直接写（用 platform.events.emit）"""
+    __tablename__ = "messages"
+    id: Mapped[int] = mapped_column(Integer, primary_key=True)
+    user_id: Mapped[int] = mapped_column(ForeignKey("users.id", ondelete="CASCADE"), index=True)
+    type: Mapped[str] = mapped_column(String(16), default="system")  # system/interact/progress/reward
+    title: Mapped[str] = mapped_column(String(64), default="")
+    content: Mapped[str] = mapped_column(String(255), default="")
+    module_key: Mapped[str] = mapped_column(String(32), default="")
+    is_read: Mapped[bool] = mapped_column(Boolean, default=False)
+    created_at: Mapped[datetime] = mapped_column(DateTime, default=_now)
+
+
+class Activity(Base):
+    __tablename__ = "activities"
+    id: Mapped[int] = mapped_column(Integer, primary_key=True)
+    name: Mapped[str] = mapped_column(String(32))
+    description: Mapped[str] = mapped_column(String(255), default="")
+    type: Mapped[str] = mapped_column(String(16), default="event")  # event/signin/ranking
+    start_at: Mapped[datetime] = mapped_column(DateTime, default=_now)
+    end_at: Mapped[datetime] = mapped_column(DateTime, default=_now)
+    enabled: Mapped[bool] = mapped_column(Boolean, default=True)
+
+
+class ActivityProgress(Base):
+    __tablename__ = "activity_progress"
+    id: Mapped[int] = mapped_column(Integer, primary_key=True)
+    activity_id: Mapped[int] = mapped_column(ForeignKey("activities.id", ondelete="CASCADE"), index=True)
+    user_id: Mapped[int] = mapped_column(ForeignKey("users.id", ondelete="CASCADE"), index=True)
+    progress: Mapped[int] = mapped_column(Integer, default=0)
+    claimed: Mapped[bool] = mapped_column(Boolean, default=False)
+    __table_args__ = (UniqueConstraint("activity_id", "user_id", name="uq_actv_user"),)
+
+
+class RankingEntry(Base):
+    """排行分数。模块上报分数，平台统一展示。"""
+    __tablename__ = "ranking_entries"
+    id: Mapped[int] = mapped_column(Integer, primary_key=True)
+    module_key: Mapped[str] = mapped_column(String(32), index=True)
+    metric: Mapped[str] = mapped_column(String(32))  # 指标名 e.g. level/harvest/flower_lit
+    period: Mapped[str] = mapped_column(String(8), default="total")  # day/week/month/total
+    user_id: Mapped[int] = mapped_column(ForeignKey("users.id", ondelete="CASCADE"), index=True)
+    score: Mapped[float] = mapped_column(Float, default=0)
+    updated_at: Mapped[datetime] = mapped_column(DateTime, default=_now)
+    __table_args__ = (
+        UniqueConstraint("module_key", "metric", "period", "user_id", name="uq_rank"),
+        Index("ix_rank_score", "module_key", "metric", "period", "score"),
+    )
+
+
+class OperationLog(Base):
+    """操作留痕：可追溯（客服/申诉）"""
+    __tablename__ = "operation_logs"
+    id: Mapped[int] = mapped_column(Integer, primary_key=True)
+    user_id: Mapped[int] = mapped_column(ForeignKey("users.id", ondelete="CASCADE"), index=True)
+    module_key: Mapped[str] = mapped_column(String(32), default="platform")
+    action: Mapped[str] = mapped_column(String(32))
+    detail: Mapped[str] = mapped_column(String(255), default="")
+    created_at: Mapped[datetime] = mapped_column(DateTime, default=_now)
+
+
+class Settings(Base):
+    """用户设置"""
+    __tablename__ = "settings"
+    user_id: Mapped[int] = mapped_column(ForeignKey("users.id", ondelete="CASCADE"), primary_key=True)
+    notify_message: Mapped[bool] = mapped_column(Boolean, default=True)
+    notify_activity: Mapped[bool] = mapped_column(Boolean, default=True)
+    notify_interact: Mapped[bool] = mapped_column(Boolean, default=True)
+
+
+class SupportTicket(Base):
+    """客服工单"""
+    __tablename__ = "support_tickets"
+    id: Mapped[int] = mapped_column(Integer, primary_key=True)
+    user_id: Mapped[int] = mapped_column(ForeignKey("users.id", ondelete="CASCADE"), index=True)
+    category: Mapped[str] = mapped_column(String(16))  # account/currency/item/social/module
+    title: Mapped[str] = mapped_column(String(64))
+    content: Mapped[str] = mapped_column(String(500))
+    status: Mapped[str] = mapped_column(String(16), default="open")  # open/replied/closed
+    reply: Mapped[str] = mapped_column(String(500), default="")
+    created_at: Mapped[datetime] = mapped_column(DateTime, default=_now)
+
+
+# ============================================================
+# 平台公共：家族 / 论坛
+# ============================================================
+class Family(Base):
+    __tablename__ = "families"
+    id: Mapped[int] = mapped_column(Integer, primary_key=True)
+    name: Mapped[str] = mapped_column(String(32), unique=True)
+    leader_id: Mapped[int] = mapped_column(ForeignKey("users.id", ondelete="CASCADE"))
+    description: Mapped[str] = mapped_column(String(128), default="")
+    created_at: Mapped[datetime] = mapped_column(DateTime, default=_now)
+
+
+class FamilyMember(Base):
+    __tablename__ = "family_members"
+    id: Mapped[int] = mapped_column(Integer, primary_key=True)
+    family_id: Mapped[int] = mapped_column(ForeignKey("families.id", ondelete="CASCADE"), index=True)
+    user_id: Mapped[int] = mapped_column(ForeignKey("users.id", ondelete="CASCADE"), index=True)
+    role: Mapped[str] = mapped_column(String(16), default="member")  # leader/elder/member
+    contributed: Mapped[int] = mapped_column(Integer, default=0)
+    joined_at: Mapped[datetime] = mapped_column(DateTime, default=_now)
+    __table_args__ = (UniqueConstraint("family_id", "user_id", name="uq_family_member"),)
+
+
+class ForumBoard(Base):
+    __tablename__ = "forum_boards"
+    id: Mapped[int] = mapped_column(Integer, primary_key=True)
+    name: Mapped[str] = mapped_column(String(32))
+    description: Mapped[str] = mapped_column(String(128), default="")
+    sort: Mapped[int] = mapped_column(Integer, default=0)
+
+
+class ForumThread(Base):
+    __tablename__ = "forum_threads"
+    id: Mapped[int] = mapped_column(Integer, primary_key=True)
+    board_id: Mapped[int] = mapped_column(ForeignKey("forum_boards.id", ondelete="CASCADE"), index=True)
+    author_id: Mapped[int] = mapped_column(ForeignKey("users.id", ondelete="CASCADE"))
+    title: Mapped[str] = mapped_column(String(64))
+    content: Mapped[str] = mapped_column(String(2000))
+    views: Mapped[int] = mapped_column(Integer, default=0)
+    replies: Mapped[int] = mapped_column(Integer, default=0)
+    created_at: Mapped[datetime] = mapped_column(DateTime, default=_now)
+
+
+class ForumPost(Base):
+    __tablename__ = "forum_posts"
+    id: Mapped[int] = mapped_column(Integer, primary_key=True)
+    thread_id: Mapped[int] = mapped_column(ForeignKey("forum_threads.id", ondelete="CASCADE"), index=True)
+    author_id: Mapped[int] = mapped_column(ForeignKey("users.id", ondelete="CASCADE"))
+    content: Mapped[str] = mapped_column(String(500))
+    created_at: Mapped[datetime] = mapped_column(DateTime, default=_now)
+
+
+# ============================================================
+# 模块1：阳光农场 Farm
+# 老味道点：成长计时 / 护理(浇水除虫施肥) / 偷菜互助 / 回访节奏
+# ============================================================
+class Crop(Base):
+    """作物字典"""
+    __tablename__ = "farm_crops"
+    key: Mapped[str] = mapped_column(String(32), primary_key=True)
+    name: Mapped[str] = mapped_column(String(32))
+    grow_seconds: Mapped[int] = mapped_column(Integer, default=60)  # 总成熟时长
+    stages: Mapped[int] = mapped_column(Integer, default=4)  # 阶段数(种子/发芽/生长/成熟)
+    seed_item_key: Mapped[str] = mapped_column(String(64))
+    harvest_item_key: Mapped[str] = mapped_column(String(64))
+    harvest_exp: Mapped[int] = mapped_column(Integer, default=10)
+    price: Mapped[int] = mapped_column(Integer, default=50)  # 种子价格
+
+
+class FarmPlot(Base):
+    """农田槽位"""
+    __tablename__ = "farm_plots"
+    id: Mapped[int] = mapped_column(Integer, primary_key=True)
+    user_id: Mapped[int] = mapped_column(ForeignKey("users.id", ondelete="CASCADE"), index=True)
+    slot: Mapped[int] = mapped_column(Integer)  # 0..N
+    crop_key: Mapped[str] = mapped_column(String(32), default="")  # 空则未种植
+    planted_at: Mapped[datetime] = mapped_column(DateTime, nullable=True)
+    watered: Mapped[bool] = mapped_column(Boolean, default=False)
+    pest: Mapped[bool] = mapped_column(Boolean, default=False)  # 是否有虫害
+    __table_args__ = (UniqueConstraint("user_id", "slot", name="uq_farm_slot"),)
+
+
+class FarmState(Base):
+    """农场玩家状态"""
+    __tablename__ = "farm_state"
+    user_id: Mapped[int] = mapped_column(ForeignKey("users.id", ondelete="CASCADE"), primary_key=True)
+    level: Mapped[int] = mapped_column(Integer, default=1)
+    exp: Mapped[int] = mapped_column(Integer, default=0)
+    plot_count: Mapped[int] = mapped_column(Integer, default=6)  # 可用地块数
+
+
+class FarmStealLog(Base):
+    """偷菜记录（用于互助/反作弊/留痕）"""
+    __tablename__ = "farm_steal_logs"
+    id: Mapped[int] = mapped_column(Integer, primary_key=True)
+    plot_id: Mapped[int] = mapped_column(ForeignKey("farm_plots.id", ondelete="CASCADE"))
+    thief_id: Mapped[int] = mapped_column(ForeignKey("users.id", ondelete="CASCADE"))
+    item_key: Mapped[str] = mapped_column(String(64))
+    amount: Mapped[int] = mapped_column(Integer, default=1)
+    created_at: Mapped[datetime] = mapped_column(DateTime, default=_now)
+
+
+# ============================================================
+# 模块2：美味小镇 Town
+# 老味道点：食材短缺驱动互动 / 翻好友橱柜 / 添油维持营业 / 升星与挑剔客人
+# ============================================================
+class TownRecipe(Base):
+    """菜谱字典"""
+    __tablename__ = "town_recipes"
+    key: Mapped[str] = mapped_column(String(32), primary_key=True)
+    name: Mapped[str] = mapped_column(String(32))
+    ingredients: Mapped[str] = mapped_column(String(255))  # JSON: {item_key: qty}
+    cook_seconds: Mapped[int] = mapped_column(Integer, default=30)
+    output_item_key: Mapped[str] = mapped_column(String(64))
+    price: Mapped[int] = mapped_column(Integer, default=20)  # 单份售价
+    unlock_stars: Mapped[int] = mapped_column(Integer, default=1)
+
+
+class TownState(Base):
+    """餐厅状态"""
+    __tablename__ = "town_state"
+    user_id: Mapped[int] = mapped_column(ForeignKey("users.id", ondelete="CASCADE"), primary_key=True)
+    level: Mapped[int] = mapped_column(Integer, default=1)
+    stars: Mapped[int] = mapped_column(Integer, default=1)  # 1-5 星
+    oil: Mapped[int] = mapped_column(Integer, default=100)  # 油量 0-100
+    dishes_served: Mapped[int] = mapped_column(Integer, default=0)
+    exp: Mapped[int] = mapped_column(Integer, default=0)
+    cooking_recipe: Mapped[str] = mapped_column(String(32), default="")
+    cooking_started_at: Mapped[datetime] = mapped_column(DateTime, nullable=True)
+    last_oil_drain: Mapped[datetime] = mapped_column(DateTime, default=_now)
+
+
+# ============================================================
+# 模块3：魔法花园 Garden
+# 老味道点：成长阶段操作 / 合成花种 / 花谱点亮 / 偷花送花展示
+# ============================================================
+class Flower(Base):
+    """花种字典"""
+    __tablename__ = "garden_flowers"
+    key: Mapped[str] = mapped_column(String(32), primary_key=True)
+    name: Mapped[str] = mapped_column(String(32))
+    grow_seconds: Mapped[int] = mapped_column(Integer, default=60)
+    stages: Mapped[int] = mapped_column(Integer, default=4)  # 发芽/花苗/花蕾/盛开
+    seed_item_key: Mapped[str] = mapped_column(String(64))
+    harvest_item_key: Mapped[str] = mapped_column(String(64))
+    recipe: Mapped[str] = mapped_column(String(255), default="")  # 合成配方 JSON {item_key:qty}，空=基础花种可买
+
+
+class GardenPot(Base):
+    """花盆槽位"""
+    __tablename__ = "garden_pots"
+    id: Mapped[int] = mapped_column(Integer, primary_key=True)
+    user_id: Mapped[int] = mapped_column(ForeignKey("users.id", ondelete="CASCADE"), index=True)
+    slot: Mapped[int] = mapped_column(Integer)
+    flower_key: Mapped[str] = mapped_column(String(32), default="")
+    planted_at: Mapped[datetime] = mapped_column(DateTime, nullable=True)
+    __table_args__ = (UniqueConstraint("user_id", "slot", name="uq_garden_slot"),)
+
+
+class GardenState(Base):
+    __tablename__ = "garden_state"
+    user_id: Mapped[int] = mapped_column(ForeignKey("users.id", ondelete="CASCADE"), primary_key=True)
+    level: Mapped[int] = mapped_column(Integer, default=1)
+    exp: Mapped[int] = mapped_column(Integer, default=0)
+    pot_count: Mapped[int] = mapped_column(Integer, default=4)
+
+
+class FlowerCollection(Base):
+    """花谱点亮"""
+    __tablename__ = "garden_collection"
+    id: Mapped[int] = mapped_column(Integer, primary_key=True)
+    user_id: Mapped[int] = mapped_column(ForeignKey("users.id", ondelete="CASCADE"), index=True)
+    flower_key: Mapped[str] = mapped_column(String(32))
+    lit: Mapped[bool] = mapped_column(Boolean, default=True)
+    lit_at: Mapped[datetime] = mapped_column(DateTime, default=_now)
+    __table_args__ = (UniqueConstraint("user_id", "flower_key", name="uq_flower_col"),)
+
+
+# ============================================================
+# 模块4：纵横四海 Sea
+# 老味道点：城市节点+航线推进 / 任务驱动 / 遭遇结算 / 装备长期成长
+# ============================================================
+class SeaCity(Base):
+    """城市节点字典"""
+    __tablename__ = "sea_cities"
+    key: Mapped[str] = mapped_column(String(32), primary_key=True)
+    name: Mapped[str] = mapped_column(String(32))
+    parent_city: Mapped[str] = mapped_column(String(32), default="")  # 前置城市
+    unlock_level: Mapped[int] = mapped_column(Integer, default=1)
+    intro: Mapped[str] = mapped_column(String(128), default="")
+
+
+class SeaRoute(Base):
+    """航线：from -> to"""
+    __tablename__ = "sea_routes"
+    id: Mapped[int] = mapped_column(Integer, primary_key=True)
+    from_city: Mapped[str] = mapped_column(String(32), index=True)
+    to_city: Mapped[str] = mapped_column(String(32))
+    required_level: Mapped[int] = mapped_column(Integer, default=1)
+    travel_seconds: Mapped[int] = mapped_column(Integer, default=30)
+
+
+class SeaEquipment(Base):
+    """装备字典"""
+    __tablename__ = "sea_equipment"
+    key: Mapped[str] = mapped_column(String(32), primary_key=True)
+    name: Mapped[str] = mapped_column(String(32))
+    slot: Mapped[str] = mapped_column(String(16))  # ship/sail/cannon/figure
+    stat: Mapped[int] = mapped_column(Integer, default=1)  # 战力/速度加成
+    price: Mapped[int] = mapped_column(Integer, default=100)
+
+
+class SeaState(Base):
+    """航海玩家状态"""
+    __tablename__ = "sea_state"
+    user_id: Mapped[int] = mapped_column(ForeignKey("users.id", ondelete="CASCADE"), primary_key=True)
+    level: Mapped[int] = mapped_column(Integer, default=1)
+    exp: Mapped[int] = mapped_column(Integer, default=0)
+    current_city: Mapped[str] = mapped_column(String(32), default="port_a")
+    ship_name: Mapped[str] = mapped_column(String(32), default="小木船")
+    power: Mapped[int] = mapped_column(Integer, default=10)  # 总战力
+    traveling_to: Mapped[str] = mapped_column(String(32), default="")
+    travel_arrive_at: Mapped[datetime] = mapped_column(DateTime, nullable=True)
+
+
+class SeaQuest(Base):
+    """任务实例"""
+    __tablename__ = "sea_quests"
+    id: Mapped[int] = mapped_column(Integer, primary_key=True)
+    user_id: Mapped[int] = mapped_column(ForeignKey("users.id", ondelete="CASCADE"), index=True)
+    city_key: Mapped[str] = mapped_column(String(32))
+    title: Mapped[str] = mapped_column(String(64))
+    type: Mapped[str] = mapped_column(String(16), default="encounter")  # encounter/battle/trade
+    reward_exp: Mapped[int] = mapped_column(Integer, default=20)
+    reward_coins: Mapped[int] = mapped_column(Integer, default=50)
+    status: Mapped[str] = mapped_column(String(16), default="pending")  # pending/done/failed
+    created_at: Mapped[datetime] = mapped_column(DateTime, default=_now)
+
+
+class SeaUserEquip(Base):
+    """玩家装备（长期成长线）"""
+    __tablename__ = "sea_user_equips"
+    id: Mapped[int] = mapped_column(Integer, primary_key=True)
+    user_id: Mapped[int] = mapped_column(ForeignKey("users.id", ondelete="CASCADE"), index=True)
+    equip_key: Mapped[str] = mapped_column(String(32))
+    slot: Mapped[str] = mapped_column(String(16))
+    equipped: Mapped[bool] = mapped_column(Boolean, default=True)
+    __table_args__ = (UniqueConstraint("user_id", "equip_key", name="uq_sea_equip"),)

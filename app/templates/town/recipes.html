@@ -1,0 +1,23 @@
+{% extends "base.html" %}
+{% from "macros.html" import topbar, footer %}
+{% block title %}菜谱{% endblock %}
+{% block body %}
+{{ topbar("菜谱", user) }}
+<div class="crumb"><a href="/games/town">小镇</a> › 菜谱</div>
+<div class="content">
+  {% for d in info %}
+  <div class="card">
+    <div class="hd">{{ d.r.name }} <span class="tag">{{ d.r.unlock_stars }}★解锁</span></div>
+    <div class="muted">烹饪{{ d.r.cook_seconds }}秒 · 售价{{ d.r.price }}金</div>
+    <div>所需食材：
+      {% for k, n, cnt in d.ings %}<span class="{{ 'tag green' if cnt>=n else 'tag red' }}">{{ k }}×{{ n }}(有{{ cnt }})</span>{% endfor %}
+    </div>
+    {% if d.can and d.enough %}
+    <form method="post" action="/games/town/cook/{{ d.r.key }}"><button class="btn green" type="submit">烹饪</button></form>
+    {% elif not d.can %}<span class="muted">星级不足</span>
+    {% else %}<span class="tag red">食材不足</span>{% endif %}
+  </div>
+  {% endfor %}
+</div>
+{{ footer(user) }}
+{% endblock %}

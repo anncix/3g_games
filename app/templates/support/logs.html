@@ -1,0 +1,19 @@
+{% extends "base.html" %}
+{% from "macros.html" import topbar, footer %}
+{% block title %}操作日志{% endblock %}
+{% block body %}
+{{ topbar("操作日志", user) }}
+<div class="crumb"><a href="/support">客服</a> › 操作日志</div>
+<div class="notice">操作留痕可用于申诉，平台对关键动作全程记录。</div>
+<div class="content">
+  {% for l in logs %}
+  <div class="card">
+    <span class="tag">{{ l.module_key }}</span> {{ l.action }}
+    <span class="muted">{{ l.created_at.strftime('%m-%d %H:%M:%S') }}</span>
+    {% if l.detail %}<div class="muted">{{ l.detail }}</div>{% endif %}
+  </div>
+  {% endfor %}
+  {% if not logs %}<div class="muted">暂无日志</div>{% endif %}
+</div>
+{{ footer(user) }}
+{% endblock %}

@@ -1,0 +1,17 @@
+{% extends "base.html" %}
+{% from "macros.html" import topbar, footer %}
+{% block title %}活动{% endblock %}
+{% block body %}
+{{ topbar("活动", user) }}
+<div class="content">
+  <form method="post" action="/activity/signin"><button class="btn green" type="submit">每日签到(+50金币)</button></form>
+</div>
+<div class="section-title">进行中的活动</div>
+<div class="content">
+  {% for a in acts %}
+  <div class="card"><div class="hd">{{ a.name }}</div><div class="muted">{{ a.description }}</div><div class="muted">至 {{ a.end_at.strftime('%Y-%m-%d') }}</div></div>
+  {% endfor %}
+  {% if not acts %}<div class="muted">暂无活动</div>{% endif %}
+</div>
+{{ footer(user) }}
+{% endblock %}

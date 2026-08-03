@@ -1,0 +1,36 @@
+{% extends "base.html" %}
+{% from "macros.html" import topbar, footer %}
+{% block title %}阳光农场{% endblock %}
+{% block body %}
+{{ topbar("阳光农场", user) }}
+<div class="crumb"><a href="/">家园</a> › <a href="/lobby">大厅</a> › 阳光农场</div>
+<div class="card">
+  <div class="hd">我的进度</div>
+  等级 <b>{{ st.level }}</b> · 经验 <b>{{ st.exp }}</b>
+  <div class="bar"><i style="width:{{ (st.exp/(st.level*100)*100)|int }}%"></i></div>
+</div>
+<div class="section-title">今日待办 ({{ todo_count }})</div>
+<div class="content">
+  {% for info in plot_info if info.mature %}
+  <a class="li" href="/games/farm/plot/{{ info.plot.slot }}"><span class="tag green">成熟</span> {{ info.crop.name if info.crop else '?' }}<span class="r">去收获 ›</span></a>
+  {% endfor %}
+  {% for info in plot_info if info.plot.pest %}
+  <a class="li" href="/games/farm/plot/{{ info.plot.slot }}"><span class="tag red">虫害</span> 第{{ info.plot.slot+1 }}块地<span class="r">去除虫 ›</span></a>
+  {% endfor %}
+  {% if todo_count == 0 %}<div class="muted">暂无待办，去种点东西吧</div>{% endif %}
+</div>
+<div class="section-title">快捷入口</div>
+<div class="grid2">
+  <a href="/games/farm/plots">我的农田</a>
+  <a href="/inventory?m=farm">农场背包</a>
+  <a href="/shop?m=farm">种子商店</a>
+  <a href="/ranking?m=farm&metric=harvest">农场排行</a>
+  <a href="/games/farm/rules">规则</a>
+  <a href="/friends">去好友家</a>
+</div>
+<div class="content">
+  <a class="btn ghost" href="/lobby">返回大厅</a>
+  <a class="btn ghost" href="/">返回家园</a>
+</div>
+{{ footer(user) }}
+{% endblock %}

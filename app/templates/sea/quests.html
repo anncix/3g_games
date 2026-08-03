@@ -1,0 +1,20 @@
+{% extends "base.html" %}
+{% from "macros.html" import topbar, footer %}
+{% block title %}任务{% endblock %}
+{% block body %}
+{{ topbar("航海任务", user) }}
+<div class="crumb"><a href="/games/sea">航海</a> › 任务</div>
+<div class="content">
+  {% for q in quests %}
+  <div class="card">
+    <div class="hd">{{ q.title }} <span class="tag {% if q.status=='pending' %}green{% elif q.status=='done' %}gray{% else %}red{% endif %}">{{ q.status }}</span></div>
+    <div class="muted">{{ q.city_key }} · 奖励 经验{{ q.reward_exp }} 金{{ q.reward_coins }}</div>
+    {% if q.status == 'pending' and q.city_key == st.current_city and not st.traveling_to %}
+    <form method="post" action="/games/sea/quest/{{ q.id }}"><button class="btn green" type="submit">执行任务</button></form>
+    {% elif q.status == 'pending' and q.city_key != st.current_city %}<span class="muted">需前往{{ q.city_key }}</span>{% endif %}
+  </div>
+  {% endfor %}
+  {% if not quests %}<div class="muted">暂无任务，在港口会自动生成</div>{% endif %}
+</div>
+{{ footer(user) }}
+{% endblock %}

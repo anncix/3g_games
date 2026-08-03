@@ -1,0 +1,14 @@
+{% extends "base.html" %}
+{% from "macros.html" import topbar, footer, result %}
+{% block title %}确认操作{% endblock %}
+{% block body %}
+{{ topbar("确认", user) }}
+<div class="confirm">
+  <div class="c-text">确认{{ text }}？{% if confirm_risk %}<br>此操作不可撤销{% endif %}</div>
+  <form method="post" action="{{ action }}">
+    <button class="btn danger" type="submit">确认{{ text }}</button>
+  </form>
+  <a class="btn ghost" href="javascript:history.back()">再想想</a>
+</div>
+{{ footer(user) }}
+{% endblock %}

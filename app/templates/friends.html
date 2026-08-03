@@ -1,0 +1,31 @@
+{% extends "base.html" %}
+{% from "macros.html" import topbar, footer %}
+{% block title %}好友{% endblock %}
+{% block body %}
+{{ topbar("好友", user) }}
+<div class="content">
+  <form method="get" action="/friends/search">
+    <input type="text" name="q" placeholder="搜索昵称/账号" value="{{ q }}">
+    <button class="btn" type="submit">查找</button>
+  </form>
+</div>
+<div class="section-title">我的好友 ({{ friends_data|length }})</div>
+<div class="content">
+  {% for f, u in friends_data %}
+  <a class="li" href="/u/{{ u.id }}">{{ u.nickname }}<span class="r">{{ u.city or '' }} ›</span></a>
+  {% endfor %}
+  {% if not friends_data %}<div class="muted">还没有好友，去搜索添加吧</div>{% endif %}
+</div>
+<div class="section-title">黑名单 ({{ bl_users|length }})</div>
+<div class="content">
+  {% for b, u in bl_users %}
+  <div class="li">{{ u.nickname if u else '?' }}<span class="r">
+    <form method="post" action="/friends/unblock/{{ u.id }}" style="display:inline">
+      <button class="btn ghost" type="submit">解除</button>
+    </form>
+  </span></div>
+  {% endfor %}
+  {% if not bl_users %}<div class="muted">无</div>{% endif %}
+</div>
+{{ footer(user) }}
+{% endblock %}

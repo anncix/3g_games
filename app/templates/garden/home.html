@@ -1,0 +1,33 @@
+{% extends "base.html" %}
+{% from "macros.html" import topbar, footer %}
+{% block title %}魔法花园{% endblock %}
+{% block body %}
+{{ topbar("魔法花园", user) }}
+<div class="crumb"><a href="/">家园</a> › <a href="/lobby">大厅</a> › 魔法花园</div>
+<div class="card">
+  <div class="hd">我的花园</div>
+  等级 <b>{{ st.level }}</b> · 经验 <b>{{ st.exp }}</b><br>
+  花谱点亮 <b>{{ lit_count }}/{{ flowers|length }}</b>
+  <div class="bar"><i style="width:{{ (lit_count/flowers|length*100)|int if flowers else 0 }}%"></i></div>
+</div>
+<div class="section-title">今日待办 ({{ todo }})</div>
+<div class="content">
+  {% for info in pot_info if info.stage == '盛开' %}
+  <a class="li" href="/games/garden/pot/{{ info.pot.slot }}"><span class="tag green">盛开</span> {{ info.flower.name if info.flower else '?' }}<span class="r">去收获 ›</span></a>
+  {% endfor %}
+  {% if todo == 0 %}<div class="muted">暂无待办，去种花吧</div>{% endif %}
+</div>
+<div class="section-title">快捷入口</div>
+<div class="grid2">
+  <a href="/games/garden/pots">我的花盆</a>
+  <a href="/games/garden/craft">合成花种</a>
+  <a href="/games/garden/collection">花谱</a>
+  <a href="/inventory?m=garden">花园背包</a>
+  <a href="/shop?m=garden">花种商店</a>
+  <a href="/friends">好友花园</a>
+  <a href="/games/garden/rules">规则</a>
+  <a href="/ranking?m=garden&metric=flower_lit">排行</a>
+</div>
+<div class="content"><a class="btn ghost" href="/lobby">返回大厅</a><a class="btn ghost" href="/">返回家园</a></div>
+{{ footer(user) }}
+{% endblock %}

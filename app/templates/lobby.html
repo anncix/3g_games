@@ -1,0 +1,24 @@
+{% extends "base.html" %}
+{% from "macros.html" import topbar, footer %}
+{% block title %}游戏大厅{% endblock %}
+{% block body %}
+{{ topbar("游戏大厅", user) }}
+<div class="notice">所有游戏模块统一从大厅进入。每个模块都有“返回大厅”与“返回家园”。</div>
+<div class="content">
+  {% for m in mods %}
+  <a class="li" href="{{ m.entry }}">
+    <span><span class="tag">{{ m.key }}</span> {{ m.name }}</span>
+    <span class="r">{{ m.intro }} ›</span>
+  </a>
+  {% endfor %}
+</div>
+<div class="section-title">公共</div>
+<div class="grid2">
+  <a href="/inventory">背包</a>
+  <a href="/shop">商店</a>
+  <a href="/ranking">排行</a>
+  <a href="/icons">图标</a>
+</div>
+<div class="content"><a class="btn ghost" href="/">返回家园首页</a></div>
+{{ footer(user) }}
+{% endblock %}
