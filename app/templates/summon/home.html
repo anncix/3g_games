@@ -1,0 +1,43 @@
+{% extends "base.html" %}
+{% from "macros.html" import topbar, footer %}
+{% block title %}召唤之王{% endblock %}
+{% block body %}
+{{ topbar("召唤之王", user) }}
+<div class="crumb"><a href="/">家园</a> › <a href="/lobby">大厅</a> › 召唤之王</div>
+<div class="card">
+  <div class="hd">召唤师</div>
+  Lv<b>{{ st.level }}</b>（经验 {{ st.exp }}/{{ exp_need }}）<br>
+  铜钱 <b>{{ st.coins }}</b> · 元宝 <b>{{ st.gems }}</b> · 声望 <b>{{ st.prestige }}</b><br>
+  活力 <b>{{ st.energy }}/120</b> · 当前地图 <b>{{ st.current_map }}</b>（通关 {{ st.stage_cleared }}/15）
+  {% if soul_slots > 0 %}<br>魔魂槽 <b>{{ soul_slots }}</b>{% endif %}
+</div>
+<div class="card">
+  <div class="hd">出战队伍（{{ team|length }}/{{ team_cap }}）</div>
+  {% for p in team %}
+  <div class="li">{{ p.nickname or p.species_id }} <span class="tag">Lv{{ p.level }}</span><span class="r">槽{{ p.team_slot }}</span></div>
+  {% endfor %}
+  {% if not team %}<div class="muted">队伍为空，先去幻兽列表上阵</div>{% endif %}
+</div>
+<div class="card">
+  <div class="hd">捕捉球</div>
+  普通×<b>{{ ball_n }}</b> · 强力×<b>{{ ball_s }}</b> · 超级×<b>{{ ball_u }}</b>
+  <a class="r" href="/games/summon/shop">买球 ›</a>
+</div>
+{% if next_unlock %}
+<div class="content"><div class="li"><span class="tag blue">预告</span> Lv{{ next_unlock[0] }} 解锁：{{ next_unlock[1] }}</div></div>
+{% endif %}
+<div class="section-title">快捷入口</div>
+<div class="grid2">
+  <a href="/games/summon/stage">挑战关卡</a>
+  <a href="/games/summon/map">世界地图</a>
+  <a href="/games/summon/pets">幻兽仓库</a>
+  <a href="/games/summon/album">图鉴</a>
+  <a href="/games/summon/shop">商店</a>
+  <a href="/games/summon/rules">规则</a>
+</div>
+<div class="content">
+  <a class="btn ghost" href="/lobby">返回大厅</a>
+  <a class="btn ghost" href="/">返回家园</a>
+</div>
+{{ footer(user) }}
+{% endblock %}

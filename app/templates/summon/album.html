@@ -1,0 +1,23 @@
+{% extends "base.html" %}
+{% from "macros.html" import topbar, footer %}
+{% block title %}幻兽图鉴{% endblock %}
+{% block body %}
+{{ topbar("图鉴", user) }}
+<div class="crumb"><a href="/games/summon">召唤之王</a> › 图鉴</div>
+<div class="card">已收集 <b>{{ owned_count }}</b>/{{ total_count }}</div>
+{% for tier, pets in album.items() %}
+<div class="section-title">{{ tier }} 段位（{{ pets|selectattr('owned')|list|length }}/{{ pets|length }}）</div>
+<div class="content">
+  {% for p in pets %}
+  <div class="li">
+    {% if p.owned %}<span class="tag green">已得</span>{% else %}<span class="tag">未得</span>{% endif %}
+    {{ p.name if p.owned else '？？？' }}
+    <span class="tag">{{ p.race }}</span><span class="tag">{{ p.rarity }}</span>
+    <span class="r">{{ p.role }}</span>
+  </div>
+  {% endfor %}
+</div>
+{% endfor %}
+<div class="content"><a class="btn ghost" href="/games/summon">返回首页</a></div>
+{{ footer(user) }}
+{% endblock %}

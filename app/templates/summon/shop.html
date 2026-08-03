@@ -1,0 +1,29 @@
+{% extends "base.html" %}
+{% from "macros.html" import topbar, footer %}
+{% block title %}召唤商店{% endblock %}
+{% block body %}
+{{ topbar("商店", user) }}
+<div class="crumb"><a href="/games/summon">召唤之王</a> › 商店</div>
+<div class="card">
+  铜钱 <b>{{ st.coins }}</b> · 元宝 <b>{{ st.gems }}</b>
+</div>
+{% for s in shop_list %}
+<div class="section-title">{{ s.shop_name }}</div>
+<div class="content">
+  {% for it in s.goods %}
+  <div class="li">
+    {{ it.name }}
+    <span class="tag">{{ it.type }}</span>
+    <span class="r">{{ it.price }} {{ it.cur_name }}
+      {% if it.affordable %}
+      <form method="post" action="/games/summon/shop/buy/{{ it.iid }}" style="display:inline"><button class="btn" type="submit">买</button></form>
+      {% else %}<span class="tag red">不足</span>{% endif %}
+    </span>
+  </div>
+  <div class="muted">{{ it.desc }}</div>
+  {% endfor %}
+</div>
+{% endfor %}
+<div class="content"><a class="btn ghost" href="/games/summon">返回首页</a></div>
+{{ footer(user) }}
+{% endblock %}

@@ -1,0 +1,34 @@
+{% extends "base.html" %}
+{% from "macros.html" import topbar, footer %}
+{% block title %}{{ pet.nickname or info.name }}{% endblock %}
+{% block body %}
+{{ topbar(pet.nickname or info.name, user) }}
+<div class="crumb"><a href="/games/summon">召唤之王</a> › <a href="/games/summon/pets">仓库</a> › {{ info.name }}</div>
+<div class="card">
+  <div class="hd">{{ pet.nickname or info.name }} <span class="tag">{{ info.race }}</span> <span class="tag">{{ info.rarity }}</span> <span class="tag">{{ info.tier }}</span></div>
+  Lv<b>{{ pet.level }}</b>（经验 {{ pet.exp }}/{{ exp_need if exp_need else '满级' }}） · 成长 ★{{ pet.growth_stars }}<br>
+  职业 <b>{{ info.role }}</b> · 特性 <b>{{ info.signature }}</b>
+</div>
+<div class="card">
+  <div class="hd">属性</div>
+  生命 <b>{{ pet.hp }}</b><br>
+  物攻 <b>{{ pet.atk_phy }}</b> · 魔攻 <b>{{ pet.atk_mag }}</b><br>
+  物防 <b>{{ pet.def_phy }}</b> · 魔防 <b>{{ pet.def_mag }}</b><br>
+  速度 <b>{{ pet.spd }}</b> · 暴击 <b>{{ (pet.crit*100)|int }}%</b>
+</div>
+<div class="card">
+  <div class="hd">技能（{{ skills|length }}）</div>
+  {% for s in skills %}
+  <div class="li">{{ s.name }} <span class="tag">{{ s.type }}</span><span class="r">{{ s.school }} 系数{{ s.coef }}</span></div>
+  <div class="muted">{{ s.notes }}</div>
+  {% endfor %}
+  {% if not skills %}<div class="muted">无技能</div>{% endif %}
+</div>
+<div class="content">
+  <form method="post" action="/games/summon/pet/{{ pet.id }}/team" style="display:inline">
+    <button class="btn {% if pet.team_slot >= 0 %}ghost{% else %}blue{% endif %}" type="submit">{% if pet.team_slot >= 0 %}下阵{% else %}上阵{% endif %}</button>
+  </form>
+  <a class="btn ghost" href="/games/summon/pets">返回列表</a>
+</div>
+{{ footer(user) }}
+{% endblock %}

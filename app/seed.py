@@ -37,6 +37,7 @@ async def seed():
             ("town", "美味小镇", "食材短缺翻橱柜，添油升星", "/games/town", 2, True),
             ("garden", "魔法花园", "合成花种点亮花谱，偷花送花", "/games/garden", 3, True),
             ("sea", "纵横四海", "城市航线推进，任务遭遇装备成长", "/games/sea", 4, True),
+            ("summon", "召唤之王", "图鉴抓捕回合战斗，种族克制段位推进", "/games/summon", 5, True),
         ]
         for key, name, intro, entry, sort, en in modules:
             m = await db.get(models.Module, key)
@@ -89,6 +90,17 @@ async def seed():
         # 航海装备
         await goods.ensure_item(db, "sea_equip_sail", "船帆", "equip", "sea", False, 50, "提升战力")
         await goods.ensure_item(db, "sea_equip_cannon", "火炮", "equip", "sea", False, 80, "大幅战力")
+        # 召唤之王道具（捕捉球/材料/重生丹）
+        await goods.ensure_item(db, "IT_BALL_N", "普通捕捉球", "consumable", "summon", True, 40, "捕捉倍率x1.0")
+        await goods.ensure_item(db, "IT_BALL_S", "强力捕捉球", "consumable", "summon", True, 150, "捕捉倍率x1.5")
+        await goods.ensure_item(db, "IT_BALL_U", "超级捕捉球", "consumable", "summon", True, 450, "捕捉倍率x2.2")
+        await goods.ensure_item(db, "IT_STONE", "灵石", "material", "summon", True, 250, "战骨强化材料")
+        await goods.ensure_item(db, "IT_SOUL_POWDER_1", "魂粉(黄)", "material", "summon", True, 100, "魂力材料")
+        await goods.ensure_item(db, "IT_SOUL_POWDER_2", "魂粉(玄)", "material", "summon", True, 300, "魂力材料")
+        await goods.ensure_item(db, "IT_SOUL_POWDER_3", "魂粉(地)", "material", "summon", True, 800, "魂力材料")
+        await goods.ensure_item(db, "IT_SOUL_POWDER_4", "魂粉(天)", "material", "summon", True, 2100, "魂力材料")
+        await goods.ensure_item(db, "IT_SPIRIT_KEY", "战灵钥匙", "consumable", "summon", True, 30, "战灵开孔")
+        await goods.ensure_item(db, "IT_REBIRTH", "重生丹", "consumable", "summon", True, 120, "重生幻兽")
 
         # ---------- 作物字典 ----------
         crops = [
@@ -303,6 +315,20 @@ async def seed():
                     models.Friend.user_id == lily_user.id, models.Friend.friend_id == demo_user.id))).scalar_one_or_none()
                 if not f2:
                     db.add(models.Friend(user_id=lily_user.id, friend_id=demo_user.id))
+            # 召唤之王：给 demo 初始捕捉球 + 一只初始幻兽（SZW_0004 岩牙狼）
+            await goods.add_item(db, demo_user.id, "IT_BALL_N", "summon", 10)
+            await goods.add_item(db, demo_user.id, "IT_BALL_S", "summon", 3)
+            existing_pet = (await db.execute(select(models.SummonPet).where(
+                models.SummonPet.user_id == demo_user.id))).scalar_one_or_none()
+            if not existing_pet:
+                from .routers import summon_data as SD
+                import json as _json
+                stats = SD.roll_pet_stats("SZW_0004", 1, 3)
+                starter = models.SummonPet(
+                    user_id=demo_user.id, species_id="SZW_0004", nickname="小狼",
+                    level=1, exp=0, growth_stars=3, team_slot=0,
+                    skills=_json.dumps(["SK_001", "SK_003"]), **stats)
+                db.add(starter)
         await db.commit()
 
         # ---------- 城市 / 航线 ----------

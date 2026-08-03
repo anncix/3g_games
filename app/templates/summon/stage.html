@@ -1,0 +1,33 @@
+{% extends "base.html" %}
+{% from "macros.html" import topbar, footer %}
+{% block title %}挑战关卡{% endblock %}
+{% block body %}
+{{ topbar("挑战关卡", user) }}
+<div class="crumb"><a href="/games/summon">召唤之王</a> › <a href="/games/summon/map">地图</a> › 关卡</div>
+<div class="card">
+  <div class="hd">{{ tier }} · 第 {{ stage_no }} 关 {% if is_elite %}<span class="tag purple">精英关</span>{% else %}<span class="tag">普通关</span>{% endif %}</div>
+  消耗活力 <b>{{ cost }}</b>（当前 {{ st.energy }}）<br>
+  敌方数量 <b>{{ enemy_count }}</b> 只 · 本段已通关 <b>{{ stage_no - 1 }}</b>/15
+</div>
+<div class="card">
+  <div class="hd">我方队伍（{{ team|length }}只）</div>
+  {% for p in team %}
+  <div class="li">{{ p.nickname or p.species_id }} <span class="tag">Lv{{ p.level }}</span><span class="r">HP{{ p.hp }} 速{{ p.spd }}</span></div>
+  {% endfor %}
+  {% if not team %}<div class="muted red">队伍为空！先去幻兽列表上阵</div>{% endif %}
+</div>
+<div class="content">
+  {% if can_battle %}
+  <form method="post" action="/games/summon/stage/battle"><button class="btn green" type="submit">开始战斗（耗{{ cost }}活力）</button></form>
+  <form method="post" action="/games/summon/stage/capture"><button class="btn blue" type="submit">尝试抓捕（消耗1球）</button></form>
+  {% else %}
+    {% if not team %}<a class="btn" href="/games/summon/pets">去上阵幻兽</a>
+    {% else %}<span class="tag red">活力不足，等待恢复或好友互灌</span>{% endif %}
+  {% endif %}
+</div>
+<div class="content">
+  <a class="btn ghost" href="/games/summon/map">换段位</a>
+  <a class="btn ghost" href="/games/summon">返回首页</a>
+</div>
+{{ footer(user) }}
+{% endblock %}

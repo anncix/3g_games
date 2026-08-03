@@ -1,0 +1,75 @@
+{% extends "base.html" %}
+{% from "macros.html" import topbar, footer %}
+{% block title %}召唤之王规则{% endblock %}
+{% block body %}
+{{ topbar("规则", user) }}
+<div class="crumb"><a href="/games/summon">召唤之王</a> › 规则</div>
+<div class="content">
+  <div class="card">
+    <div class="hd">核心循环</div>
+    进地图 → 刷关卡(遭遇战) → 抓捕幻兽 → 组队 → 升级 → 解锁高段位 → 收集图鉴
+  </div>
+  <div class="card">
+    <div class="hd">双轴成长</div>
+    <b>召唤师等级</b>（1-80）：决定段位解锁/出战位/魔魂槽<br>
+    <b>幻兽图鉴</b>（120只）：6族×8段位×4稀有度，每只独立个体属性
+  </div>
+  <div class="card">
+    <div class="hd">基础数值</div>
+    经验公式：<b>need(L)=120+80×L</b>（方案A）<br>
+    活力上限 <b>120</b> · 每5分钟+1 · 普通关2/精英关4<br>
+    出战位 <b>3</b>（Lv60解锁第4位）
+  </div>
+  <div class="card">
+    <div class="hd">种族克制（环形）</div>
+    水>龙>羽>虫>兽>亡灵>水<br>
+    克制方伤害 <b>+12%</b> · 被克方 <b>-10%</b>
+  </div>
+  <div class="card">
+    <div class="hd">稀有度</div>
+    普通(N) / 稀有(R) / 史诗(E) / 传说(L)<br>
+    成长系数 N1.0 / R1.08 / E1.16 / L1.25<br>
+    成长星 1-5（倍率1.0-1.25）
+  </div>
+  <div class="card">
+    <div class="hd">抓捕系统</div>
+    球倍率：普通×1.0 / 强力×1.5 / 超级×2.2<br>
+    成功率 = 0.6×球倍率 - 稀有度难度<br>
+    日限 <b>30次</b>
+  </div>
+  <div class="card">
+    <div class="hd">战斗公式</div>
+    物伤=(物攻×技能系数-物防)×种族系数<br>
+    法伤=(魔攻×技能系数-魔防)×种族系数<br>
+    暴击率5% · 暴击×1.5 · 按速度降序行动
+  </div>
+  <div class="card">
+    <div class="hd">技能系统</div>
+    60基础技能 × 3阶 = 180技能<br>
+    阶倍率：1阶1.0 / 2阶1.35 / 3阶1.75<br>
+    5系：PHY物攻/TANK坦克/MAG法攻/CTRL控制/CURSE诅咒
+  </div>
+  <div class="card">
+    <div class="hd">段位地图（T1-T8）</div>
+    每10级一段，每段15关，每5关精英<br>
+    通关一段自动进入下一段位
+  </div>
+  <div class="card">
+    <div class="hd">等级解锁</div>
+    Lv1：地图/抓捕 · Lv10：擂台/战骨<br>
+    Lv20：T2 · Lv30：魔魂(3槽) · Lv35：战灵/战灵塔<br>
+    Lv40：战场/师徒/T4 · Lv60：第4出战位
+  </div>
+  <div class="card">
+    <div class="hd">高级系统（规则就绪）</div>
+    <b>战骨</b>：7部位强化（头/胸/臂/腿/手/尾/元魂）<br>
+    <b>魔魂</b>：5阶(废/黄/玄/地/天)，30级起3槽每10级+1<br>
+    <b>战灵</b>：6元素槽(水/土/火/木/金/神)，35级开启<br>
+    <b>通天塔</b>50层(产焚火晶) · <b>战灵塔</b>30层<br>
+    <b>战场</b>：40级分线(猛虎/飞鹤)<br>
+    <b>师徒</b>：40+收徒，徒≤30，35出师，互灌4倍
+  </div>
+</div>
+<div class="content"><a class="btn" href="/games/summon">返回首页</a></div>
+{{ footer(user) }}
+{% endblock %}
