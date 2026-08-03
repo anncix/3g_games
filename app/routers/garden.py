@@ -22,7 +22,7 @@ from datetime import datetime, date, timedelta
 
 from fastapi import APIRouter, Request, Depends, HTTPException
 from fastapi.responses import RedirectResponse
-from sqlalchemy import select
+from sqlalchemy import select, func
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from .. import models
@@ -30,6 +30,7 @@ from ..database import get_db
 from ..deps import get_current_user
 from ..platform import goods, events, locks, friends as fsvc, log
 from .garden_data import QUEST_CHAIN, QUEST_CHAIN_REWARD_CHARM
+from . import garden_data as D
 from .views import render
 
 router = APIRouter(prefix="/games/garden", tags=["魔法花园"])
@@ -403,12 +404,55 @@ async def garden_home(request: Request, db: AsyncSession = Depends(get_db)):
             lit_keys.add(c.entry_key)
     lit_count = len(lit_keys)
     title, tier_range = magician_title(st.level)
+
+    # v0.2.8：原版 WAP 布局所需数据
+    # 天气消息（按日期轮换，每日固定）
+    day_seed = int(datetime.utcnow().strftime("%Y%m%d"))
+    weather_msg = D.WEATHER_MESSAGES[day_seed % len(D.WEATHER_MESSAGES)]
+    # 精灵花册进度（魔法任务链：quest_step 1=未开始，>len=全完成）
+    cdata = _craft_data(st)
+    quest_step = cdata.get("quest_step", 1)
+    if quest_step > len(QUEST_CHAIN):
+        spirit_done = len(QUEST_CHAIN) + 1
+    else:
+        spirit_done = quest_step - 1
+    spirit_total = D.SPIRIT_BOOK_TOTAL
+    # 花之图谱总数
+    atlas_total = len(entries)
+    # 稀有度分桶计数（普通/独特/珍稀）：通过点亮花谱项 → 花朵 rarity 映射
+    rarity_counts = {b: 0 for b in D.RARITY_BUCKETS}
+    lit_entries = [e for e in entries if e.key in lit_keys]
+    bloom_keys = [e.bloom_key for e in lit_entries if e.bloom_key]
+    blooms_map = {}
+    if bloom_keys:
+        bl = (await db.execute(select(models.GardenBloom).where(
+            models.GardenBloom.key.in_(bloom_keys)))).scalars().all()
+        blooms_map = {b.key: b for b in bl}
+    for e in lit_entries:
+        b = blooms_map.get(e.bloom_key)
+        br = b.rarity if b else "普通"
+        rarity_counts[D.RARITY_BUCKET_MAP.get(br, "普通")] += 1
+    # 空花盆 / 已种植花盆
+    empty_pots = sum(1 for p in pots if not p.seed_key)
+    planted_pots = len(pots) - empty_pots
+    # 未读消息
+    unread = (await db.execute(select(func.count(models.Message.id)).where(
+        models.Message.user_id == user.id, models.Message.is_read == False))).scalar() or 0
+    # 花园名
+    garden_name = f"{user.nickname or user.username}的花园"
+
     return await render(request, "garden/home.html", db, user=user, st=st,
-                        pot_info=pot_info, todo_harvest=todo_harvest, todo_action=todo_action,
+                        pots=pots, pot_info=pot_info, todo_harvest=todo_harvest, todo_action=todo_action,
                         entries=entries, lit_count=lit_count,
                         exp_need=exp_needed(st.level), action_names=ACTION_NAMES,
                         title=title, tier_range=tier_range,
-                        item_cap=item_level_cap(st.level))
+                        item_cap=item_level_cap(st.level),
+                        D=D, weather_msg=weather_msg,
+                        spirit_done=spirit_done, spirit_total=spirit_total,
+                        atlas_total=atlas_total, rarity_counts=rarity_counts,
+                        empty_pots=empty_pots, planted_pots=planted_pots,
+                        unread=unread, garden_name=garden_name,
+                        announce=D.ANNOUNCE, board_msg=D.BOARD_MSG)
 
 
 @router.get("/pots")

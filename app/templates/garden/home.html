@@ -4,56 +4,95 @@
 {% block body %}
 {{ topbar("魔法花园", user) }}
 <div class="crumb"><a href="/">家园</a> › <a href="/lobby">大厅</a> › 魔法花园</div>
-<div class="card">
-  <div class="hd">我的花园</div>
-  <span class="tag blue">{{ title }}</span> Lv <b>{{ st.level }}</b>（{{ tier_range[0] }}-{{ tier_range[1] }}段）<br>
-  经验 <b>{{ st.exp }}/{{ exp_need }}</b>
-  <div class="bar"><i style="width:{{ (st.exp/exp_need*100)|int }}%"></i></div>
-  花园金币 <b>{{ st.coins }}</b> · 花盆 <b>{{ st.pot_count }}</b>个 · 物品上限 <b>Lv{{ item_cap }}</b><br>
-  花谱点亮 <b>{{ lit_count }}/{{ entries|length }}</b>
-  <div class="bar"><i style="width:{{ (lit_count/entries|length*100)|int if entries else 0 }}%"></i></div>
-</div>
-<div class="section-title">今日待办</div>
+
+{# 顶部导航 5 项（spec：花园/好友/花房/魔法屋/活动） #}
 <div class="content">
-  {% if todo_harvest > 0 %}
-  <a class="li" href="/games/garden/pots"><span class="tag green">可收获</span> {{ todo_harvest }}盆成熟<span class="r">去收获 ›</span></a>
-  {% endif %}
-  {% if todo_action > 0 %}
-  <a class="li" href="/games/garden/pots"><span class="tag orange">待护理</span> {{ todo_action }}盆需要浇水/除草/除虫<span class="r">去护理 ›</span></a>
-  {% endif %}
-  {% if todo_harvest == 0 and todo_action == 0 %}
-  <div class="muted">暂无待办，去种花吧</div>
-  {% endif %}
+  {% for name, href in D.HOME_NAV_TOP %}
+  <a class="li" href="{{ href }}">{{ name }}<span class="r">›</span></a>
+  {% endfor %}
 </div>
-<div class="section-title">花圃速览</div>
+
+{# 公告 + 活动 #}
+<div class="card">
+  <div class="hd">公告</div>
+  <div class="muted">{{ announce }}</div>
+</div>
+<div class="card">
+  <div class="hd">活动</div>
+  <a class="li" href="/games/garden/quest">魔法任务（精灵花册）<span class="r">›</span></a>
+  <a class="li" href="/games/garden/exchange">活动兑换<span class="r">›</span></a>
+  {% if todo_harvest > 0 %}<a class="li" href="/games/garden/pots"><span class="tag green">可收获</span> {{ todo_harvest }}盆成熟<span class="r">去收获 ›</span></a>{% endif %}
+  {% if todo_action > 0 %}<a class="li" href="/games/garden/pots"><span class="tag orange">待护理</span> {{ todo_action }}盆需照料<span class="r">去护理 ›</span></a>{% endif %}
+</div>
+
+{# 玩家信息栏（spec：用户名 + 称号(经验) + 精灵花册 + 花之图谱 + 普通/独特/珍稀） #}
+<div class="card">
+  <div class="hd">{{ garden_name }}</div>
+  <b>{{ user.nickname or user.username }}</b><br>
+  <span class="tag blue">{{ title }}</span>（经验 {{ st.exp }}/{{ exp_need }}）
+  <div class="bar"><i style="width:{{ (st.exp/exp_need*100)|int }}%"></i></div>
+  精灵花册 <b>{{ spirit_done }}/{{ spirit_total }}</b> · 花之图谱 <b>{{ lit_count }}/{{ atlas_total }}</b><br>
+  {% for b in D.RARITY_BUCKETS %}{{ b }}<b>{{ rarity_counts[b] }}</b> {% endfor %}
+  <div class="bar"><i style="width:{{ (lit_count/atlas_total*100)|int if atlas_total else 0 }}%"></i></div>
+  花园金币 <b>{{ st.coins }}</b> · 花盆 <b>{{ st.pot_count }}</b>个 · 物品上限 <b>Lv{{ item_cap }}</b>
+</div>
+
+{# 天气提示（spec：*今天阳光明媚，是个种花的好时节！） #}
+<div class="content">
+  <div class="li"><span class="tag">天气</span> {{ weather_msg }}</div>
+</div>
+
+{# 花盆区（spec：花盆(N) 刷新 + 【全部花盆|已种植】） #}
+<div class="section-title">花盆（{{ pots|length }}）<a class="r" href="/games/garden/pots">刷新</a></div>
+<div class="content">
+  【<a href="/games/garden/pots">全部花盆</a> | <a href="/games/garden/pots">已种植({{ planted_pots }})</a>】
+</div>
+<div class="card">
+  <div class="li"><span class="tag orange">{{ D.BLUE_DIAMOND_TIP }}</span> <a class="r" href="/games/garden/deco">查看 ›</a></div>
+</div>
 <div class="content">
   {% for info in pot_info %}
   <a class="li" href="/games/garden/pot/{{ info.pot.slot }}">
-    <span>第{{ info.pot.slot+1 }}盆 · {{ info.seed.name if info.seed else '空地' }}</span>
+    <span>第{{ info.pot.slot+1 }}盆 · {{ info.seed.name if info.seed else '空花盆' }}</span>
     <span class="r">
-      {% if info.stage == -1 %}空
+      {% if info.stage == -1 %}空花盆 [播种]
       {% elif info.stage == 4 %}<span class="tag green">成熟</span>
       {% else %}{{ info.stage_label }}{% if info.remain > 0 %} {{ info.remain }}s{% endif %}{% endif %}
     </span>
   </a>
   {% endfor %}
+  {% if empty_pots == pots|length and pots|length > 0 %}
+  <div class="li muted">空花盆:{{ empty_pots }} <a class="r" href="/games/garden/pots">[播种] ›</a></div>
+  {% endif %}
+  {% if not pots %}<div class="muted">还没有花盆，等级提升可解锁更多</div>{% endif %}
 </div>
-<div class="section-title">快捷入口</div>
+
+{# 消息（spec：消息） #}
+<div class="card">
+  <div class="hd">消息</div>
+  <a class="li" href="/message">消息中心{% if unread > 0 %}（{{ unread }}条未读）{% endif %}<span class="r">›</span></a>
+</div>
+
+{# 花园设施（spec：花园设施） #}
+<div class="card">
+  <div class="hd">花园设施</div>
+  {% for f in D.GARDEN_FACILITIES %}<span class="tag">{{ f }}</span> {% endfor %}
+</div>
+
+{# 公告板 + 花园名（spec：公告板/花园名） #}
+<div class="card">
+  <div class="hd">公告板 · {{ garden_name }}</div>
+  <div class="muted">{{ board_msg }}</div>
+</div>
+
+{# 底部导航 8 项（spec：排行/背包/帮助/论坛/种子商店/道具商店/游戏活动/魔钻专区） #}
+<div class="section-title">更多</div>
 <div class="grid2">
-  <a href="/games/garden/pots">我的花圃</a>
-  <a href="/games/garden/orders">订单板</a>
-  <a href="/games/garden/album">我的花谱</a>
-  <a href="/games/garden/showcase">展示页</a>
-  <a href="/games/garden/craft">合成工坊</a>
-  <a href="/games/garden/exchange">兑换中心</a>
-  <a href="/games/garden/shop">花种商店</a>
-  <a href="/games/garden/deco">装饰</a>
-  <a href="/games/garden/quest">魔法任务</a>
-  <a href="/inventory?m=garden">花园背包</a>
-  <a href="/friends">好友花园</a>
-  <a href="/ranking?m=garden&metric=flower_lit">排行</a>
-  <a href="/games/garden/rules">规则</a>
+  {% for name, href in D.HOME_NAV_BOTTOM %}
+  <a href="{{ href }}">{{ name }}</a>
+  {% endfor %}
 </div>
+
 <div class="content"><a class="btn ghost" href="/lobby">返回大厅</a><a class="btn ghost" href="/">返回家园</a></div>
 {{ footer(user) }}
 {% endblock %}
