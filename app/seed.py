@@ -18,6 +18,7 @@ from .seed_sea_equips import seed_sea_equips
 from .seed_farm_large import seed_farm_large
 from .seed_town_large import seed_town_large
 from .seed_sea_v018 import seed_sea_v018
+from .seed_fengyun import seed_fengyun
 
 
 async def seed():
@@ -45,6 +46,7 @@ async def seed():
             ("sea", "纵横四海", "城市航线推进，任务遭遇装备成长", "/games/sea", 4, True),
             ("summon", "召唤之王", "图鉴抓捕回合战斗，种族克制段位推进", "/games/summon", 5, True),
             ("martial", "精武堂", "修炼加点装备强化，比武对抗帮派社交", "/games/martial", 6, True),
+            ("fengyun", "风云三国", "三职业三阵营副本军团，演武荣誉称号成就", "/games/fengyun", 7, True),
         ]
         for key, name, intro, entry, sort, en in modules:
             m = await db.get(models.Module, key)
@@ -496,6 +498,10 @@ async def seed():
         # ---------- v0.1.8：纵横四海补全（spec 船只/主线任务/城市特产/宠物技能/补全城市）----------
         # 14船（v0.1.7前0）+ 12主线任务链（v0.1.7前0）+ 23宠物技能（v0.1.7前0）+ 30城市特产 + 16补全城市 + 里斯本区域修正
         await seed_sea_v018(db)
+
+        # ---------- v0.1.9：风云三国（spec 三国 MMORPG 全系统）----------
+        # 13城市 + 30技能(3职业×4类型) + 105装备(5品质×7部位×3档) + 13副本 + 5军团等级 + 15称号 + 21成就 + 虎符/消耗品
+        await seed_fengyun(db)
 
         print("✅ 种子数据已写入。管理员: admin/admin123  演示: demo/demo123")
 

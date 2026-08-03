@@ -1247,3 +1247,149 @@ class MartialGuildMember(Base):
     user_id: Mapped[int] = mapped_column(ForeignKey("users.id", ondelete="CASCADE"), unique=True)
     contribution: Mapped[int] = mapped_column(Integer, default=0)
     joined_at: Mapped[datetime] = mapped_column(DateTime, default=_now)
+
+
+# ============================================================
+# 风云三国（v0.1.9）：三国 MMORPG，三职业/三阵营/副本/军团/演武
+# 静态配置（职业/技能/副本/军团/荣誉/称号/成就）见 routers/fengyun_data.py
+# ============================================================
+class FengyunState(Base):
+    """风云三国玩家状态"""
+    __tablename__ = "fengyun_state"
+    user_id: Mapped[int] = mapped_column(ForeignKey("users.id", ondelete="CASCADE"), primary_key=True)
+    class_key: Mapped[str] = mapped_column(String(16), default="warrior")  # warrior/assassin/warlock
+    faction: Mapped[str] = mapped_column(String(4), default="shu")  # wei/shu/wu 魏/蜀/吴
+    level: Mapped[int] = mapped_column(Integer, default=1)
+    exp: Mapped[int] = mapped_column(Integer, default=0)
+    silver: Mapped[int] = mapped_column(Integer, default=1000)  # 银两
+    honor: Mapped[int] = mapped_column(Integer, default=0)  # 荣誉值
+    hp: Mapped[int] = mapped_column(Integer, default=200)
+    mp: Mapped[int] = mapped_column(Integer, default=100)
+    atk: Mapped[int] = mapped_column(Integer, default=20)
+    defense: Mapped[int] = mapped_column(Integer, default=10)
+    dodge: Mapped[int] = mapped_column(Integer, default=5)
+    crit: Mapped[int] = mapped_column(Integer, default=5)
+    current_city: Mapped[str] = mapped_column(String(32), default="chengdu")
+    training_end_at: Mapped[datetime] = mapped_column(DateTime, nullable=True)  # 演武结束时间
+
+
+class FengyunSkill(Base):
+    """技能字典（spec 技能系统：3 职业 × 4 类型）"""
+    __tablename__ = "fengyun_skills"
+    key: Mapped[str] = mapped_column(String(32), primary_key=True)
+    name: Mapped[str] = mapped_column(String(32))
+    class_key: Mapped[str] = mapped_column(String(16))  # warrior/assassin/warlock
+    skill_type: Mapped[str] = mapped_column(String(16))  # active/passive/auxiliary/status
+    unlock_level: Mapped[int] = mapped_column(Integer, default=1)
+    cost_silver: Mapped[int] = mapped_column(Integer, default=0)
+    cost_exp: Mapped[int] = mapped_column(Integer, default=0)
+    effect: Mapped[str] = mapped_column(String(255), default="")
+
+
+class FengyunUserSkill(Base):
+    """玩家已学技能"""
+    __tablename__ = "fengyun_user_skills"
+    id: Mapped[int] = mapped_column(Integer, primary_key=True)
+    user_id: Mapped[int] = mapped_column(ForeignKey("users.id", ondelete="CASCADE"), index=True)
+    skill_key: Mapped[str] = mapped_column(String(32))
+    level: Mapped[int] = mapped_column(Integer, default=1)
+    __table_args__ = (UniqueConstraint("user_id", "skill_key", name="uq_fy_user_skill"),)
+
+
+class FengyunEquip(Base):
+    """装备字典（spec 装备系统：5 品质 × 7 部位）"""
+    __tablename__ = "fengyun_equips"
+    key: Mapped[str] = mapped_column(String(32), primary_key=True)
+    name: Mapped[str] = mapped_column(String(32))
+    quality: Mapped[str] = mapped_column(String(16))  # 普通/精良/卓越/史诗/神器
+    slot: Mapped[str] = mapped_column(String(16))  # 头/手/衣/腿/鞋/裤子/饰品
+    class_req: Mapped[str] = mapped_column(String(16), default="")  # 限定职业，空=通用
+    level_req: Mapped[int] = mapped_column(Integer, default=1)
+    atk_bonus: Mapped[int] = mapped_column(Integer, default=0)
+    def_bonus: Mapped[int] = mapped_column(Integer, default=0)
+    hp_bonus: Mapped[int] = mapped_column(Integer, default=0)
+    price: Mapped[int] = mapped_column(Integer, default=100)
+
+
+class FengyunUserEquip(Base):
+    """玩家装备实例"""
+    __tablename__ = "fengyun_user_equips"
+    id: Mapped[int] = mapped_column(Integer, primary_key=True)
+    user_id: Mapped[int] = mapped_column(ForeignKey("users.id", ondelete="CASCADE"), index=True)
+    equip_key: Mapped[str] = mapped_column(String(32))
+    slot: Mapped[str] = mapped_column(String(16))
+    equipped: Mapped[bool] = mapped_column(Boolean, default=False)
+
+
+class FengyunDungeon(Base):
+    """副本定义（spec 副本系统：按阵营和等级划分）"""
+    __tablename__ = "fengyun_dungeons"
+    key: Mapped[str] = mapped_column(String(32), primary_key=True)
+    name: Mapped[str] = mapped_column(String(32))
+    faction: Mapped[str] = mapped_column(String(16))  # wei/shu/wu/all
+    level_min: Mapped[int] = mapped_column(Integer, default=16)
+    level_max: Mapped[int] = mapped_column(Integer, default=25)
+    city: Mapped[str] = mapped_column(String(32))  # 入口城市
+    npc: Mapped[str] = mapped_column(String(32))  # 任务 NPC
+    reward_exp: Mapped[int] = mapped_column(Integer, default=0)
+    reward_silver: Mapped[int] = mapped_column(Integer, default=0)
+
+
+class FengyunLegion(Base):
+    """军团（spec 军团系统：5 级，最大 100 人）"""
+    __tablename__ = "fengyun_legions"
+    id: Mapped[int] = mapped_column(Integer, primary_key=True)
+    name: Mapped[str] = mapped_column(String(32), unique=True)
+    leader_id: Mapped[int] = mapped_column(ForeignKey("users.id", ondelete="CASCADE"))
+    level: Mapped[int] = mapped_column(Integer, default=1)  # 1-5 级
+    contribution: Mapped[int] = mapped_column(Integer, default=0)  # 军团贡献值
+    notice: Mapped[str] = mapped_column(String(255), default="广纳天下英豪")
+    created_at: Mapped[datetime] = mapped_column(DateTime, default=_now)
+
+
+class FengyunLegionMember(Base):
+    """军团成员"""
+    __tablename__ = "fengyun_legion_members"
+    id: Mapped[int] = mapped_column(Integer, primary_key=True)
+    legion_id: Mapped[int] = mapped_column(ForeignKey("fengyun_legions.id", ondelete="CASCADE"), index=True)
+    user_id: Mapped[int] = mapped_column(ForeignKey("users.id", ondelete="CASCADE"), unique=True)
+    contribution: Mapped[int] = mapped_column(Integer, default=0)
+    joined_at: Mapped[datetime] = mapped_column(DateTime, default=_now)
+
+
+class FengyunTitle(Base):
+    """称号字典（spec 称号系统：前缀+后缀组合）"""
+    __tablename__ = "fengyun_titles"
+    key: Mapped[str] = mapped_column(String(32), primary_key=True)
+    name: Mapped[str] = mapped_column(String(32))
+    title_type: Mapped[str] = mapped_column(String(16))  # prefix 前缀 / suffix 后缀 / pair 配对
+    grade: Mapped[int] = mapped_column(Integer, default=1)  # 称号品级
+    hp_bonus: Mapped[int] = mapped_column(Integer, default=0)
+    atk_bonus: Mapped[int] = mapped_column(Integer, default=0)
+    def_bonus: Mapped[int] = mapped_column(Integer, default=0)
+
+
+class FengyunAchievement(Base):
+    """成就字典（spec 成就系统：3 难度 × 12 类型）"""
+    __tablename__ = "fengyun_achievements"
+    key: Mapped[str] = mapped_column(String(32), primary_key=True)
+    name: Mapped[str] = mapped_column(String(32))
+    difficulty: Mapped[str] = mapped_column(String(8))  # 简单/中等/困难
+    category: Mapped[str] = mapped_column(String(16))  # 成长/任务/杀怪/PK/山庄/社交/副将/道具/装备
+    desc: Mapped[str] = mapped_column(String(128), default="")
+    hp_bonus: Mapped[int] = mapped_column(Integer, default=0)
+    mp_bonus: Mapped[int] = mapped_column(Integer, default=0)
+    atk_bonus: Mapped[int] = mapped_column(Integer, default=0)
+    def_bonus: Mapped[int] = mapped_column(Integer, default=0)
+    dodge_bonus: Mapped[int] = mapped_column(Integer, default=0)
+    crit_bonus: Mapped[int] = mapped_column(Integer, default=0)
+
+
+class FengyunCity(Base):
+    """城市字典（spec 游戏地图：魏蜀吴三区域城市）"""
+    __tablename__ = "fengyun_cities"
+    key: Mapped[str] = mapped_column(String(32), primary_key=True)
+    name: Mapped[str] = mapped_column(String(32))
+    faction: Mapped[str] = mapped_column(String(16))  # wei/shu/wu/neutral
+    intro: Mapped[str] = mapped_column(String(128), default="")
+
