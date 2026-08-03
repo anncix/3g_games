@@ -1,13 +1,14 @@
-"""幻想西游生成器（v0.2.2 · spec 五门派/200级/转职/装备/副本/宠物/场景）
+"""幻想西游生成器（v0.2.3 扩展版 / v0.2.2 定版）
 
-按 spec《QQ家园幻想西游完整详细资料》落地 v0.2.2 新增模块：
+按 spec《QQ家园幻想西游完整详细资料》落地 v0.2.2 新增模块，v0.2.3 全网检索补全扩展数据：
 - 5 门派（将军府/方寸山/龙宫/月宫/普陀山）+ 45 技能（每门派 9 个，4 类型）
 - 装备库（6 品质 × 6 部位 × 3 等级档 = 108 件通用 + 8 件龙宫叉系列）
-- 19 副本（15-90+ 级，含普通/困难双难度）
+- 22 副本（v0.2.3 新增大雁塔/盘丝洞/降妖除魔，含普通/困难双难度）
 - 13 宠物（1-150 级携带）
 - 10 场景（九大区域世界地图）
-- 14 药品与经验道具（HP/MP/复活/经验/Buff）
+- 14 药品与经验道具（HP/MP/复活/经验/Buff）+ v0.2.3 新增 14 种药品完整参数表
 - 13 怪物（覆盖九大区域场景）
+- v0.2.3 新增：19 种高级升级材料 + 12 条长安城坐标
 
 设计：
 - 静态常量从 routers/xyou_data.py 引入，本生成器只负责入库（幂等）
@@ -19,6 +20,7 @@
 幂等：以 key 存在性判断，已存在则跳过；可断点续跑。
 闭环：场景→出口引用场景 key；副本→入口引用场景 key；技能→门派 key；装备→品质/部位全覆盖。
 """
+from sqlalchemy import select
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from . import models
@@ -35,10 +37,11 @@ _EQUIP_LEVEL_TIERS = [10, 40, 80]
 
 
 async def seed_xyou(db: AsyncSession, log=print) -> dict:
-    """幂等生成幻想西游 v0.2.2 全量数据；返回新增计数"""
+    """幂等生成幻想西游 v0.2.3 全量数据；返回新增计数"""
     stats = {
         "scenes": 0, "skills": 0, "equips": 0, "longgong_weapons": 0,
         "dungeons": 0, "pets": 0, "items": 0, "potions": 0,
+        "medicines": 0, "materials": 0, "coords": 0,  # v0.2.3 新增计数
     }
 
     # ---------- 1. 10 场景（spec：九大区域世界地图）----------
@@ -122,7 +125,7 @@ async def seed_xyou(db: AsyncSession, log=print) -> dict:
             stats["longgong_weapons"] += 1
     await db.commit()
 
-    # ---------- 5. 19 副本（spec：15-90+ 级，含普通/困难双难度）----------
+    # ---------- 5. 22 副本（spec：15-240 级，含普通/困难双难度 + v0.2.3 新增 3 个）----------
     for key, name, lvl_min, lvl_max, scene, diff, r_exp, r_silver, drop_q in XY.DUNGEONS:
         if not await db.get(models.XyouDungeon, key):
             db.add(models.XyouDungeon(
@@ -156,8 +159,52 @@ async def seed_xyou(db: AsyncSession, log=print) -> dict:
             stats["potions"] += 1
     await db.commit()
 
-    log(f"[xyou-v022] 场景+{stats['scenes']} 技能+{stats['skills']} "
+    # ---------- 8. v0.2.3 新增：14 种药品完整参数表（含等级需求+获取方式）----------
+    for key, name, ptype, lvl_req, value, price, source in XY.MEDICINES_EXPANDED:
+        if not await goods.get_item_by_key(db, key):
+            await goods.ensure_item(
+                db, key, name, "prop", "xyou", True, price,
+                f"{ptype.upper()} 药品·恢复 {value}，需求等级 {lvl_req}，来源：{source}"
+            )
+            stats["medicines"] += 1
+    await db.commit()
+
+    # ---------- 9. v0.2.3 新增：19 种高级升级材料（spec 参数补全）----------
+    for key, name, purpose, source in XY.ADVANCED_MATERIALS:
+        # 落 Item 字典
+        if not await goods.get_item_by_key(db, key):
+            await goods.ensure_item(
+                db, key, name, "material", "xyou", True, 0,
+                f"{purpose}；来源：{source}"
+            )
+        # 落 XyouMaterial 表
+        if not await db.get(models.XyouMaterial, key):
+            db.add(models.XyouMaterial(
+                key=key, name=name, purpose=purpose, source=source,
+            ))
+            stats["materials"] += 1
+    await db.commit()
+
+    # ---------- 10. v0.2.3 新增：12 条长安城坐标（spec 参数补全）----------
+    for place, coord, npc_func in XY.CHANGAN_COORDS:
+        # 用 place 作去重键：查询是否已存在该 place 的坐标
+        res = await db.execute(
+            select(models.XyouCoord).where(
+                models.XyouCoord.scene_key == "changan",
+                models.XyouCoord.place == place,
+            ).limit(1)
+        )
+        if not res.scalar_one_or_none():
+            db.add(models.XyouCoord(
+                scene_key="changan", place=place, coord=coord, npc_or_func=npc_func,
+            ))
+            stats["coords"] += 1
+    await db.commit()
+
+    log(f"[xyou-v023] 场景+{stats['scenes']} 技能+{stats['skills']} "
         f"装备+{stats['equips']} 龙宫叉+{stats['longgong_weapons']} "
         f"副本+{stats['dungeons']} 宠物+{stats['pets']} "
-        f"物品字典+{stats['items']} 药品+{stats['potions']}")
+        f"物品字典+{stats['items']} 药品+{stats['potions']} "
+        f"扩展药品+{stats['medicines']} 高级材料+{stats['materials']} 坐标+{stats['coords']}")
     return stats
+

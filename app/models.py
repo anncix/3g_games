@@ -1428,6 +1428,7 @@ class XyouState(Base):
     current_scene: Mapped[str] = mapped_column(String(32), default="xinshoucun")  # 当前场景
     cultivate_end_at: Mapped[datetime] = mapped_column(DateTime, nullable=True)  # 修炼结束时间
     daily_counters: Mapped[str] = mapped_column(Text, default="{}")  # JSON: 日常计数
+    auto_settings: Mapped[str] = mapped_column(Text, default="{}")  # v0.2.3 JSON: 自动战斗/挂机设置
 
 
 class XyouSkill(Base):
@@ -1528,4 +1529,25 @@ class XyouScene(Base):
     level_min: Mapped[int] = mapped_column(Integer, default=1)
     intro: Mapped[str] = mapped_column(String(128), default="")
     exits: Mapped[str] = mapped_column(Text, default="[]")  # JSON: 出口场景key列表
+
+
+# ==================== v0.2.3 新增：幻想西游扩展表 ====================
+class XyouMaterial(Base):
+    """高级升级材料字典（v0.2.3 全网检索补全）"""
+    __tablename__ = "xyou_materials"
+    key: Mapped[str] = mapped_column(String(48), primary_key=True)
+    name: Mapped[str] = mapped_column(String(32))
+    purpose: Mapped[str] = mapped_column(String(128), default="")  # 用途
+    source: Mapped[str] = mapped_column(String(128), default="")  # 获取方式
+
+
+class XyouCoord(Base):
+    """长安城/区域坐标字典（v0.2.3 spec 参数补全）"""
+    __tablename__ = "xyou_coords"
+    id: Mapped[int] = mapped_column(Integer, primary_key=True)
+    scene_key: Mapped[str] = mapped_column(String(32), default="changan")  # 所属场景
+    place: Mapped[str] = mapped_column(String(32))  # 地点名
+    coord: Mapped[str] = mapped_column(String(64), default="")  # 坐标/位置
+    npc_or_func: Mapped[str] = mapped_column(String(128), default="")  # NPC/功能
+
 

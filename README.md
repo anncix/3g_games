@@ -1,6 +1,6 @@
 # QQ家园 — 怀旧平台化复刻
 
-> 版本：**v0.2.2** （2026-08-03 新增幻想西游模块：五门派/200级多段转职/九大区域世界地图/装备6品质/19副本/13宠物/45技能）
+> 版本：**v0.2.3** （2026-08-03 幻想西游全网检索补全：14药品完整参数/19高级升级材料/12长安城坐标/8副本BOSS掉落/自动战斗挂机/5新路由5新模板）
 >
 > 基于 **FastAPI + SQLite + Jinja2(简版 WAP 风)** 实现的怀旧 QQ 家园平台复刻。
 > 严格遵循《怀旧QQ家园平台设计规范》：平台统一、模块自治、旧逻辑优先、一页只做一件事。
@@ -10,6 +10,90 @@
 ---
 
 ## 更新日志
+
+### v0.2.3 （2026-08-03）— 幻想西游全网检索补全（参数补全 + 自动战斗挂机 + 5 新路由）
+
+对 v0.2.2 上线的幻想西游模块做"验证 + 全网检索补全丢失数据 + 整理使程序合理"。按用户提供的《QQ家园〈幻想西游〉完整详细资料（参数补全版）》及 zol.com.cn 玩家攻略（副本指南/升级篇）、baike.com 词条、docin.com 新手指南交叉补全 v0.2.2 中"资料不详 / 参数缺失"的部分：药品完整参数表、高级升级材料、长安城坐标、副本 BOSS 详细掉落、自动战斗挂机系统、升级路线图等。所有新数据落独立静态配置 `xyou_data.py`，经 `seed_xyou.py` 幂等入库，并新增 5 个路由 + 5 个模板对外展示。
+
+**一、全网检索补全静态配置（routers/xyou_data.py 扩展 ~22 组常量）**
+- `MEDICINES_EXPANDED`（14 种药品完整参数）：止血草/金疮药/金创药/小还丹/大还丹/九转回魂丹/仙灵丹 + 鼠儿果/龙涎草/凝神露/天仙玉露/瑶池玉液 + 还魂符/高级还魂符
+  - 含等级要求 / HP·MP 恢复值 / 售价 / 获取方式（长安药店·怪掉落·副本·炼丹·BOSS）
+- `GEM_TIERS`（5 阶宝石/水晶等级与使用区间）：一阶(1-30级)→二阶(30-50)→三阶(50-70,含水晶)→四阶(70-90,含玄武石)→五阶(90+,含佛印石)
+- `ADVANCED_MATERIALS`（19 种高级升级材料）：轩辕石/蓬莱仙石/玄阴寒玉/补天陨铁/英雄牌/圣装精华/金刚石/金精/金犀角/烈焰火羽/冰凌石/雷晶/冰晶/逆鳞/黑曜石/引魄/食尸鬼之皮/剥皮鬼之皮/炼尸宝石
+  - 含用途 + 获取方式（蓬莱仙岛BOSS/极寒之地副本/高级BOSS掉落/阵营战奖励等）
+- `REGION_MATERIALS`（按 6 大场景区域分组的普通材料掉落分布）：长安区域/城南荒野/紫竹林区域/宝象国区域/师门区域/高级区域
+  - 含每种材料的掉落怪物与具体位置（如黑狗血→背阴巷黑狗 / 铁砂→大雁塔扫帚怪 / 紫竹根→紫竹林副本紫竹战士）
+- `CHANGAN_COORDS`（12 条长安城核心坐标）：十字街头/青龙街/白虎街/朱雀街/玄武街/大雁塔/背阴巷/碑林/慈恩寺(123,202)/冰风谷(8,5)/水晶宫(2535,940)/皇陵
+  - 含坐标位置 + NPC/功能（门派接引使/房玄龄/药店/铁匠铺/拍卖行/仓库/帮派管理员/皇宫入口等）
+- `REGION_ENTRIES`（13 个其他重要区域进入方式 + 推荐等级）：城南荒野/紫竹林/五大门派/宝象国/黑松林/双茶陵/乌鸡国/乌林子/傲来国花果山/天宫兜率宫/斩妖台/地府望乡台/蓬莱仙岛
+- `TASK_TYPES`（8 种任务类型与标识）：主线(金色!)/支线(银色!)/门派(蓝色!)/日常(绿色!)/副本(紫色!)/活动(红色!)/转职(特殊)/天宫剧情(特殊任务链)
+- `PROMOTION_QUESTS_DETAIL`（9/59 级转职任务完整流程）：9级找门派接引使→选门派→掌门试炼；59级回师门→房玄龄→兵马前阵(7,2)→抄碑文→杀怪
+- `DUNGEON_BOSSES`（8 个副本 BOSS 详细掉落）：冰晶塔/白骨陵墓/波月洞/老君炉/水帘洞/斩妖台/枉死城/降妖除魔
+  - 含 BOSS 列表 + 掉落物 + 入口位置（如白骨陵墓 6 BOSS 掉食尸鬼之皮/剥皮鬼之皮/炼尸宝石/白骨靴/祭祀之帽等 8 件）
+- 扩展 `DUNGEONS`：新增 3 副本（大雁塔25级 / 盘丝洞240级 / 降妖除魔周末活动），副本总数 19 → 22
+- `BATTLE_HOTKEYS_DEFAULT`（战斗界面 9 个快捷键默认配置）：1小红药/2小蓝药/3普攻/4门派基础/5门派单攻/6门派群攻/7大红药/8大蓝药/9回城符
+- `SYSTEM_SETTINGS`（4 项系统设置参数）：快捷技能/聊天频道开关/图片显示/自动战斗
+- `BASE_ATTRS`（六大基础属性）：体质/力量/智力/敏捷/耐力/精神 + 影响战斗属性 + 侧重职业
+- `POTENTIAL_RULES`（潜力点规则）：1-10级自动分配 / 11级起每级 5 点自由分配
+- `EXP_SOURCES`（11 种经验获取渠道）：打怪/主线/支线/师门/副本/六千年蟠桃3000万/九千年蟠桃1亿/经验粽子100万/师徒1000万/双倍/挂机
+- `LEVEL_GATES`（6 个升级阶段卡点）：9级转职/59级转职/109级转职/135级师门套装/139级师徒出师/200级满级
+- `LEVELING_ROADMAP`（7 段新手快速升级路线）：1-10级30分钟/10-40级拜师直跳/40-59级1-2天/60级领蟠桃1分钟/60-80级3-5天/80-99级1-2周/100级+长期
+- `PET_BATTLE_RULES`（10 项宠物系统参数）：捕捉术10级学/血量<30%可捕/携带8只/出战1只/获人物20%经验/不超人物等级/忠诚0-100等
+- `PET_GROWTH_EXAMPLE`（水兽成长属性示例）：1级初始值 + 每级增长（体质25+3/智慧25+3/精神40+5等）
+- `PET_SKILL_CATEGORIES`（4 类宠物技能）：攻击/护主/辅助/生活
+- `AUTO_BATTLE_SETTINGS`（8 项自动战斗/挂机参数）：自动遇敌/自动攻击/自动补血阈值/自动补蓝阈值/技能顺序/自动拾取/宠物自动出战/离线挂机
+- `TENGYUN_LEVEL_REQ`（腾云驾雾解锁等级 = 30 级）
+- `BAG_CATEGORIES`（5 类背包分类）：药品/装备/材料/任务/其他
+
+**二、数据模型层（models.py 新增 2 表 + 1 字段）**
+- `XyouMaterial`（高级升级材料字典）：key / name / purpose（用途） / source（获取方式）
+- `XyouCoord`（区域坐标字典）：id / scene_key（所属场景，默认 changan） / place（地点名） / coord（坐标/位置） / npc_or_func（NPC/功能）
+- `XyouState` 新增 `auto_settings` 字段（Text，JSON 存储自动战斗/挂机设置，默认 `{}`）
+
+**三、生成器 seed_xyou.py 扩展（幂等 / 可断点续跑）**
+- 新增 stats 计数：`medicines`（扩展药品）/ `materials`（高级材料）/ `coords`（坐标）
+- 第 8 步：14 种扩展药品落 Item 字典（key=xyou_med_*，含等级/恢复值/售价/来源描述）
+- 第 9 步：19 种高级升级材料双写（Item 字典 + XyouMaterial 表，key=xyou_mat_*）
+- 第 10 步：12 条长安城坐标落 XyouCoord 表（scene_key=changan，按 place 去重）
+- 日志输出扩展：`[xyou-v023] 场景+10 技能+45 装备+108 龙宫叉+8 副本+22 宠物+13 物品字典+116 药品+14 扩展药品+14 高级材料+19 坐标+12`
+- 幂等校验：以 key 存在性判断，重跑 stats 全 0（含新增 3 类计数）
+
+**四、路由层 routers/xyou.py 扩展（+5 路由）**
+- `GET /games/xyou/materials`：高级材料图鉴页（按 key 排序展示 19 种材料 + 6 区域材料分布 + 5 阶宝石表）
+- `GET /games/xyou/coords`：长安城坐标页（12 条核心坐标 + 13 区域进入方式）
+- `GET /games/xyou/autobattle`：自动战斗/挂机设置页（4 项系统设置 + 8 项自动参数 + 9 快捷键默认配置 + 当前设置表单）
+- `POST /games/xyou/autobattle/save`：保存自动战斗设置（auto_encounter/auto_attack/hp_threshold/mp_threshold/auto_pickup/pet_auto_summon 落 XyouState.auto_settings JSON）
+- `GET /games/xyou/roadmap`：升级路线图页（6 个卡点 + 7 段升级路线 + 11 种经验渠道）
+- `GET /games/xyou/dungeon_bosses`：副本 BOSS 掉落页（8 个副本 BOSS 列表 + 掉落物 + 入口位置）
+- home.html 快捷入口新增 5 个链接（材料图鉴/长安坐标/自动战斗/升级路线/副本BOSS）
+
+**五、模板层 app/templates/xyou/（新增 5 模板）**
+- `materials.html`：高级材料图鉴（19 种材料卡 + 6 区域分布表 + 5 阶宝石表）
+- `coords.html`：长安城坐标（12 条坐标表 + 13 区域进入方式表）
+- `autobattle.html`：自动战斗设置（系统设置项 + 9 快捷键默认 + 我的设置表单）
+- `roadmap.html`：升级路线图（6 卡点表 + 7 段路线表 + 11 经验渠道表）
+- `dungeon_bosses.html`：副本 BOSS 掉落（8 副本 BOSS 卡 + 掉落物列表 + 入口位置）
+- 全部沿用 WAP 层级页设计（topbar + crumb + card 列表 + footer），与其他模板视觉一致
+
+**闭环验证**
+- ✅ IMPORT OK：`VERSION = 0.2.3`；22 组新常量全部可访问；`XyouMaterial`/`XyouCoord` 模型存在；`XyouState.auto_settings` 字段存在
+- ✅ 种子闭环：RUN1 全部插入（场景10/技能45/装备108/龙宫叉8/副本22/宠物13/物品116/药品14/**扩展药品14/高级材料19/坐标12**）
+- ✅ 幂等性：RUN2 全 0（含新增 medicines/materials/coords 三类计数）
+- ✅ HTTP 冒烟（demo 登录）：5 新路由 GET 全 200（materials 6727B / coords 4470B / autobattle 4245B / roadmap 4873B / dungeon_bosses 4204B）
+- ✅ POST 保存：`/autobattle/save` 200，返回"自动战斗设置已保存"
+- ✅ 内容校验：materials 页含"轩辕石/蓬莱仙石"；coords 页含"十字街头/青龙街"；dungeon_bosses 页含"冰晶/黑曜石"；roadmap 页含"蟠桃/200级"
+- ✅ 完整种子：`[xyou-v023]` 日志输出与其他模块并列，平台全量 seed 通过
+
+**文件变更**
+- `app/routers/xyou_data.py`：+22 组常量（MEDICINES_EXPANDED/GEM_TIERS/ADVANCED_MATERIALS/REGION_MATERIALS/CHANGAN_COORDS/REGION_ENTRIES/TASK_TYPES/PROMOTION_QUESTS_DETAIL/DUNGEON_BOSSES/BATTLE_HOTKEYS_DEFAULT/SYSTEM_SETTINGS/BASE_ATTRS/POTENTIAL_RULES/EXP_SOURCES/LEVEL_GATES/LEVELING_ROADMAP/PET_BATTLE_RULES/PET_GROWTH_EXAMPLE/PET_SKILL_CATEGORIES/AUTO_BATTLE_SETTINGS/TENGYUN_LEVEL_REQ/BAG_CATEGORIES）+ DUNGEONS +3 副本
+- `app/routers/xyou.py`：+5 路由（materials/coords/autobattle/autobattle_save/roadmap/dungeon_bosses）+ home.html 入口
+- `app/seed_xyou.py`：扩展 3 步（扩展药品/高级材料/坐标）+ stats 计数
+- `app/models.py`：新增 `XyouMaterial` / `XyouCoord`（2 表）+ `XyouState.auto_settings`（1 字段）
+- `app/templates/xyou/`：新增 5 模板（materials/coords/autobattle/roadmap/dungeon_bosses）+ home.html 入口扩展
+- `app/seed.py`：xyou 模块描述更新为 v0.2.3
+- `app/config.py`：版本号 0.2.2 → 0.2.3
+
+---
 
 ### v0.2.2 （2026-08-03）— 新增幻想西游模块（spec 五门派西行 MMORPG 全系统）
 

@@ -803,3 +803,121 @@ async def rules(request: Request, db: AsyncSession = Depends(get_db)):
     return await render(request, "xyou/rules.html", db, user=user,
                         sects=XY.SECTS, max_level=XY.MAX_LEVEL,
                         promotion_levels=XY.PROMOTION_LEVELS)
+
+
+# ============================================================
+# v0.2.3 新增：高级材料图鉴页
+# ============================================================
+@router.get("/materials")
+async def materials_page(request: Request, db: AsyncSession = Depends(get_db)):
+    """高级升级材料图鉴 + 区域材料掉落表"""
+    user = await get_current_user(request, db)
+    if not user:
+        return RedirectResponse("/login", status_code=303)
+    res = await db.execute(select(models.XyouMaterial).order_by(models.XyouMaterial.key))
+    material_list = res.scalars().all()
+    await db.commit()
+    return await render(request, "xyou/materials.html", db, user=user,
+                        material_list=material_list,
+                        region_materials=XY.REGION_MATERIALS,
+                        gem_tiers=XY.GEM_TIERS)
+
+
+# ============================================================
+# v0.2.3 新增：长安城坐标查询页
+# ============================================================
+@router.get("/coords")
+async def coords_page(request: Request, db: AsyncSession = Depends(get_db)):
+    """长安城核心坐标 + 各区域进入方式"""
+    user = await get_current_user(request, db)
+    if not user:
+        return RedirectResponse("/login", status_code=303)
+    res = await db.execute(select(models.XyouCoord).where(
+        models.XyouCoord.scene_key == "changan"
+    ).order_by(models.XyouCoord.id))
+    coord_list = res.scalars().all()
+    await db.commit()
+    return await render(request, "xyou/coords.html", db, user=user,
+                        coord_list=coord_list,
+                        region_entries=XY.REGION_ENTRIES)
+
+
+# ============================================================
+# v0.2.3 新增：自动战斗/挂机设置页
+# ============================================================
+@router.get("/autobattle")
+async def autobattle_page(request: Request, db: AsyncSession = Depends(get_db)):
+    """自动战斗/挂机系统参数 + 当前玩家设置"""
+    user = await get_current_user(request, db)
+    if not user:
+        return RedirectResponse("/login", status_code=303)
+    st = await get_state(db, user.id)
+    try:
+        cur_settings = json.loads(st.auto_settings or "{}")
+    except Exception:
+        cur_settings = {}
+    await db.commit()
+    return await render(request, "xyou/autobattle.html", db, user=user, st=st,
+                        auto_settings=XY.AUTO_BATTLE_SETTINGS,
+                        hotkeys=XY.BATTLE_HOTKEYS_DEFAULT,
+                        system_settings=XY.SYSTEM_SETTINGS,
+                        cur_settings=cur_settings)
+
+
+@router.post("/autobattle/save")
+async def autobattle_save(request: Request, db: AsyncSession = Depends(get_db)):
+    """保存自动战斗设置（HP/MP 阈值 / 自动遇敌 / 自动拾取等）"""
+    user = await get_current_user(request, db)
+    if not user:
+        return RedirectResponse("/login", status_code=303)
+    st = await get_state(db, user.id)
+    form = await request.form()
+    settings = {
+        "auto_encounter": bool(form.get("auto_encounter")),
+        "auto_attack": bool(form.get("auto_attack")),
+        "hp_threshold": int(form.get("hp_threshold") or 30),
+        "mp_threshold": int(form.get("mp_threshold") or 20),
+        "auto_pickup": bool(form.get("auto_pickup")),
+        "pet_auto_summon": bool(form.get("pet_auto_summon")),
+    }
+    st.auto_settings = json.dumps(settings, ensure_ascii=False)
+    await log.record(db, user.id, MODULE_KEY, "autobattle.save", "")
+    await db.commit()
+    return await render(request, "result.html", db, user=user, ok=True,
+                        msg="自动战斗设置已保存",
+                        back_href="/games/xyou/autobattle", back_text="返回设置")
+
+
+# ============================================================
+# v0.2.3 新增：升级路线推荐页
+# ============================================================
+@router.get("/roadmap")
+async def roadmap_page(request: Request, db: AsyncSession = Depends(get_db)):
+    """新手快速升级路线 + 经验获取渠道 + 等级卡点"""
+    user = await get_current_user(request, db)
+    if not user:
+        return RedirectResponse("/login", status_code=303)
+    st = await get_state(db, user.id)
+    await db.commit()
+    return await render(request, "xyou/roadmap.html", db, user=user, st=st,
+                        leveling_roadmap=XY.LEVELING_ROADMAP,
+                        exp_sources=XY.EXP_SOURCES,
+                        level_gates=XY.LEVEL_GATES,
+                        mentor_reward_exp=XY.MENTOR_REWARD_EXP,
+                        mentor_unlock_level=XY.MENTOR_UNLOCK_LEVEL,
+                        mentor_level_req=XY.MENTOR_LEVEL_REQ)
+
+
+# ============================================================
+# v0.2.3 新增：副本 BOSS 详细页
+# ============================================================
+@router.get("/dungeon_bosses")
+async def dungeon_bosses_page(request: Request, db: AsyncSession = Depends(get_db)):
+    """副本 BOSS 详细掉落表（来源 zol.com.cn 全网检索）"""
+    user = await get_current_user(request, db)
+    if not user:
+        return RedirectResponse("/login", status_code=303)
+    await db.commit()
+    return await render(request, "xyou/dungeon_bosses.html", db, user=user,
+                        dungeon_bosses=XY.DUNGEON_BOSSES,
+                        task_types=XY.TASK_TYPES)

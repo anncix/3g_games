@@ -1,0 +1,57 @@
+{% extends "base.html" %}
+{% from "macros.html" import topbar, footer %}
+{% block title %}升级路线{% endblock %}
+{% block body %}
+{{ topbar("升级路线", user) }}
+<div class="crumb"><a href="/games/xyou">幻想西游</a> › 升级路线</div>
+
+<div class="card">
+  <div class="hd">当前状态</div>
+  等级 <b>{{ st.level }}</b> · 经验 <b>{{ st.exp }}</b>
+</div>
+
+<div class="section-title">新手快速升级路线</div>
+<div class="content">
+  {% for lvl_range, way, time in leveling_roadmap %}
+  <div class="card">
+    <div class="hd">{{ lvl_range }} <span class="r">{{ time }}</span></div>
+    <div class="muted">{{ way }}</div>
+  </div>
+  {% endfor %}
+</div>
+
+<div class="section-title">经验获取渠道</div>
+<div class="content">
+  {% for src, amount, desc, limit in exp_sources %}
+  <div class="card">
+    <div class="hd">{{ src }} <span class="r">{{ amount }}</span></div>
+    <div class="muted">{{ desc }}</div>
+    <div class="muted">限制：{{ limit }}</div>
+  </div>
+  {% endfor %}
+</div>
+
+<div class="section-title">升级阶段卡点</div>
+<div class="content">
+  {% for lvl, name, unlock in level_gates %}
+  <div class="card">
+    <div class="hd">{{ lvl }} 级 · {{ name }}</div>
+    <div class="muted">{{ unlock }}</div>
+  </div>
+  {% endfor %}
+</div>
+
+<div class="section-title">师徒系统</div>
+<div class="content">
+  <div class="card">
+    <div class="hd">师徒奖励</div>
+    <div>{{ mentor_unlock_level }} 级开启师徒系统</div>
+    <div>拜 {{ mentor_level_req }} 级以上玩家为师，拜师成功直接获得 <b>{{ mentor_reward_exp }}</b> 经验</div>
+  </div>
+</div>
+
+<div class="content">
+  <a class="btn ghost" href="/games/xyou">返回首页</a>
+</div>
+{{ footer(user) }}
+{% endblock %}

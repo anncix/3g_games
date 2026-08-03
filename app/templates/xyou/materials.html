@@ -1,0 +1,47 @@
+{% extends "base.html" %}
+{% from "macros.html" import topbar, footer %}
+{% block title %}材料图鉴{% endblock %}
+{% block body %}
+{{ topbar("材料图鉴", user) }}
+<div class="crumb"><a href="/games/xyou">幻想西游</a> › 材料图鉴</div>
+
+<div class="section-title">高级升级材料</div>
+<div class="content">
+  {% for m in material_list %}
+  <div class="card">
+    <div class="hd">〖{{ m.name }}〗</div>
+    <div>用途：<b>{{ m.purpose }}</b></div>
+    <div class="muted">来源：{{ m.source }}</div>
+  </div>
+  {% endfor %}
+</div>
+
+<div class="section-title">宝石/水晶阶数表</div>
+<div class="content">
+  {% for tier, name, lvl_range, use, src in gem_tiers %}
+  <div class="card">
+    <div class="hd">第 {{ tier }} 阶 · {{ name }}</div>
+    <div>使用等级：<b>{{ lvl_range }}</b></div>
+    <div>用途：{{ use }}</div>
+    <div class="muted">获取：{{ src }}</div>
+  </div>
+  {% endfor %}
+</div>
+
+<div class="section-title">区域材料掉落分布</div>
+<div class="content">
+  {% for region, items in region_materials %}
+  <div class="card">
+    <div class="hd">{{ region }}</div>
+    {% for mat, src in items %}
+    <div>· {{ mat }} <span class="muted">— {{ src }}</span></div>
+    {% endfor %}
+  </div>
+  {% endfor %}
+</div>
+
+<div class="content">
+  <a class="btn ghost" href="/games/xyou">返回首页</a>
+</div>
+{{ footer(user) }}
+{% endblock %}
