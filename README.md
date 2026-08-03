@@ -1,6 +1,6 @@
 # QQ家园 — 怀旧平台化复刻
 
-> 版本：**v0.3.0** （2026-08-04 平台产品功能清单对齐：platform_spec 参考层（12 家园子系统+4 游戏功能树+8 层数据架构+物品系统+4 剧情弧）+ wap_crumbs 面包屑宏×8 模块加强返回逻辑 + /story 剧情弧线与功能总览补全）
+> 版本：**v0.3.1** （2026-08-04 安全与数据一致性修复：SECRET_KEY 环境化 + 原子化库存操作 + 登录限流 + 排行榜双轨合一 + 500 错误页 + 过期会话清理）
 >
 > 基于 **FastAPI + SQLite + Jinja2(简版 WAP 风)** 实现的怀旧 QQ 家园平台复刻。
 > 严格遵循《怀旧QQ家园平台设计规范》：平台统一、模块自治、旧逻辑优先、一页只做一件事。
@@ -10,6 +10,65 @@
 ---
 
 ## 更新日志
+
+### v0.3.1 （2026-08-04）— 安全与数据一致性修复（SECRET_KEY 环境化 + 原子化库存操作 + 登录限流 + 排行榜双轨合一）
+
+针对《QQ家园平台 全系统分析报告》中指出的高危问题与架构问题，本次更新聚焦安全加固、数据一致性保障与工程化完善，共修复 7 大类问题，符合保守增量策略（不破坏现有玩法）。
+
+**一、安全加固（P0 高危问题）**
+
+| 问题 | 位置 | 修复方案 |
+|------|------|----------|
+| SECRET_KEY 硬编码 | config.py | 优先从环境变量 `QQ_HOME_SECRET_KEY` 读取，未配置时使用默认值（仅开发环境） |
+| 无 CSRF 防护 | auth.py | cookie 新增 `samesite=lax`（默认）+ `secure`（环境变量控制）属性；新增 `SESSION_COOKIE_SAMESITE`/`SESSION_COOKIE_SECURE` 配置项 |
+| 登录无限流可暴力破解 | auth.py | 实现 IP 级登录限流：同 IP 窗口内（默认 600 秒）最多失败 10 次；超限后表单返回提示页、JSON 返回 429；新增 `LOGIN_RATE_LIMIT`/`LOGIN_RATE_WINDOW` 配置项 |
+
+**二、数据一致性保障（P0 并发与事务）**
+
+| 问题 | 位置 | 修复方案 |
+|------|------|----------|
+| 扣减非原子（check-then-act）致超扣 | goods.py | `remove_item` 改为条件更新：`UPDATE ... WHERE quantity >= take`，逐行原子扣减；SQLite 单写锁 + 条件更新双重保障 |
+| 出售超卖风险 | goods.py | `sell_item` 用条件更新扣减库存：仅当 `quantity >= 出售数量` 且未上锁时扣减并加金币 |
+| 排行双轨制数据不一致 | ranking.py | 统一读 `RankingEntry` 表（模块上报分数），无数据时回退直查 State 表；修复此前 flower_lit 链接失效根因（页面直查 State 与模块上报 RankingEntry 不一致） |
+
+**三、工程化完善（P1 架构与工程问题）**
+
+| 问题 | 位置 | 修复方案 |
+|------|------|----------|
+| 启动每次全量 seed | main.py | 新增 `SEED_ON_START` 开关（环境变量 `QQ_HOME_SEED_ON_START` 控制），生产环境建议关闭改用 CLI |
+| requirements.txt 缺 greenlet | requirements.txt | 新增 `greenlet>=3.0`（SQLAlchemy async 必需依赖） |
+| run.sh 用系统 python3（macOS 自带 3.9 不支持 3.10+ 语法） | run.sh | 检测并优先使用 Python 3.10/3.11/3.12/3.13；低于 3.10 时提示并退出 |
+| sessions 表只增不删 | main.py | 启动时清理过期会话（`_cleanup_expired_sessions`） |
+| 无 500 错误页（返回 Starlette 默认 JSON 破坏 WAP 体验） | main.py | 新增 500 异常处理器，返回 WAP 风格错误页（result.html） |
+
+**四、闭环验证**
+- ✅ IMPORT OK：`VERSION = 0.3.1`；config 安全配置全部可访问
+- ✅ py_compile OK：config.py / main.py / goods.py / auth.py / ranking.py
+- ✅ 启动 lifespan：init_db + 过期会话清理 + seed（受 SEED_ON_START 控制）全流程通过
+- ✅ /health 返回 `{"status":"ok","app":"qq_home","version":"0.3.1"}`
+- ✅ 登录限流：同 IP 连续失败超限后，表单返回"尝试过于频繁"提示页、JSON 返回 HTTP 429
+- ✅ goods 原子化：remove_item/sell_item 均含 `WHERE quantity >= n` 条件更新
+- ✅ 排行双轨：_ranking_top10 优先读 RankingEntry，_state_fallback 兜底 State 表
+
+**五、待后续版本处理（P2 架构演进，本版未动以免破坏玩法）**
+- models.py 拆为 models/ 包（platform / farm / garden / sea / summon / martial / fengyun / xyou）
+- 业务逻辑下沉到 services/ 层（garden.py 1900 行、town.py 2105 行）
+- craft_queue JSON-in-Column 拆为 GardenQuestState 表
+- N+1 查询改 in_ 批量 / selectinload
+- datetime.utcnow() 统一为 datetime.now(timezone.utc)
+- 管理员操作二次确认 + 审计链
+- 引入 Alembic 数据库迁移 + pytest 测试起步
+
+**文件变更**
+- `app/config.py`：SECRET_KEY 环境化 + SESSION_COOKIE_SAMESITE/SECURE + SEED_ON_START + 登录限流配置；版本号 0.3.0 → 0.3.1
+- `app/platform/goods.py`：remove_item/sell_item 原子化条件更新
+- `app/routers/auth.py`：IP 级登录限流 + cookie samesite/secure 配置
+- `app/main.py`：SEED_ON_START 控制 + 过期会话启动清理 + 500 错误页
+- `app/routers/ranking.py`：排行榜双轨合一（优先 RankingEntry，State 表兜底）
+- `requirements.txt`：补 greenlet 依赖
+- `run.sh`：Python ≥3.10 检测
+
+---
 
 ### v0.3.0 （2026-08-04）— 平台产品功能清单对齐（platform_spec 参考层 + wap_crumbs 面包屑加强 + 剧情弧线补全）
 

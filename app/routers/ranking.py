@@ -1,7 +1,7 @@
 """排行榜（模块上报分数，平台统一展示 + 多榜直查 State 表）"""
 from fastapi import APIRouter, Request, Depends
 from fastapi.responses import RedirectResponse
-from sqlalchemy import select
+from sqlalchemy import select, func
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from .. import models
@@ -12,7 +12,8 @@ from .views import render
 router = APIRouter(prefix="/ranking", tags=["排行"])
 
 
-# 多榜配置：metric -> 中文名。对应 State 表直查，Top 10
+# 多榜配置：metric -> 中文名。v0.3.1 统一读 RankingEntry，State 表作兜底
+# (metric, 中文名, RankingEntry.module_key, RankingEntry.metric, State 兜底配置)
 METRIC_TABS = [
     ("level", "等级榜"),
     ("farm", "农场收获榜"),
@@ -21,6 +22,15 @@ METRIC_TABS = [
     ("sea", "纵横四海榜"),
 ]
 _VALID_METRICS = {k for k, _ in METRIC_TABS}
+
+# v0.3.1 排行榜统一读 RankingEntry 表的映射（module_key, metric_name）
+# 与 platform/ranking.py submit_score 上报的 key 对齐
+_RANKING_MAP = {
+    "farm": ("farm", "harvest"),
+    "garden": ("garden", "level"),
+    "martial": ("martial", "level"),
+    "sea": ("sea", "level"),
+}
 
 
 @router.get("")
@@ -40,8 +50,22 @@ async def ranking_page(request: Request, db: AsyncSession = Depends(get_db)):
                         metric=metric, label=label, tabs=METRIC_TABS, rows=rows)
 
 
-async def _top10(db: AsyncSession, metric: str):
-    """根据 metric 直接查询对应 State 表，返回 [(user, score), ...] Top 10"""
+async def _ranking_top10(db: AsyncSession, module_key: str, metric_name: str, n: int = 10):
+    """v0.3.1 统一从 RankingEntry 表读 Top N。"""
+    res = await db.execute(
+        select(models.RankingEntry, models.User).join(
+            models.User, models.RankingEntry.user_id == models.User.id
+        ).where(
+            models.RankingEntry.module_key == module_key,
+            models.RankingEntry.metric == metric_name,
+            models.RankingEntry.period == "total",
+        ).order_by(models.RankingEntry.score.desc()).limit(n)
+    )
+    return [(u, e.score) for e, u in res.all()]
+
+
+async def _state_fallback(db: AsyncSession, metric: str):
+    """v0.3.1 State 表兜底：RankingEntry 无数据时回退直查 State 表。"""
     if metric == "farm":
         res = await db.execute(
             select(models.FarmState, models.User).join(
@@ -70,6 +94,21 @@ async def _top10(db: AsyncSession, metric: str):
             ).order_by(models.SeaState.level.desc()).limit(10)
         )
         return [(u, s.level) for s, u in res.all()]
+    return []
+
+
+async def _top10(db: AsyncSession, metric: str):
+    """v0.3.1 双轨合一：优先读 RankingEntry，无数据时回退 State 表。
+
+    修复之前 flower_lit 链接失效的根因：页面直查 State 表与模块上报 RankingEntry 不一致。
+    """
+    # 模块榜：优先 RankingEntry，兜底 State
+    if metric in _RANKING_MAP:
+        mk, mn = _RANKING_MAP[metric]
+        rows = await _ranking_top10(db, mk, mn)
+        if rows:
+            return rows
+        return await _state_fallback(db, metric)
     # 默认等级榜：各模块等级之和（User 无 level 字段，用四模块等级求和）
     sums = {}
     for StateModel in (models.FarmState, models.GardenState, models.MartialState, models.SeaState):

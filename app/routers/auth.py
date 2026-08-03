@@ -1,4 +1,6 @@
 """认证：注册 / 登录 / 登出（含 JSON API）"""
+import time
+from collections import defaultdict
 from fastapi import APIRouter, Request, Depends, Response, HTTPException
 from fastapi.responses import RedirectResponse
 from sqlalchemy import select
@@ -10,6 +12,29 @@ from ..deps import get_current_user, create_session, destroy_session, hash_passw
 from .views import render
 
 router = APIRouter(tags=["账号"])
+
+# v0.3.1 登录限流：同 IP 在窗口期内失败次数上限（内存计数，单进程）
+_login_fails: dict[str, list[float]] = defaultdict(list)
+
+
+def _client_ip(request: Request) -> str:
+    return request.client.host if request.client else "unknown"
+
+
+def _login_rate_check(request: Request) -> bool:
+    """返回 True 表示允许尝试，False 表示已被限流。"""
+    ip = _client_ip(request)
+    now = time.time()
+    window = config.LOGIN_RATE_WINDOW
+    cutoff = now - window
+    # 清理过期记录
+    fails = [t for t in _login_fails[ip] if t > cutoff]
+    _login_fails[ip] = fails
+    return len(fails) < config.LOGIN_RATE_LIMIT
+
+
+def _login_fail_record(request: Request):
+    _login_fails[_client_ip(request)].append(time.time())
 
 
 @router.get("/")
@@ -59,6 +84,11 @@ async def login_page(request: Request, db: AsyncSession = Depends(get_db)):
 
 @router.post("/login")
 async def login(request: Request, response: Response, db: AsyncSession = Depends(get_db)):
+    # v0.3.1 登录限流：同 IP 窗口内失败超限则拒绝
+    if not _login_rate_check(request):
+        if request.headers.get("accept", "").startswith("application/json"):
+            raise HTTPException(429, "尝试过于频繁，请稍后再试")
+        return await render(request, "result.html", db, user=None, ok=False, msg="尝试过于频繁，请稍后再试", back_href="/login", back_text="返回登录")
     form = await request.form()
     username = form.get("username", "").strip()
     password = form.get("password", "")
@@ -73,6 +103,7 @@ async def login(request: Request, response: Response, db: AsyncSession = Depends
     res = await db.execute(select(models.User).where(models.User.username == username))
     user = res.scalar_one_or_none()
     if not user or not verify_password(password, user.password_hash):
+        _login_fail_record(request)  # 记录失败
         if request.headers.get("accept", "").startswith("application/json"):
             raise HTTPException(401, "用户名或密码错误")
         return await render(request, "result.html", db, user=None, ok=False, msg="用户名或密码错误", back_href="/login", back_text="返回登录")
@@ -81,7 +112,8 @@ async def login(request: Request, response: Response, db: AsyncSession = Depends
     if request.headers.get("accept", "").startswith("application/json"):
         return {"token": token, "user_id": user.id, "nickname": user.nickname}
     resp = RedirectResponse("/", status_code=303)
-    resp.set_cookie(config.SESSION_COOKIE, token, httponly=True, max_age=config.SESSION_TTL_SECONDS)
+    resp.set_cookie(config.SESSION_COOKIE, token, httponly=True, max_age=config.SESSION_TTL_SECONDS,
+                    samesite=config.SESSION_COOKIE_SAMESITE, secure=config.SESSION_COOKIE_SECURE)
     return resp
 
 
@@ -109,7 +141,8 @@ async def register(request: Request, db: AsyncSession = Depends(get_db)):
     token = await create_session(db, user.id)
     from fastapi.responses import Response
     resp = RedirectResponse("/", status_code=303)
-    resp.set_cookie(config.SESSION_COOKIE, token, httponly=True, max_age=config.SESSION_TTL_SECONDS)
+    resp.set_cookie(config.SESSION_COOKIE, token, httponly=True, max_age=config.SESSION_TTL_SECONDS,
+                    samesite=config.SESSION_COOKIE_SAMESITE, secure=config.SESSION_COOKIE_SECURE)
     return resp
 
 
