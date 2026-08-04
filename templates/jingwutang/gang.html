@@ -1,0 +1,131 @@
+{% extends "base_wap.html" %}
+
+{% block title %}帮派 - 精武堂{% endblock %}
+
+{% block breadcrumb %}
+<div class="nav-bar">
+    <a href="/home/">首页</a>
+    <span class="sep">›</span>
+    <a href="/home/gamelobby">游戏大厅</a>
+    <span class="sep">›</span>
+    <a href="/jingwutang/">精武堂</a>
+    <span class="sep">›</span>
+    <span>帮派</span>
+</div>
+{% endblock %}
+
+{% block content %}
+
+{% if gang %}
+{# 已加入帮派 #}
+<div class="section">
+    <div class="section-title">🏯 {{ gang.name }}</div>
+    <div class="section-body">
+        <div class="info-row"><span class="info-label">🏷️ 帮主</span><span class="info-value">{{ leader_name }}</span></div>
+        <div class="info-row"><span class="info-label">👥 成员</span><span class="info-value">{{ member_count }}人</span></div>
+        <div class="info-row"><span class="info-label">📊 等级</span><span class="info-value">Lv.{{ gang.level or 1 }}</span></div>
+        <div class="info-row"><span class="info-label">📢 公告</span><span class="info-value" style="font-size:12px;">{{ gang.announcement or '暂无公告' }}</span></div>
+    </div>
+</div>
+
+<div class="section">
+    <div class="section-title">⚔️ 帮派功能</div>
+    <div class="section-body">
+        <div class="grid-menu">
+            <a href="/jingwutang/xianglu" class="grid-item">
+                <div class="grid-icon">🏺</div>
+                <div class="grid-name">闻香炉</div>
+            </a>
+            <div class="grid-item" style="opacity:0.5;">
+                <div class="grid-icon">⚔️</div>
+                <div class="grid-name">帮战</div>
+                <div style="font-size:10px; color:#999;">敬请期待</div>
+            </div>
+            <div class="grid-item" style="opacity:0.5;">
+                <div class="grid-icon">🏪</div>
+                <div class="grid-name">帮派商店</div>
+                <div style="font-size:10px; color:#999;">敬请期待</div>
+            </div>
+            <div class="grid-item" style="opacity:0.5;">
+                <div class="grid-icon">📊</div>
+                <div class="grid-name">成员列表</div>
+                <div style="font-size:10px; color:#999;">敬请期待</div>
+            </div>
+        </div>
+    </div>
+</div>
+
+{% if is_leader %}
+<div class="section">
+    <div class="section-title">👑 帮主管理</div>
+    <div class="section-body text-center">
+        <a href="/jingwutang/gang/disband" class="btn btn-danger btn-small" onclick="return confirm('确定解散帮派？此操作不可恢复！')">解散帮派</a>
+    </div>
+</div>
+{% else %}
+<div class="section">
+    <div class="section-body text-center">
+        <a href="/jingwutang/gang/leave" class="btn btn-danger btn-small" onclick="return confirm('确定退出帮派？')">退出帮派</a>
+    </div>
+</div>
+{% endif %}
+
+{% else %}
+{# 未加入帮派 #}
+<div class="section">
+    <div class="section-body text-center">
+        <div style="font-size:56px; margin:10px 0;">🏯</div>
+        <div style="font-weight:bold; font-size:16px;">你还没有加入帮派</div>
+        <div style="font-size:12px; color:#666; margin:8px 0;">加入帮派可使用闻香炉恢复体力，参与帮战获得奖励</div>
+        <div class="mt-10" style="display:flex; gap:10px; justify-content:center;">
+            <a href="/jingwutang/gang/create" class="btn btn-success">➕ 创建帮派</a>
+        </div>
+    </div>
+</div>
+
+<div class="section">
+    <div class="section-title">📜 帮派列表</div>
+    <div class="section-body">
+        {% if gangs %}
+        {% for g in gangs %}
+        <div style="display:flex; justify-content:space-between; align-items:center; padding:8px 0; border-bottom:1px dotted #eee;">
+            <div>
+                <b>{{ g.name }}</b>
+                <div style="font-size:11px; color:#666;">Lv.{{ g.level or 1 }} | {{ g.member_count }}人</div>
+            </div>
+            <a href="/jingwutang/gang/join/{{ g.id }}" class="btn btn-small" onclick="return confirm('加入【{{ g.name }}】？')">加入</a>
+        </div>
+        {% endfor %}
+        {% else %}
+        <div class="text-center" style="color:#999; padding:10px;">暂无帮派，快去创建第一个吧！</div>
+        {% endif %}
+    </div>
+</div>
+
+<!-- 创建帮派表单 -->
+<div class="section">
+    <div class="section-title">➕ 创建帮派</div>
+    <div class="section-body">
+        <form method="post" action="/jingwutang/gang/create">
+            <div class="form-group">
+                <label>帮派名称</label>
+                <input type="text" name="name" maxlength="10" required placeholder="输入帮派名称（最多10字）">
+            </div>
+            <div class="text-center">
+                <button type="submit" class="btn btn-success"
+                    {% if (role.gcoin or 0) < 5000 %}disabled{% endif %}>
+                    💰 创建帮派（花费5000G币）
+                </button>
+            </div>
+            {% if (role.gcoin or 0) < 5000 %}
+            <div class="text-center text-red" style="margin-top:5px; font-size:12px;">G币不足（需要5000G币）</div>
+            {% endif %}
+        </form>
+    </div>
+</div>
+{% endif %}
+
+<div class="text-center mt-10">
+    <a href="/jingwutang/">« 返回精武堂</a>
+</div>
+{% endblock %}

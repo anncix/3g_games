@@ -1,0 +1,107 @@
+{% extends "base_wap.html" %}
+{% block title %}战骨系统 - 召唤之王{% endblock %}
+{% block breadcrumb %}
+<div class="nav-bar">
+    <a href="/home/gamelobby">游戏大厅</a>
+    <span class="sep">›</span>
+    <a href="/summon_king">召唤之王</a>
+    <span class="sep">›</span> 战骨系统
+</div>
+{% endblock %}
+{% block content %}
+<div class="section">
+    <div class="section-title">🦴 战骨系统</div>
+    <div class="section-body">
+        {% if battle_beast %}
+        <p>当前战骨装备给：<b>{{ bdef.icon }} {{ battle_beast.nickname or bdef.name }}</b> (Lv.{{ battle_beast.level }})</p>
+        {% else %}
+        <p class="text-red">请先在<a href="/summon_king/beasts">幻兽列表</a>设置出战幻兽</p>
+        {% endif %}
+        <p class="tip">战骨分为头骨、胸骨、臂骨、腿骨、手骨、尾骨、元魂7个部位，强化战骨可大幅提升幻兽属性。</p>
+    </div>
+</div>
+
+{% if battle_beast %}
+{% for ub in user_bones %}
+{% set bndef = ub.bone_def %}
+<div class="section">
+    <div class="section-title">
+        {{ bndef.icon }} {{ slot_names.get(ub.slot_type, ub.slot_type) }}
+        {% if bndef %}
+        <span style="font-size:12px; font-weight:normal; color:{{ '#999' if ub.quality=='common' else '#4169e1' if ub.quality=='rare' else '#9932cc' if ub.quality=='epic' else '#ff8c00' }};">
+            [{{ quality_names_bone.get(ub.quality, ub.quality) }}] +{{ ub.enhance_level }}
+        </span>
+        {% endif %}
+    </div>
+    <div class="section-body">
+        {% if bndef %}
+        <p style="margin-bottom:6px;"><b>{{ bndef.name }}</b> <span style="color:#999; font-size:12px;">Lv.{{ bndef.level_required }}可装备</span></p>
+        <div class="info-row">
+            <span class="info-label">生命加成</span>
+            <span class="info-value text-green">+{{ ub.hp_bonus }}</span>
+        </div>
+        {% if ub.patk_bonus > 0 %}
+        <div class="info-row">
+            <span class="info-label">物攻加成</span>
+            <span class="info-value text-red">+{{ ub.patk_bonus }}</span>
+        </div>
+        {% endif %}
+        {% if ub.matk_bonus > 0 %}
+        <div class="info-row">
+            <span class="info-label">魔攻加成</span>
+            <span class="info-value text-blue">+{{ ub.matk_bonus }}</span>
+        </div>
+        {% endif %}
+        {% if ub.pdef_bonus > 0 %}
+        <div class="info-row">
+            <span class="info-label">物防加成</span>
+            <span class="info-value">+{{ ub.pdef_bonus }}</span>
+        </div>
+        {% endif %}
+        {% if ub.mdef_bonus > 0 %}
+        <div class="info-row">
+            <span class="info-label">魔防加成</span>
+            <span class="info-value">+{{ ub.mdef_bonus }}</span>
+        </div>
+        {% endif %}
+        {% if ub.speed_bonus > 0 %}
+        <div class="info-row">
+            <span class="info-label">速度加成</span>
+            <span class="info-value">+{{ ub.speed_bonus }}</span>
+        </div>
+        {% endif %}
+        <div class="text-center mt-10">
+            <form method="post" action="/summon_king/bone/{{ ub.id }}/enhance" style="display:inline;">
+                <button type="submit" class="btn" style="border:none; cursor:pointer;">
+                    🔨 强化（{{ (ub.enhance_level + 1) * 100 }}铜币）
+                </button>
+            </form>
+            <p class="tip" style="margin-top:4px;">强化成功率：{{ ((1.0 - ub.enhance_level * 0.1) * 100)|round|int }}%</p>
+        </div>
+        {% else %}
+        <p class="text-gray">该部位未装备战骨</p>
+        {% endif %}
+    </div>
+</div>
+{% endfor %}
+{% endif %}
+
+<div class="section">
+    <div class="section-title">📖 战骨说明</div>
+    <div class="section-body">
+        <ul class="link-list">
+            <li>头骨：主要增加生命和魔攻、魔防</li>
+            <li>胸骨：主要增加生命和双防</li>
+            <li>臂骨：主要增加物攻</li>
+            <li>腿骨：主要增加物防和速度</li>
+            <li>手骨：均衡增加各属性</li>
+            <li>尾骨：均衡增加各属性</li>
+            <li>元魂：全面增加所有属性</li>
+        </ul>
+    </div>
+</div>
+
+<div class="text-center mt-10">
+    <a href="/summon_king" class="btn btn-small">← 返回首页</a>
+</div>
+{% endblock %}

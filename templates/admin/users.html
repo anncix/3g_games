@@ -1,0 +1,60 @@
+{% extends "base.html" %}
+
+{% block title %}{{ t('admin_users') }} - {{ t('admin') }}{% endblock %}
+{% block page_title %}👥 {{ t('admin_users') }}{% endblock %}
+
+{% block nav %}
+<div class="nav-bar">
+    <a href="/">{{ t('home') }}</a>|
+    <a href="/admin">{{ t('admin_stats') }}</a>|
+    <a href="/admin/users" class="active">{{ t('admin_users') }}</a>
+</div>
+{% endblock %}
+
+{% block content %}
+<div class="section">
+    <table class="admin-table">
+        <thead>
+            <tr>
+                <th>ID</th>
+                <th>{{ t('username') }}</th>
+                <th>{{ t('nickname') }}</th>
+                <th>{{ t('silver') }}</th>
+                <th>{{ t('gold') }}</th>
+                <th>状态</th>
+                <th>{{ t('actions') }}</th>
+            </tr>
+        </thead>
+        <tbody>
+            {% for u in users %}
+            <tr>
+                <td>{{ u.id }}</td>
+                <td>{{ u.username }}</td>
+                <td>{{ u.nickname or '-' }}</td>
+                <td>{{ u.silver }}</td>
+                <td>{{ u.gold }}</td>
+                <td>
+                    {% if u.is_active %}
+                    <span style="color: var(--success-color);">正常</span>
+                    {% else %}
+                    <span style="color: var(--accent-color);">封禁</span>
+                    {% endif %}
+                    {% if u.is_admin %}
+                    <span style="color: var(--gold-color);">[管理员]</span>
+                    {% endif %}
+                </td>
+                <td>
+                    {% if not u.is_admin %}
+                    {% if u.is_active %}
+                    <a href="#" style="color: var(--accent-color);">{{ t('ban') }}</a>
+                    {% else %}
+                    <a href="#" style="color: var(--success-color);">{{ t('unban') }}</a>
+                    {% endif %}
+                    {% endif %}
+                </td>
+            </tr>
+            {% endfor %}
+        </tbody>
+    </table>
+</div>
+{% endblock %}

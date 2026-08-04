@@ -1,0 +1,131 @@
+{% extends "base_wap.html" %}
+{% block title %}{{ target.nickname or target.username }}的家园{% endblock %}
+
+{% block content %}
+<div class="section">
+    <div class="section-title">👤 {{ target.nickname or target.username }}的资料</div>
+    <div class="section-body">
+        <div style="display: flex; gap: 10px; margin-bottom: 10px;">
+            <div class="avatar" style="font-size:32px;">{{ target.avatar }}</div>
+            <div style="flex: 1;">
+                <div style="font-weight: bold; font-size: 16px;">
+                    {{ target.nickname or target.username }}
+                    {% if target.family %}<span style="font-size:12px; color:#666;">[{{ target.family.name }}]</span>{% endif %}
+                </div>
+                <div style="font-size: 12px; color: #666;">
+                    Q号: {{ target.qq_number or '100001' }} | 家园Lv.{{ target.level }}
+                </div>
+                <div style="font-size: 12px; color: #888; margin-top: 2px;">
+                    "{{ target.signature }}"
+                </div>
+            </div>
+        </div>
+        <div class="info-row">
+            <span class="info-label">人气值</span>
+            <span class="info-value">⭐ {{ target.popularity }}</span>
+        </div>
+        <div class="info-row">
+            <span class="info-label">访问量</span>
+            <span class="info-value">👀 {{ target.visit_count }}</span>
+        </div>
+        <div class="info-row">
+            <span class="info-label">所在地</span>
+            <span class="info-value">{{ target.city or '未填写' }}</span>
+        </div>
+        <div class="mt-10" style="text-align: center;">
+            {% if target.id != user.id %}
+                {% if is_friend %}
+                <span class="btn btn-small" style="background: #4caf50;">✓ 已是好友</span>
+                {% elif has_requested %}
+                <span class="btn btn-small" style="background: #ff9800;">好友申请已发送</span>
+                {% else %}
+                <form method="post" action="/home/friends/request/{{ target.id }}" style="display:inline;">
+                    <input type="hidden" name="message" value="你好，我想加你为好友~">
+                    <button type="submit" class="btn btn-small">加为好友</button>
+                </form>
+                {% endif %}
+                <a href="/home/" class="btn btn-small" style="background: #999;">返回</a>
+            {% else %}
+            <a href="/home/settings" class="btn btn-small">编辑资料</a>
+            {% endif %}
+        </div>
+    </div>
+</div>
+
+{# TA的游戏状态 #}
+<div class="section">
+    <div class="section-title">🎮 TA的游戏</div>
+    <div class="section-body">
+        <ul class="link-list">
+            <li>⚔️ 精武堂: 
+                {% if target.jw_role %}Lv.{{ target.jw_role.level }}{% else %}未创建角色{% endif %}
+            </li>
+            <li>🌸 魔法花园: 
+                {% if target.garden %}Lv.{{ target.garden.garden_level }}{% else %}未进入{% endif %}
+            </li>
+            <li>🌾 阳光牧场: 
+                {% if target.farm %}Lv.{{ target.farm.farm_level }}{% else %}未进入{% endif %}
+            </li>
+            <li>🍳 美味小镇: 
+                {% if target.town %}{{ target.town.star_level }}星{% else %}未进入{% endif %}
+            </li>
+            <li>⛵ 纵横四海: 
+                {% if target.sea %}Lv.{{ target.sea.level }}{% else %}未进入{% endif %}
+            </li>
+        </ul>
+    </div>
+</div>
+
+{# 给TA留言 #}
+{% if target.id != user.id %}
+<div class="section">
+    <div class="section-title">📝 给TA留言</div>
+    <div class="section-body">
+        <form method="post" action="/home/guestbook/add">
+            <input type="hidden" name="owner_id" value="{{ target.id }}">
+            <div class="form-group">
+                <textarea name="content" placeholder="写点什么给TA..." rows="3"></textarea>
+            </div>
+            <div class="text-right">
+                <button type="submit" class="btn">提交留言</button>
+            </div>
+        </form>
+    </div>
+</div>
+{% endif %}
+
+{# TA的留言板 #}
+<div class="section">
+    <div class="section-title">📋 留言板 ({{ guestbook|length }})</div>
+    <div class="section-body">
+        {% if guestbook %}
+            {% for entry in guestbook %}
+            <div class="guestbook-item">
+                <div>
+                    <span class="guestbook-author">
+                        <a href="/home/profile/{{ entry.author_user_id }}">{{ entry.author_nickname }}</a>
+                    </span>
+                    <span class="guestbook-time">{{ entry.created_at.strftime('%m-%d %H:%M') }}</span>
+                </div>
+                <div class="guestbook-content">{{ entry.content }}</div>
+            </div>
+            {% endfor %}
+        {% else %}
+            <div class="text-gray text-center" style="padding: 10px;">还没有留言，快来抢沙发吧~</div>
+        {% endif %}
+    </div>
+</div>
+
+<style>
+.form-group textarea {
+    width: 100%;
+    padding: 8px;
+    border: 1px solid #ddd;
+    border-radius: 3px;
+    font-size: 13px;
+    font-family: inherit;
+    resize: vertical;
+}
+.text-right { text-align: right; }
+</style>
+{% endblock %}

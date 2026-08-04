@@ -1,0 +1,184 @@
+{% extends "base_wap.html" %}
+
+{% block title %}商店 - 纵横四海{% endblock %}
+
+{% block extra_css %}
+<style>
+    .shop-section { margin-bottom: 12px; }
+    .shop-item {
+        border: 1px solid #e0e0e0;
+        border-radius: 4px;
+        padding: 8px;
+        margin-bottom: 6px;
+        display: flex;
+        align-items: center;
+        background: white;
+    }
+    .shop-item:hover { border-color: #4a86e8; }
+    .shop-item.owned { opacity: 0.6; background: #f5f5f5; }
+    .shop-icon { font-size: 28px; margin-right: 8px; }
+    .shop-info { flex: 1; }
+    .shop-name { font-weight: bold; font-size: 13px; }
+    .shop-desc { font-size: 11px; color: #666; margin-top: 2px; }
+    .shop-price { color: #d0a020; font-weight: bold; font-size: 12px; }
+    .supply-form {
+        background: linear-gradient(180deg, #f0f4fa 0%, #e0e8f4 100%);
+        border: 1px solid #b8ccea;
+        border-radius: 5px;
+        padding: 12px;
+        margin-bottom: 10px;
+    }
+    .equip-item {
+        border: 1px solid #e0e0e0;
+        border-radius: 4px;
+        padding: 8px;
+        margin-bottom: 6px;
+    }
+    .rarity-common { color: #666; border-left: 3px solid #999; }
+    .rarity-uncommon { color: #3ac840; border-left: 3px solid #3ac840; }
+    .rarity-rare { color: #4a86e8; border-left: 3px solid #4a86e8; }
+</style>
+{% endblock %}
+
+{% block breadcrumb %}
+<div class="nav-bar">
+    <a href="/home/">首页</a>
+    <span class="sep">›</span>
+    <a href="/home/gamelobby">游戏大厅</a>
+    <span class="sep">›</span>
+    <a href="/zongheng_sihai">纵横四海</a>
+    <span class="sep">›</span>
+    <span>商店</span>
+</div>
+{% endblock %}
+
+{% block content %}
+
+{% if message %}
+<div class="notice">{{ message }}</div>
+{% endif %}
+{% if error %}
+<div class="notice" style="background:#fff0f0; border-color:#e8403a; color:#a8302a;">{{ error }}</div>
+{% endif %}
+
+{# 玩家银两 #}
+<div class="section">
+    <div class="section-title">🏪 海上商店</div>
+    <div class="section-body">
+        <div style="text-align:center; padding:8px; font-size:14px;">
+            🪙 当前银两: <b class="text-blue" style="font-size:18px;">{{ sea.silver_coin }}</b>
+        </div>
+    </div>
+</div>
+
+{# 快速补给 #}
+<div class="section">
+    <div class="section-title">🍞 快速补给</div>
+    <div class="section-body">
+        <div class="supply-form">
+            <div style="font-size:13px; margin-bottom:8px;">
+                当前补给: {{ sea.supplies }}/{{ sea.max_supplies }} | 2银两/单位
+            </div>
+            <form method="post" action="/zongheng_sihai/shop/buy_supplies" style="display:flex; gap:8px; align-items:center;">
+                <input type="number" name="amount" value="50" min="1" max="{{ sea.max_supplies - sea.supplies }}" style="flex:1; padding:5px 8px; border:1px solid #b8ccea; border-radius:3px;">
+                <button type="submit" class="btn btn-small">购买补给</button>
+            </form>
+            <div style="margin-top:8px; text-align:center;">
+                <a href="/zongheng_sihai/shop/buy_goods/supply_bread?qty=10" class="btn btn-small">🍞 干粮x10 (20银)</a>
+                <a href="/zongheng_sihai/shop/buy_goods/supply_water?qty=20" class="btn btn-small">💧 淡水x20 (20银)</a>
+            </div>
+        </div>
+    </div>
+</div>
+
+{# 商品分类 #}
+{% for cat_key, goods_list in goods_by_cat.items() %}
+<div class="section shop-section">
+    <div class="section-title">
+        {% if cat_key == 'supply' %}🍞 补给品
+        {% elif cat_key == 'ammo' %}💣 弹药
+        {% elif cat_key == 'medicine' %}🧪 药品
+        {% elif cat_key == 'material' %}🪵 材料
+        {% elif cat_key == 'trade' %}📦 贸易品
+        {% else %}📦 其他
+        {% endif %}
+    </div>
+    <div class="section-body">
+        {% for g in goods_list %}
+        <div class="shop-item">
+            <div class="shop-icon">{{ g.icon }}</div>
+            <div class="shop-info">
+                <div class="shop-name">{{ g.name }}</div>
+                <div class="shop-desc">{{ g.description }}</div>
+            </div>
+            <div style="text-align:right;">
+                <div class="shop-price">{{ g.buy_price }}银</div>
+                <div style="margin-top:4px;">
+                    <a href="/zongheng_sihai/shop/buy_goods/{{ g.goods_code }}?qty=1" class="btn btn-small" style="font-size:11px; padding:2px 6px;">买1</a>
+                    {% if g.category != 'trade' %}
+                    <a href="/zongheng_sihai/shop/buy_goods/{{ g.goods_code }}?qty=10" class="btn btn-small" style="font-size:11px; padding:2px 6px;">买10</a>
+                    {% endif %}
+                </div>
+            </div>
+        </div>
+        {% endfor %}
+    </div>
+</div>
+{% endfor %}
+
+{# 装备商店 #}
+<div class="section">
+    <div class="section-title">⚔️ 装备商店</div>
+    <div class="section-body">
+        {% if equipments %}
+            {% for eq in equipments %}
+            <div class="equip-item rarity-{{ eq.rarity }} {% if eq.id in my_equip_ids %}owned{% endif %}">
+                <div style="display:flex; justify-content:space-between; align-items:center;">
+                    <div>
+                        <span style="font-size:22px; margin-right:5px;">{{ eq.icon }}</span>
+                        <b>{{ eq.name }}</b>
+                        <span style="font-size:11px; color:#999;">Lv.{{ eq.level_required }}</span>
+                        {% if eq.id in my_equip_ids %}
+                        <span style="font-size:11px; color:#3ac840;">[已拥有]</span>
+                        {% endif %}
+                    </div>
+                    <div class="shop-price">{{ eq.price }}银</div>
+                </div>
+                <div style="margin-top:4px;">
+                    {% if eq.base_attr_json %}
+                        {% set attrs = eq.base_attr_json | string | replace('{','') | replace('}','') | replace('"','') %}
+                        <span style="font-size:11px; color:#666;">{{ attrs }}</span>
+                    {% endif %}
+                </div>
+                {% if eq.id not in my_equip_ids %}
+                <div style="margin-top:5px;">
+                    <a href="/zongheng_sihai/shop/buy_equipment/{{ eq.id }}" class="btn btn-small"
+                       onclick="return confirm('确定花费{{ eq.price }}银两购买{{ eq.name }}吗？');">购买</a>
+                </div>
+                {% endif %}
+            </div>
+            {% endfor %}
+        {% else %}
+        <div class="text-gray text-center" style="padding:15px;">暂无可购买的装备</div>
+        {% endif %}
+    </div>
+</div>
+
+{# 出售物品 #}
+<div class="section">
+    <div class="section-title">💰 出售物品</div>
+    <div class="section-body">
+        <div style="font-size:12px; color:#666; margin-bottom:8px;">
+            在背包页面可以出售贸易品和多余物品。
+        </div>
+        <div class="text-center">
+            <a href="/zongheng_sihai/inventory" class="btn btn-small">去背包出售</a>
+        </div>
+    </div>
+</div>
+
+<div class="text-center mt-10">
+    <a href="/zongheng_sihai">« 返回首页</a> |
+    <a href="/zongheng_sihai/city">返回城市</a>
+</div>
+{% endblock %}

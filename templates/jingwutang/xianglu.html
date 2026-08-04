@@ -1,0 +1,94 @@
+{% extends "base_wap.html" %}
+
+{% block title %}闻香炉 - 精武堂{% endblock %}
+
+{% block breadcrumb %}
+<div class="nav-bar">
+    <a href="/home/">首页</a>
+    <span class="sep">›</span>
+    <a href="/home/gamelobby">游戏大厅</a>
+    <span class="sep">›</span>
+    <a href="/jingwutang/">精武堂</a>
+    <span class="sep">›</span>
+    <span>闻香炉</span>
+</div>
+{% endblock %}
+
+{% block content %}
+
+{% if status_msg %}<div class="notice">{{ status_msg }}</div>{% endif %}
+
+<div class="section">
+    <div class="section-body text-center">
+        <div style="font-size:64px; margin:10px 0;">🏺</div>
+        <div class="text-green" style="font-size:20px; font-weight:bold;">闻香炉</div>
+        <div style="font-size:12px; color:#666; margin:8px 0;">点燃香炉，闻香恢复体力</div>
+        <div class="info-row mt-10"><span class="info-label">⚡ 当前体力</span><span class="info-value">{{ role.sp }}/{{ role.max_sp }}</span></div>
+        <div class="info-row"><span class="info-label">📅 今日使用</span><span class="info-value">{{ used_today }}/{{ max_uses_per_day }} 次</span></div>
+    </div>
+</div>
+
+{% if xianglu %}
+<div class="section">
+    <div class="section-title">🔥 帮派香炉</div>
+    <div class="section-body">
+        <div style="text-align:center; margin-bottom:10px;">
+            <div style="font-size:48px;">🔥</div>
+            <div class="text-red bold">香炉正在燃烧！</div>
+        </div>
+        {% set fire_count = (xianglu.incense_energy // 100) if xianglu else 0 %}
+        <div class="info-row"><span class="info-label">🔥 火量</span><span class="info-value">{{ [fire_count, 10]|min }}/10</span></div>
+        <div class="info-row"><span class="info-label">👤 我加的火</span><span class="info-value">{{ my_fire }} 次</span></div>
+        <div class="info-row"><span class="info-label">💚 闻香恢复</span><span class="info-value text-green">+{{ restore_sp }} 体力</span></div>
+        <div class="info-row"><span class="info-label">⏰ 状态</span><span class="info-value">{{ remaining_time }}</span></div>
+
+        {% if can_add_fire %}
+        <div class="text-center mt-10">
+            <a href="/jingwutang/xianglu/add_fire" class="btn btn-success">🔥 加火（恢复10体力）</a>
+        </div>
+        {% endif %}
+
+        {% if can_wenxiang %}
+        <div class="text-center mt-5">
+            <a href="/jingwutang/xianglu/wenxiang" class="btn btn-primary" onclick="return confirm('闻香恢复{{ restore_sp }}点体力？')">👃 闻香（恢复{{ restore_sp }}体力）</a>
+        </div>
+        {% else %}
+        <div class="text-center mt-5 text-gray" style="font-size:12px;">
+            {% if role.sp >= role.max_sp %}体力已满{% else %}今日次数已用完{% endif %}
+        </div>
+        {% endif %}
+
+        <div class="tip text-center mt-10">
+            💡 火量越高，闻香恢复体力越多！满火时可恢复50点体力。
+        </div>
+    </div>
+</div>
+{% else %}
+<div class="section">
+    <div class="section-body text-center" style="padding:20px; color:#999;">
+        <div style="font-size:48px; margin-bottom:10px;">🏚️</div>
+        <p>暂无帮派香炉</p>
+        <p style="font-size:12px;">加入或创建帮派后可使用闻香炉</p>
+        <div class="mt-10">
+            <a href="/jingwutang/gang" class="btn">👥 前往帮派</a>
+        </div>
+    </div>
+</div>
+{% endif %}
+
+{# 个人香炉（无帮派也能使用，1小时CD） #}
+{% if not xianglu %}
+<div class="section">
+    <div class="section-title">🏺 个人香炉</div>
+    <div class="section-body text-center">
+        <div style="font-size:36px; margin-bottom:8px;">🏺</div>
+        <p style="font-size:12px; color:#666; margin-bottom:8px;">个人香炉每小时可使用一次，恢复30+等级*10体力</p>
+        <a href="/jingwutang/xianglu/wenxiang" class="btn btn-primary" onclick="return confirm('使用个人闻香炉？')">👃 使用个人香炉</a>
+    </div>
+</div>
+{% endif %}
+
+<div class="text-center mt-10">
+    <a href="/jingwutang/">« 返回精武堂</a>
+</div>
+{% endblock %}

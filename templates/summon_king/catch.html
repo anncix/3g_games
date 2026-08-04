@@ -1,0 +1,123 @@
+{% extends "base_wap.html" %}
+{% block title %}捕捉幻兽 - 召唤之王{% endblock %}
+{% block breadcrumb %}
+<div class="nav-bar">
+    <a href="/home/gamelobby">游戏大厅</a>
+    <span class="sep">›</span>
+    <a href="/summon_king">召唤之王</a>
+    <span class="sep">›</span>
+    <a href="/summon_king/maps">地图探索</a>
+    <span class="sep">›</span> 捕捉
+</div>
+{% endblock %}
+{% block content %}
+<div class="section">
+    <div class="section-title" style="color:{{ rarity_colors.get(beast.rarity, '#e8403a') }};">
+        ⚡ 遭遇野生幻兽！
+    </div>
+    <div class="section-body text-center">
+        <span style="font-size:80px;">{{ beast.icon }}</span>
+        <h2 style="color:{{ rarity_colors.get(beast.rarity, '#333') }}; margin:10px 0;">
+            {{ beast.name }}
+            <span style="font-size:14px;">[{{ rarity_names.get(beast.rarity, beast.rarity) }}]</span>
+        </h2>
+        <p style="color:#666;">{{ beast.description }}</p>
+        {% if copper_gain %}
+        <p class="text-green" style="margin-top:8px;">获得铜币 +{{ copper_gain }}</p>
+        {% endif %}
+    </div>
+</div>
+
+<div class="section">
+    <div class="section-title">📊 幻兽信息</div>
+    <div class="section-body">
+        <div class="info-row">
+            <span class="info-label">等级范围</span>
+            <span class="info-value">~Lv.{{ beast.map_level_min }}</span>
+        </div>
+        <div class="info-row">
+            <span class="info-label">种族</span>
+            <span class="info-value">{{ beast.race_type }}</span>
+        </div>
+        <div class="info-row">
+            <span class="info-label">基础生命</span>
+            <span class="info-value">{{ beast.base_hp }}</span>
+        </div>
+        <div class="info-row">
+            <span class="info-label">物攻/魔攻</span>
+            <span class="info-value">{{ beast.base_patk }} / {{ beast.base_matk }}</span>
+        </div>
+        <div class="info-row">
+            <span class="info-label">物防/魔防</span>
+            <span class="info-value">{{ beast.base_pdef }} / {{ beast.base_mdef }}</span>
+        </div>
+        <div class="info-row">
+            <span class="info-label">速度</span>
+            <span class="info-value">{{ beast.base_speed }}</span>
+        </div>
+        <div class="info-row">
+            <span class="info-label">基础捕捉率</span>
+            <span class="info-value text-red">{{ beast.catch_rate }}%</span>
+        </div>
+    </div>
+</div>
+
+<div class="section">
+    <div class="section-title">🎯 选择捕捉球</div>
+    <div class="section-body">
+        <p class="tip">不同捕捉球有不同的捕捉概率加成。普球x1.0，强力球x1.8，超级球x3.0。</p>
+        <hr>
+        <form method="post" action="/summon_king/catch/{{ map.id }}/{{ beast.id }}">
+            <input type="hidden" name="ball_type" value="normal">
+            <div class="info-row">
+                <span class="info-label">⚪ 普球 <span class="text-gray">(x1.0)</span></span>
+                <span class="info-value">
+                    剩余{{ profile.catch_ball_normal }}个
+                    {% if profile.catch_ball_normal > 0 %}
+                    <button type="submit" class="btn btn-small" style="border:none; cursor:pointer;">使用</button>
+                    {% else %}
+                    <span class="text-gray">不足</span>
+                    {% endif %}
+                </span>
+            </div>
+        </form>
+        <form method="post" action="/summon_king/catch/{{ map.id }}/{{ beast.id }}">
+            <input type="hidden" name="ball_type" value="strong">
+            <div class="info-row">
+                <span class="info-label">🔵 强力球 <span class="text-gray">(x1.8)</span></span>
+                <span class="info-value">
+                    剩余{{ profile.catch_ball_strong }}个
+                    {% if profile.catch_ball_strong > 0 %}
+                    <button type="submit" class="btn btn-small" style="border:none; cursor:pointer;">使用</button>
+                    {% else %}
+                    <span class="text-gray">不足</span>
+                    {% endif %}
+                </span>
+            </div>
+        </form>
+        <form method="post" action="/summon_king/catch/{{ map.id }}/{{ beast.id }}">
+            <input type="hidden" name="ball_type" value="super">
+            <div class="info-row">
+                <span class="info-label">🟣 超级球 <span class="text-gray">(x3.0)</span></span>
+                <span class="info-value">
+                    剩余{{ profile.catch_ball_super }}个
+                    {% if profile.catch_ball_super > 0 %}
+                    <button type="submit" class="btn btn-small" style="border:none; cursor:pointer;">使用</button>
+                    {% else %}
+                    <span class="text-gray">不足</span>
+                    {% endif %}
+                </span>
+            </div>
+        </form>
+        <hr>
+        <div class="text-center">
+            <p style="font-size:12px; color:#999; margin-bottom:8px;">预估捕捉率：普球{{ (beast.catch_rate * 1.0)|round|int }}% / 强力球{{ (beast.catch_rate * 1.8)|round|int }}% / 超级球{{ (beast.catch_rate * 3.0)|round|int }}%</p>
+            <a href="/summon_king/maps" class="btn btn-small btn-danger">🏃 逃跑</a>
+        </div>
+    </div>
+</div>
+
+<div class="text-center mt-10">
+    <a href="/summon_king/maps" class="btn btn-small">← 返回地图</a>
+</div>
+{% endblock %}

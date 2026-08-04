@@ -1,0 +1,275 @@
+{% extends "base_wap.html" %}
+
+{% block title %}出海航行 - 纵横四海{% endblock %}
+
+{% block extra_css %}
+<style>
+    .route-card {
+        border: 1px solid #d0d0d0;
+        border-radius: 5px;
+        padding: 10px;
+        margin-bottom: 8px;
+        background: linear-gradient(180deg, #f8faff 0%, #eef3fa 100%);
+    }
+    .route-card:hover { border-color: #4a86e8; }
+    .danger-safe { color: #3ac840; font-weight: bold; }
+    .danger-low { color: #6aaa4a; font-weight: bold; }
+    .danger-mid { color: #d0a020; font-weight: bold; }
+    .danger-high { color: #e86020; font-weight: bold; }
+    .danger-deadly { color: #e8403a; font-weight: bold; }
+    .event-box {
+        border: 2px solid #4a86c8;
+        border-radius: 5px;
+        padding: 12px;
+        margin-bottom: 10px;
+        background: linear-gradient(180deg, #e0f0ff 0%, #c8e0f8 100%);
+    }
+    .battle-log {
+        background: #f5f5f5;
+        border: 1px solid #ddd;
+        border-radius: 3px;
+        padding: 8px;
+        font-size: 12px;
+        max-height: 250px;
+        overflow-y: auto;
+        line-height: 1.8;
+    }
+    .battle-log .win { color: #3ac840; font-weight: bold; }
+    .battle-log .lose { color: #e8403a; font-weight: bold; }
+</style>
+{% endblock %}
+
+{% block breadcrumb %}
+<div class="nav-bar">
+    <a href="/home/">首页</a>
+    <span class="sep">›</span>
+    <a href="/home/gamelobby">游戏大厅</a>
+    <span class="sep">›</span>
+    <a href="/zongheng_sihai">纵横四海</a>
+    <span class="sep">›</span>
+    <span>航行</span>
+</div>
+{% endblock %}
+
+{% block content %}
+
+{% if error %}
+<div class="notice" style="background:#fff0f0; border-color:#e8403a; color:#a8302a;">{{ error }}</div>
+{% endif %}
+
+{# 如果是航行结果页 #}
+{% if event_result is defined %}
+<div class="section">
+    <div class="section-title">⛵ 航行结果</div>
+    <div class="section-body">
+        <div style="text-align:center; margin-bottom:10px;">
+            <div style="font-size:14px;">
+                🚢 {{ from_city.name if from_city else route.from_city_code }}
+                <span style="font-size:20px; margin:0 10px;">→</span>
+                {{ to_city.name if to_city else route.to_city_code }}
+            </div>
+        </div>
+
+        {# 事件结果 #}
+        <div class="event-box">
+            <div style="text-align:center; font-size:32px; margin-bottom:8px;">
+                {% if event_type == 'pirate' %}
+                    🏴‍☠️
+                {% elif event_type == 'storm' %}
+                    🌊
+                {% elif event_type == 'treasure' %}
+                    💎
+                {% elif event_type == 'adventure' %}
+                    ✨
+                {% elif event_type == 'merchant' %}
+                    💰
+                {% else %}
+                    ☀️
+                {% endif %}
+            </div>
+            <div style="text-align:center; font-weight:bold; color:#1a5dc7; margin-bottom:5px;">
+                {% if event_type == 'pirate' %}
+                    遭遇海盗！
+                {% elif event_type == 'storm' %}
+                    遭遇暴风雨！
+                {% elif event_type == 'treasure' %}
+                    发现宝箱！
+                {% elif event_type == 'adventure' %}
+                    奇遇事件！
+                {% elif event_type == 'merchant' %}
+                    遇到商船！
+                {% else %}
+                    一路平安
+                {% endif %}
+            </div>
+            <div style="text-align:center; font-size:13px;">{{ event_result.message if event_result.message else '' }}</div>
+
+            {% if event_result.silver %}
+            <div class="text-center mt-5" style="color:#d0a020; font-weight:bold;">
+                🪙 获得银两: +{{ event_result.silver }}
+            </div>
+            {% endif %}
+            {% if event_result.exp %}
+            <div class="text-center mt-5" style="color:#1a5dc7; font-weight:bold;">
+                ⭐ 获得经验: +{{ event_result.exp }}
+            </div>
+            {% endif %}
+            {% if event_result.damage %}
+            <div class="text-center mt-5" style="color:#e8403a; font-weight:bold;">
+                💥 船只受损: -{{ event_result.damage }}
+            </div>
+            {% endif %}
+            {% if event_result.heal %}
+            <div class="text-center mt-5" style="color:#3ac840; font-weight:bold;">
+                💚 船只恢复: +{{ event_result.heal }}
+            </div>
+            {% endif %}
+            {% if event_result.supplies %}
+            <div class="text-center mt-5" style="color:#4a8a2a; font-weight:bold;">
+                🍞 获得补给: +{{ event_result.supplies }}
+            </div>
+            {% endif %}
+            {% if event_result.profit %}
+            <div class="text-center mt-5" style="color:#d0a020; font-weight:bold;">
+                💰 交易获利: +{{ event_result.profit }}
+            </div>
+            {% endif %}
+        </div>
+
+        {# 战斗日志 #}
+        {% if battle_result %}
+        <div class="section">
+            <div class="section-title">⚔️ 战斗详情</div>
+            <div class="section-body">
+                <div style="text-align:center; margin-bottom:8px;">
+                    <span style="font-size:36px;">
+                        {% if battle_result.win %}🏆{% else %}💀{% endif %}
+                    </span>
+                    <div style="font-size:15px; font-weight:bold; margin-top:4px;" class="{% if battle_result.win %}text-green{% else %}text-red{% endif %}">
+                        {{ '战斗胜利！' if battle_result.win else '战斗失败！' }}
+                    </div>
+                    <div style="font-size:12px; color:#666; margin-top:4px;">
+                        vs {{ battle_result.enemy_name }} (Lv.{{ battle_result.enemy_level }})
+                    </div>
+                    {% if battle_result.win %}
+                    <div style="font-size:12px; margin-top:4px;">
+                        获得 <span style="color:#d0a020;">{{ battle_result.silver }}银两</span>，
+                        <span style="color:#1a5dc7;">{{ battle_result.exp }}经验</span>
+                    </div>
+                    {% else %}
+                    <div style="font-size:12px; margin-top:4px; color:#e8403a;">
+                        损失 {{ -battle_result.silver }}银两
+                    </div>
+                    {% endif %}
+                </div>
+                <div class="battle-log">
+                    {% for line in battle_result.log %}
+                    <div>{{ line }}</div>
+                    {% endfor %}
+                </div>
+            </div>
+        </div>
+        {% endif %}
+
+        {# 到达城市 #}
+        <div class="section">
+            <div class="section-title">⚓ 抵达港口</div>
+            <div class="section-body">
+                <div style="text-align:center; padding:10px;">
+                    <div style="font-size:48px;">
+                        {% if sea.current_city_code == 'quanzhou' %}🏯
+                        {% elif sea.current_city_code == 'hangzhou' %}🏞️
+                        {% elif sea.current_city_code == 'guangzhou' %}🌴
+                        {% elif sea.current_city_code == 'yangzhou' %}🌉
+                        {% elif sea.current_city_code == 'lisbon' %}🏰
+                        {% else %}🏙️{% endif %}
+                    </div>
+                    <div style="font-size:16px; font-weight:bold; color:#1a5dc7; margin-top:8px;">
+                        抵达 {{ event_result.arrived_city if event_result.arrived_city else (to_city.name if to_city else '未知港口') }}
+                    </div>
+                    {% if event_result.newly_unlocked %}
+                    <div style="color:#3ac840; font-weight:bold; margin-top:5px;">
+                        🎉 发现新港口！获得100经验奖励！
+                    </div>
+                    {% endif %}
+                </div>
+                <div class="text-center mt-10" style="display:grid; grid-template-columns:1fr 1fr; gap:8px;">
+                    <a href="/zongheng_sihai/city" class="btn">进入城市</a>
+                    <a href="/zongheng_sihai" class="btn">返回首页</a>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+{# 航线选择页 #}
+{% else %}
+<div class="section">
+    <div class="section-title">⚓ {{ current_city.name if current_city else '港口' }} - 航线选择</div>
+    <div class="section-body">
+        <div style="text-align:center; padding:10px; margin-bottom:10px;">
+            <div style="font-size:40px;">
+                {% if sea.current_city_code == 'quanzhou' %}🏯
+                {% elif sea.current_city_code == 'hangzhou' %}🏞️
+                {% elif sea.current_city_code == 'guangzhou' %}🌴
+                {% elif sea.current_city_code == 'yangzhou' %}🌉
+                {% elif sea.current_city_code == 'lisbon' %}🏰
+                {% else %}🏙️{% endif %}
+            </div>
+            <div style="font-weight:bold; font-size:14px; margin-top:4px;">{{ current_city.name if current_city else '港口' }}</div>
+        </div>
+
+        <div style="background:#f0f4fa; border-radius:3px; padding:8px; margin-bottom:10px; font-size:12px;">
+            <div>🍞 补给: {{ sea.supplies }}/{{ sea.max_supplies }}</div>
+            <div>⚡ 体力: {{ sea.power }}/{{ sea.max_power }}</div>
+            <div>🛡️ 船只耐久: {{ sea.ship_hp }}/{{ sea.ship_max_hp }}</div>
+        </div>
+
+        {% if route_info %}
+            {% for ri in route_info %}
+            <div class="route-card">
+                <div style="display:flex; justify-content:space-between; align-items:center;">
+                    <div>
+                        <b>🧭 {{ ri.to_city.name if ri.to_city else ri.route.to_city_code }}</b>
+                    </div>
+                    <div>
+                        <span class="{% if ri.route.danger_level == 1 %}danger-safe{% elif ri.route.danger_level == 2 %}danger-low{% elif ri.route.danger_level == 3 %}danger-mid{% elif ri.route.danger_level == 4 %}danger-high{% else %}danger-deadly%}">
+                            {{ ri.danger_name }}
+                        </span>
+                    </div>
+                </div>
+                <div style="font-size:12px; color:#666; margin-top:4px;">
+                    航行时间: {{ ri.route.travel_time }}秒 |
+                    需要补给: <b class="{% if sea.supplies < ri.supplies_needed %}text-red{% else %}text-green{% endif %}">{{ ri.supplies_needed }}</b> |
+                    消耗体力: 20
+                </div>
+                <div style="margin-top:8px;">
+                    {% if sea.supplies < ri.supplies_needed %}
+                    <span class="btn btn-small btn-danger" style="opacity:0.5; cursor:not-allowed;">补给不足</span>
+                    {% elif sea.power < 20 %}
+                    <span class="btn btn-small btn-danger" style="opacity:0.5; cursor:not-allowed;">体力不足</span>
+                    {% else %}
+                    <a href="/zongheng_sihai/sail/start/{{ ri.route.id }}" class="btn btn-small">⚓ 启航</a>
+                    {% endif %}
+                </div>
+            </div>
+            {% endfor %}
+        {% else %}
+        <div class="text-gray text-center" style="padding:20px;">
+            暂无可用航线，请先解锁更多港口。
+        </div>
+        {% endif %}
+    </div>
+</div>
+
+<div class="notice">
+    💡 提示：航行中可能遭遇海盗、暴风雨，也可能发现宝箱或奇遇。请确保补给充足！
+</div>
+
+<div class="text-center mt-10">
+    <a href="/zongheng_sihai/city">« 返回城市</a> |
+    <a href="/zongheng_sihai">返回首页</a>
+</div>
+{% endif %}
+
+{% endblock %}

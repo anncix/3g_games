@@ -1,0 +1,137 @@
+{% extends "base_wap.html" %}
+
+{% block title %}背包 - 纵横四海{% endblock %}
+
+{% block extra_css %}
+<style>
+    .goods-item {
+        border: 1px solid #e0e0e0;
+        border-radius: 4px;
+        padding: 8px;
+        margin-bottom: 6px;
+        background: white;
+        display: flex;
+        align-items: center;
+    }
+    .goods-item:hover { border-color: #4a86e8; }
+    .goods-icon { font-size: 28px; margin-right: 8px; }
+    .goods-info { flex: 1; }
+    .goods-name { font-weight: bold; font-size: 13px; }
+    .goods-desc { font-size: 11px; color: #666; margin-top: 2px; }
+    .goods-qty { font-size: 12px; color: #1a5dc7; font-weight: bold; }
+    .cat-tab {
+        display: inline-block;
+        padding: 5px 10px;
+        font-size: 12px;
+        border: 1px solid #d0d0d0;
+        margin-right: -1px;
+        background: #f0f4fa;
+        color: #666;
+    }
+    .cat-tab.active {
+        background: white;
+        border-top: 2px solid #2a5caa;
+        color: #1a5dc7;
+        font-weight: bold;
+    }
+</style>
+{% endblock %}
+
+{% block breadcrumb %}
+<div class="nav-bar">
+    <a href="/home/">首页</a>
+    <span class="sep">›</span>
+    <a href="/home/gamelobby">游戏大厅</a>
+    <span class="sep">›</span>
+    <a href="/zongheng_sihai">纵横四海</a>
+    <span class="sep">›</span>
+    <span>背包</span>
+</div>
+{% endblock %}
+
+{% block content %}
+
+{% if message %}
+<div class="notice">{{ message }}</div>
+{% endif %}
+
+{# 分类标签 #}
+<div style="border-bottom:2px solid #2a5caa; margin-bottom:10px; white-space:nowrap; overflow-x:auto;">
+    {% for cat_key, cat_name in categories.items() %}
+    <a href="/zongheng_sihai/inventory?category={{ cat_key }}" class="cat-tab {% if current_category == cat_key %}active{% endif %}">
+        {{ cat_name }}
+    </a>
+    {% endfor %}
+</div>
+
+{# 物品列表 #}
+<div class="section">
+    <div class="section-title">🎒 背包物品</div>
+    <div class="section-body">
+        {% if goods_info %}
+            {% for gi in goods_info %}
+            <div class="goods-item">
+                <div class="goods-icon">{{ gi.goods.icon if gi.goods else '📦' }}</div>
+                <div class="goods-info">
+                    <div class="goods-name">
+                        {{ gi.goods.name if gi.goods else gi.user_goods.goods_name }}
+                        <span class="goods-qty">x{{ gi.user_goods.quantity }}</span>
+                    </div>
+                    <div class="goods-desc">{{ gi.goods.description if gi.goods else '' }}</div>
+                </div>
+                <div>
+                    {% if gi.goods and gi.goods.category in ['supply', 'medicine'] %}
+                    <a href="/zongheng_sihai/inventory/use/{{ gi.user_goods.id }}" class="btn btn-small">使用</a>
+                    {% endif %}
+                </div>
+            </div>
+            {% endfor %}
+        {% else %}
+        <div class="text-gray text-center" style="padding:20px;">
+            该分类下暂无物品<br>
+            <span style="font-size:12px;">去商店购买一些补给吧！</span>
+        </div>
+        {% endif %}
+    </div>
+</div>
+
+{# 快捷使用说明 #}
+<div class="section">
+    <div class="section-title">📖 物品说明</div>
+    <div class="section-body" style="font-size:12px; color:#666;">
+        <div class="info-row">
+            <span>🍞 干粮</span>
+            <span>使用后补给+10</span>
+        </div>
+        <div class="info-row">
+            <span>💧 淡水</span>
+            <span>使用后补给+5</span>
+        </div>
+        <div class="info-row">
+            <span>🧪 金疮药</span>
+            <span>使用后船只耐久+50</span>
+        </div>
+        <div class="info-row">
+            <span>🪵 修船木料</span>
+            <span>使用后船只耐久+30</span>
+        </div>
+        <div class="info-row">
+            <span>🍶 朗姆酒</span>
+            <span>使用后体力+30</span>
+        </div>
+        <div class="info-row">
+            <span>💣 炮弹</span>
+            <span>海战中自动使用</span>
+        </div>
+        <div class="info-row">
+            <span>🌶️ 香料/🧣 丝绸</span>
+            <span>贸易品，可在商店出售</span>
+        </div>
+    </div>
+</div>
+
+<div class="text-center mt-10">
+    <a href="/zongheng_sihai">« 返回首页</a> |
+    <a href="/zongheng_sihai/shop">去商店</a>
+</div>
+{% endblock %}

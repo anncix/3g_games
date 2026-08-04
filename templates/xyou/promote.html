@@ -1,0 +1,58 @@
+{% extends "base_wap.html" %}
+
+{% block title %}转职 · 幻想西游{% endblock %}
+
+{% block breadcrumb %}
+<div class="nav-bar">
+    <a href="/home/">首页</a>
+    <span class="sep">›</span>
+    <a href="/games/xyou">幻想西游</a>
+    <span class="sep">›</span>
+    <span>转职</span>
+</div>
+{% endblock %}
+
+{% block content %}
+<div class="section">
+    <div class="section-title">🏅 转职系统</div>
+    <div class="section-body" style="font-size:12px;color:#666;">
+        当前等级：<b>{{ level }}</b> 级 · 等级封顶 200 级<br>
+        达到转职节点后经验会锁死，需完成转职任务才能继续升级
+    </div>
+</div>
+
+{% if promo %}
+<div class="section">
+    <div class="section-title">🏅 {{ promo.name }}</div>
+    <div class="section-body">
+        <div style="font-size:13px;color:#333;">{{ promo.desc }}</div>
+        {% if promo.reward_exp %}
+        <div style="font-size:12px;color:#666;margin-top:4px;">奖励经验: +{{ promo.reward_exp }}</div>
+        {% endif %}
+        <form method="post" action="/games/xyou/promote/complete" style="margin-top:8px;">
+            <button type="submit" class="btn">完成转职</button>
+        </form>
+    </div>
+</div>
+{% else %}
+<div class="section">
+    <div class="section-body text-center">
+        <div style="font-size:40px;">🌱</div>
+        <div style="font-size:13px;color:#666;margin-top:6px;">当前等级无需转职，继续修炼升级吧</div>
+        <div style="margin-top:10px;"><a href="/games/xyou" class="btn">返回首页</a></div>
+    </div>
+</div>
+{% endif %}
+
+<div class="section">
+    <div class="section-title">📜 转职节点</div>
+    <div class="section-body">
+        <div class="info-row"><span class="info-label">9 级</span><span class="info-value" style="font-size:12px;">入门派</span></div>
+        <div class="info-row"><span class="info-label">59 级</span><span class="info-value" style="font-size:12px;">中级转职</span></div>
+        <div class="info-row"><span class="info-label">109 级</span><span class="info-value" style="font-size:12px;">高级转职</span></div>
+        <div class="info-row"><span class="info-label">139 级</span><span class="info-value" style="font-size:12px;">仙级转职</span></div>
+        <div class="info-row"><span class="info-label">169 级</span><span class="info-value" style="font-size:12px;">神级转职</span></div>
+        <div class="info-row"><span class="info-label">189 级</span><span class="info-value" style="font-size:12px;">圣级转职</span></div>
+    </div>
+</div>
+{% endblock %}

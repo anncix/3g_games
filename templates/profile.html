@@ -1,0 +1,60 @@
+{% extends "base.html" %}
+
+{% block title %}{{ t('profile') }}{% endblock %}
+{% block page_title %}{{ t('profile') }}{% endblock %}
+
+{% block nav %}
+<div class="nav-bar">
+    <a href="/">{{ t('home') }}</a>|
+    <a href="/profile" class="active">{{ t('profile') }}</a>|
+    <a href="/settings">{{ t('settings') }}</a>
+</div>
+{% endblock %}
+
+{% block content %}
+<div class="section" style="text-align: center;">
+    <div style="font-size: 64px; margin-bottom: 10px;">👤</div>
+    <div style="font-size: 20px; font-weight: bold;">{{ user.nickname or user.username }}</div>
+    <div style="color: var(--silver-color);">@{{ user.username }}</div>
+</div>
+
+<div class="section">
+    <div class="section-title">📊 账户信息</div>
+    <div class="stat-line">{{ t('silver') }}: {{ user.silver }}</div>
+    <div class="stat-line">{{ t('gold') }}: {{ user.gold }}</div>
+    <div class="stat-line">{{ t('language') }}: {{ '中文' if user.language == 'zh' else 'English' }}</div>
+    <div class="stat-line">{{ t('theme') }}: {{ t(user.theme) }}</div>
+    <div class="stat-line">注册时间: {{ user.created_at.strftime('%Y-%m-%d') if user.created_at else '-' }}</div>
+</div>
+
+<div class="section">
+    <div class="section-title">🎮 我的游戏</div>
+    <div style="line-height: 2;">
+        <a href="/jingwutang">⚔️ {{ t('jingwutang') }}</a>
+        {% if user.jw_role %} - {{ t('level') }}.{{ user.jw_role.level }} | {{ t('combat_power') }}:{{ user.jw_role.combat_power }}{% endif %}
+        <br>
+        <a href="/magic-garden">🌸 {{ t('magic_garden') }}</a>
+        {% if user.mg_garden %} - {{ t('level') }}.{{ user.mg_garden.level }}{% endif %}
+        <br>
+        <a href="/sunny-farm">🌾 {{ t('sunny_farm') }}</a>
+        {% if user.sm_farm %} - {{ t('level') }}.{{ user.sm_farm.level }}{% endif %}
+        <br>
+        <a href="/delicious-town">🍳 {{ t('delicious_town') }}</a>
+        {% if user.dw_town %} - {{ t('level') }}.{{ user.dw_town.level }}{% endif %}
+        <br>
+        <a href="/zongheng-sihai">⛵ {{ t('zongheng_sihai') }}</a>
+        {% if user.zs_sea %} - {{ t('level') }}.{{ user.zs_sea.level }}{% endif %}
+    </div>
+</div>
+
+{% if user.is_admin %}
+<div class="section">
+    <div class="section-title">⚙️ 管理</div>
+    <a href="/admin">{{ t('admin') }}</a>
+</div>
+{% endif %}
+
+<div style="margin-top: 20px;">
+    <a href="/">{{ t('back') }}</a>
+</div>
+{% endblock %}

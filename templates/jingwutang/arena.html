@@ -1,0 +1,112 @@
+{% extends "base_wap.html" %}
+
+{% block title %}比武 - 精武堂{% endblock %}
+
+{% block breadcrumb %}
+<div class="nav-bar">
+    <a href="/home/">首页</a>
+    <span class="sep">›</span>
+    <a href="/home/gamelobby">游戏大厅</a>
+    <span class="sep">›</span>
+    <a href="/jingwutang/">精武堂</a>
+    <span class="sep">›</span>
+    <span>比武</span>
+</div>
+{% endblock %}
+
+{% block content %}
+
+{# 自身状态 #}
+<div class="section">
+    <div class="section-title">⚔️ 比武大厅</div>
+    <div class="section-body">
+        <div style="display:flex; align-items:center; margin-bottom:10px;">
+            <div class="avatar" style="width:50px; height:50px; font-size:28px; margin-right:10px;">⚔️</div>
+            <div style="flex:1;">
+                <div style="font-weight:bold;">{{ role.name }} <span style="font-size:12px; color:#666;">Lv.{{ role.level }}</span></div>
+                <div style="font-size:12px;">⚔️ 战力: <b class="text-red">{{ combat_power }}</b></div>
+                <div style="font-size:12px;">⚡ 体力: <b class="text-green">{{ role.sp }}/{{ role.max_sp }}</b></div>
+            </div>
+        </div>
+        <div class="progress-bar" style="height:10px; margin-bottom:4px;">
+            <div class="progress-fill" style="width:{{ (role.hp / stats.max_hp * 100)|round|int }}%; background:linear-gradient(90deg,#e8403a,#ff6060);"></div>
+        </div>
+        <div style="font-size:11px; color:#666;">❤️ {{ role.hp }}/{{ stats.max_hp }}</div>
+
+        {% if not can_battle %}
+        <div class="notice" style="margin-top:8px;">体力不足（需要10点），请去修炼或使用闻香炉恢复体力</div>
+        {% endif %}
+
+        <div style="margin-top:8px; font-size:12px;">
+            今日战绩: <span class="text-green">胜{{ role.wins_today or 0 }}</span> /
+            <span class="text-red">负{{ role.losses_today or 0 }}</span>
+        </div>
+    </div>
+</div>
+
+{# 匹配切换 #}
+<div class="tab-bar">
+    <a href="/jingwutang/arena" class="{% if not friend_only %}active{% endif %}">🎯 随机匹配</a>
+    <a href="/jingwutang/arena?friend_only=1" class="{% if friend_only %}active{% endif %}">👥 好友挑战</a>
+    <a href="/jingwutang/refresh-opponents">🔄 换一批</a>
+</div>
+
+{# 对手列表 #}
+<div class="section">
+    <div class="section-title">👥 {{ '好友列表' if friend_only else '可挑战对手' }}</div>
+    <div class="section-body">
+        {% if opponents %}
+        {% for opp in opponents %}
+        <div style="padding:10px 0; border-bottom:1px dotted #eee;">
+            <div style="display:flex; justify-content:space-between; align-items:center;">
+                <div style="display:flex; align-items:center; flex:1;">
+                    <div class="avatar" style="width:40px; height:40px; font-size:22px; margin-right:8px;">🗡️</div>
+                    <div>
+                        <div style="font-weight:bold;">
+                            {{ opp.role.name }}
+                            <span class="vip-badge" style="font-size:10px;">{{ opp.title }}</span>
+                        </div>
+                        <div style="font-size:12px; color:#666;">
+                            Lv.{{ opp.role.level }} | 战力: <span class="text-red">{{ opp.combat_power }}</span>
+                        </div>
+                        <div style="font-size:11px; color:#999;">
+                            气血:{{ opp.stats.max_hp }} 伤害:{{ opp.stats.damage }} 防御:{{ opp.stats.defense }} 速度:{{ opp.stats.speed }}
+                            {% if opp.active_pet %}| 🐾{{ opp.active_pet.name }}{% endif %}
+                        </div>
+                    </div>
+                </div>
+                <a href="/jingwutang/battle/{{ opp.role.id }}" class="btn btn-danger btn-small"
+                    onclick="return confirm('挑战{{ opp.role.name }}？消耗10点体力')"
+                    {% if not can_battle %}style="opacity:0.5;pointer-events:none;"{% endif %}>
+                    ⚔️ 挑战
+                </a>
+            </div>
+        </div>
+        {% endfor %}
+        {% else %}
+        <div class="text-center" style="color:#999; padding:20px;">
+            {% if friend_only %}暂无好友可挑战，去添加好友吧！{% else %}暂无匹配对手{% endif %}
+        </div>
+        {% endif %}
+    </div>
+</div>
+
+{# 比武规则 #}
+<div class="section">
+    <div class="section-title">📖 比武规则</div>
+    <div class="section-body" style="font-size:12px; line-height:1.8; color:#666;">
+        <p>• 每次比武消耗<b class="text-red">10点体力</b></p>
+        <p>• <b>速度决定先手</b>，每回合随机从技能池释放技能</p>
+        <p>• 攻击技能造成伤害，控制技能封印对方回合</p>
+        <p>• 低血量时自动触发回血技能</p>
+        <p>• 反弹技能可将部分伤害反弹给对方</p>
+        <p>• 携带宠物可额外出招（不占人物回合）</p>
+        <p>• 附身宠物给人物增加属性</p>
+        <p>• 胜利获得G币、经验，有概率掉落材料</p>
+    </div>
+</div>
+
+<div class="text-center mt-10">
+    <a href="/jingwutang/">« 返回精武堂</a>
+</div>
+{% endblock %}

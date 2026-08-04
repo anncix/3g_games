@@ -1,0 +1,119 @@
+{% extends "base_wap.html" %}
+{% block title %}魔魂系统 - 召唤之王{% endblock %}
+{% block breadcrumb %}
+<div class="nav-bar">
+    <a href="/home/gamelobby">游戏大厅</a>
+    <span class="sep">›</span>
+    <a href="/summon_king">召唤之王</a>
+    <span class="sep">›</span> 魔魂系统
+</div>
+{% endblock %}
+{% block content %}
+<div class="section">
+    <div class="section-title">🔮 魔魂猎取</div>
+    <div class="section-body text-center">
+        {% if battle_beast %}
+        <p>当前出战：<b>{{ battle_beast.nickname or '幻兽' }}</b> (Lv.{{ battle_beast.level }})</p>
+        {% endif %}
+        <p class="tip">猎取魔魂可获得各种品质的魔魂，装备魔魂可大幅提升幻兽属性。品质从低到高：废→黄→玄→地→天→神。</p>
+        <hr>
+        <div style="margin:10px 0;">
+            <form method="post" action="/summon_king/souls/hunt" style="display:inline;">
+                <input type="hidden" name="hunt_type" value="copper">
+                <button type="submit" class="btn" style="border:none; cursor:pointer;">
+                    🪙 铜币猎魂（500铜币）
+                </button>
+            </form>
+        </div>
+        <div>
+            <form method="post" action="/summon_king/souls/hunt" style="display:inline;">
+                <input type="hidden" name="hunt_type" value="yuanbao">
+                <button type="submit" class="btn btn-success" style="border:none; cursor:pointer;">
+                    💰 元宝猎魂（10元宝）
+                </button>
+            </form>
+        </div>
+        <p class="tip mt-5">元宝猎魂获得高品质魔魂的概率更高！</p>
+        <p style="margin-top:8px;">
+            铜币: <span style="color:#daa520;">{{ profile.copper_coin }}</span>　
+            元宝: <span style="color:#ffd700;">{{ profile.yuanbao }}</span>
+        </p>
+    </div>
+</div>
+
+<div class="section">
+    <div class="section-title">💎 我的魔魂</div>
+    <div class="section-body">
+        {% if user_souls %}
+        {% for us in user_souls %}
+        {% set sdef = us.soul_def %}
+        <div class="info-row" style="padding:8px 0; border-bottom:1px dotted #e0e0e0;">
+            <div>
+                <span style="color:{{ soul_quality_colors.get(sdef.quality, '#333') }}; font-weight:bold;">
+                    {{ sdef.icon }} {{ sdef.name }}
+                </span>
+                <span style="font-size:11px; color:{{ soul_quality_colors.get(sdef.quality, '#999') }};">
+                    [{{ soul_quality_names.get(sdef.quality, sdef.quality) }}品]
+                </span>
+                {% if us.equipped and us.beast_obj %}
+                <span style="font-size:11px; color:#3ac840;">（已装备给 {{ us.beast_bdef.icon }}{{ us.beast_obj.nickname or us.beast_bdef.name }}）</span>
+                {% endif %}
+            </div>
+            <div style="font-size:12px; color:#666; margin-top:4px;">
+                {% if sdef.fixed_hp %}HP+{{ sdef.fixed_hp }} {% endif %}
+                {% if sdef.fixed_patk %}物攻+{{ sdef.fixed_patk }} {% endif %}
+                {% if sdef.fixed_matk %}魔攻+{{ sdef.fixed_matk }} {% endif %}
+                {% if sdef.fixed_pdef %}物防+{{ sdef.fixed_pdef }} {% endif %}
+                {% if sdef.fixed_mdef %}魔防+{{ sdef.fixed_mdef }} {% endif %}
+                {% if sdef.fixed_speed %}速度+{{ sdef.fixed_speed }} {% endif %}
+                {% if sdef.percent_hp %}HP+{{ sdef.percent_hp }}% {% endif %}
+                {% if sdef.percent_patk %}物攻+{{ sdef.percent_patk }}% {% endif %}
+                {% if sdef.percent_matk %}魔攻+{{ sdef.percent_matk }}% {% endif %}
+                {% if sdef.percent_pdef %}物防+{{ sdef.percent_pdef }}% {% endif %}
+                {% if sdef.percent_mdef %}魔防+{{ sdef.percent_mdef }}% {% endif %}
+                {% if sdef.percent_speed %}速度+{{ sdef.percent_speed }}% {% endif %}
+            </div>
+            <div class="mt-5">
+                {% if us.equipped %}
+                <form method="post" action="/summon_king/soul/{{ us.id }}/unequip" style="display:inline;">
+                    <button type="submit" class="btn btn-small btn-danger" style="border:none; cursor:pointer;">卸下</button>
+                </form>
+                {% elif battle_beast %}
+                <form method="post" action="/summon_king/soul/{{ us.id }}/equip/{{ battle_beast.id }}" style="display:inline;">
+                    <button type="submit" class="btn btn-small" style="border:none; cursor:pointer;">装备给出战幻兽</button>
+                </form>
+                {% else %}
+                <span class="text-gray" style="font-size:12px;">请先设置出战幻兽</span>
+                {% endif %}
+            </div>
+        </div>
+        {% endfor %}
+        {% else %}
+        <p class="text-gray text-center">还没有魔魂，快去猎魂吧！</p>
+        {% endif %}
+    </div>
+</div>
+
+{% if hunt_logs %}
+<div class="section">
+    <div class="section-title">📜 猎魂记录</div>
+    <div class="section-body">
+        <ul class="link-list">
+            {% for log in hunt_logs %}
+            <li>
+                <span style="color:{{ soul_quality_colors.get(log.soul_quality, '#333') }};">
+                    [{{ soul_quality_names.get(log.soul_quality, log.soul_quality) }}品]
+                </span>
+                {% if log.cost_copper %}消耗{{ log.cost_copper }}铜币{% endif %}
+                {% if log.cost_yuanbao %}消耗{{ log.cost_yuanbao }}元宝{% endif %}
+            </li>
+            {% endfor %}
+        </ul>
+    </div>
+</div>
+{% endif %}
+
+<div class="text-center mt-10">
+    <a href="/summon_king" class="btn btn-small">← 返回首页</a>
+</div>
+{% endblock %}

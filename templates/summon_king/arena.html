@@ -1,0 +1,140 @@
+{% extends "base_wap.html" %}
+{% block title %}擂台比武 - 召唤之王{% endblock %}
+{% block breadcrumb %}
+<div class="nav-bar">
+    <a href="/home/gamelobby">游戏大厅</a>
+    <span class="sep">›</span>
+    <a href="/summon_king">召唤之王</a>
+    <span class="sep">›</span> 擂台比武
+</div>
+{% endblock %}
+{% block content %}
+<div class="tab-bar">
+    <a href="/summon_king/arena" class="active">⚔️ 挑战</a>
+    <a href="/summon_king/arena#ranking">🏆 排行榜</a>
+    <a href="/summon_king/arena#records">📜 战报</a>
+</div>
+
+<div class="section">
+    <div class="section-title">⚔️ 我的出战幻兽</div>
+    <div class="section-body">
+        <div class="info-row">
+            <span class="info-label">声望</span>
+            <span class="info-value text-blue">🏆 {{ profile.prestige }}</span>
+        </div>
+        <div class="info-row">
+            <span class="info-label">排名</span>
+            <span class="info-value text-red">#{{ my_rank }}</span>
+        </div>
+        <div class="info-row">
+            <span class="info-label">体力</span>
+            <span class="info-value text-green">{{ profile.vitality }}/{{ profile.max_vitality }}</span>
+        </div>
+        {% if my_beast and my_bdef %}
+        <hr>
+        <div style="display:flex; align-items:center;">
+            <span style="font-size:36px; margin-right:10px;">{{ my_bdef.icon }}</span>
+            <div>
+                <div style="font-weight:bold; color:{{ rarity_colors.get(my_bdef.rarity, '#333') }};">
+                    {{ my_beast.nickname or my_bdef.name }} Lv.{{ my_beast.level }}
+                </div>
+                <div style="font-size:12px; color:#666;">
+                    HP:{{ my_stats.max_hp }} 攻:{{ my_stats.patk }}/{{ my_stats.matk }} 防:{{ my_stats.pdef }}/{{ my_stats.mdef }} 速:{{ my_stats.speed }}
+                </div>
+            </div>
+        </div>
+        {% else %}
+        <p class="text-red">请先<a href="/summon_king/beasts">设置出战幻兽</a></p>
+        {% endif %}
+        <p class="tip mt-5">每次挑战消耗5点体力，胜利获得声望和铜币奖励。</p>
+    </div>
+</div>
+
+<div class="section">
+    <div class="section-title">🎯 可挑战对手</div>
+    <div class="section-body">
+        {% if my_beast %}
+        {% for opp in opponents %}
+        <div style="padding:8px 0; border-bottom:1px dotted #e0e0e0;">
+            <div style="display:flex; justify-content:space-between; align-items:center;">
+                <div>
+                    <b>{{ opp.user.nickname if opp.user else '未知玩家' }}</b>
+                    <span style="font-size:12px; color:#999;">
+                        声望{{ opp.profile.prestige }}
+                        {% if opp.bdef %}
+                        · {{ opp.bdef.icon }}{{ opp.beast.nickname or opp.bdef.name }} Lv.{{ opp.beast.level }}
+                        {% endif %}
+                    </span>
+                </div>
+                <form method="post" action="/summon_king/arena/challenge/{{ opp.profile.user_id }}" style="display:inline;">
+                    <button type="submit" class="btn btn-small" style="border:none; cursor:pointer;"
+                        {% if profile.vitality < 5 %}disabled{% endif %}>
+                        挑战
+                    </button>
+                </form>
+            </div>
+            {% if opp.bdef and opp.stats %}
+            <div style="font-size:11px; color:#999; margin-top:2px;">
+                HP:{{ opp.stats.max_hp }} 攻:{{ opp.stats.patk }}/{{ opp.stats.matk }} 防:{{ opp.stats.pdef }}/{{ opp.stats.mdef }}
+            </div>
+            {% endif %}
+        </div>
+        {% endfor %}
+        {% else %}
+        <p class="text-gray text-center">请先设置出战幻兽</p>
+        {% endif %}
+    </div>
+</div>
+
+<a id="ranking"></a>
+<div class="section">
+    <div class="section-title">🏆 声望排行榜</div>
+    <div class="section-body">
+        {% for row in top_rankings %}
+        <div class="info-row">
+            <span class="info-label">
+                {% if row.rnk == 1 %}🥇{% elif row.rnk == 2 %}🥈{% elif row.rnk == 3 %}🥉{% else %}#{{ row.rnk }}{% endif %}
+                {{ row.nickname }}
+            </span>
+            <span class="info-value text-blue">{{ row.prestige }}声望</span>
+        </div>
+        {% endfor %}
+    </div>
+</div>
+
+<a id="records"></a>
+<div class="section">
+    <div class="section-title">📜 最近战报</div>
+    <div class="section-body">
+        {% if recent_matches %}
+        {% for match in recent_matches %}
+        <div style="padding:6px 0; border-bottom:1px dotted #f0f0f0;">
+            {% if match.attacker_id == user.id %}
+            <span>你 VS {{ match.defender_nickname }}</span>
+            {% if match.result == 'win' %}
+            <span class="text-green">胜利</span> <span class="text-blue">声望{{ match.prestige_change:+d }}</span>
+            {% else %}
+            <span class="text-red">失败</span> <span class="text-red">声望{{ match.prestige_change:+d }}</span>
+            {% endif %}
+            {% else %}
+            <span>{{ match.attacker_nickname }} VS 你</span>
+            {% if match.result == 'win' %}
+            <span class="text-red">防守失败</span>
+            {% else %}
+            <span class="text-green">防守成功</span>
+            {% endif %}
+            {% endif %}
+            <a href="/summon_king/arena/match/{{ match.id }}" style="font-size:12px;">详情</a>
+            <div style="font-size:11px; color:#999;">{{ match.created_at.strftime('%m-%d %H:%M') }}</div>
+        </div>
+        {% endfor %}
+        {% else %}
+        <p class="text-gray text-center">暂无战报</p>
+        {% endif %}
+    </div>
+</div>
+
+<div class="text-center mt-10">
+    <a href="/summon_king" class="btn btn-small">← 返回首页</a>
+</div>
+{% endblock %}

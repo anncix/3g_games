@@ -1,0 +1,45 @@
+{% extends "base.html" %}
+
+{% block title %}{{ t('magic_garden') }}{% endblock %}
+{% block page_title %}🌸 {{ t('magic_garden') }}{% endblock %}
+
+{% block nav %}
+<div class="nav-bar">
+    <a href="/">{{ t('home') }}</a>|
+    <a href="/magic-garden" class="active">{{ t('magic_garden') }}</a>
+</div>
+{% endblock %}
+
+{% block content %}
+<div class="section">
+    <div style="text-align: center; margin-bottom: 15px;">
+        <div style="font-size: 20px; font-weight: bold;">{{ t('garden_level') }}:{{ garden.garden_level }}</div>
+        <div style="color: var(--silver-color);">🪙 {{ garden.gold }} | 🌸 声望:{{ garden.reputation }}</div>
+    </div>
+</div>
+
+<div class="section">
+    <div class="section-title">🌱 我的花园</div>
+    <div class="garden-grid">
+        {% for i in plots %}
+        <div class="garden-plot plot-empty">
+            <a href="#" style="text-decoration: none; color: inherit; width: 100%; height: 100%; display: flex; align-items: center; justify-content: center;">
+                🌱
+            </a>
+        </div>
+        {% endfor %}
+    </div>
+</div>
+
+<div class="section">
+    <div class="section-title">🏪 {{ t('flower_shop') }}</div>
+    <div style="line-height: 2;">
+        <a href="#">购买花种</a> | <a href="#">{{ t('harvest') }}花朵</a><br>
+        <a href="#">合成花卉</a> | <a href="#">{{ t('task') }}</a>
+    </div>
+</div>
+
+<div style="margin-top: 20px;">
+    <a href="/">{{ t('back') }}</a>
+</div>
+{% endblock %}

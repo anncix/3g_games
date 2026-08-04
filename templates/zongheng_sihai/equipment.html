@@ -1,0 +1,161 @@
+{% extends "base_wap.html" %}
+
+{% block title %}装备 - 纵横四海{% endblock %}
+
+{% block extra_css %}
+<style>
+    .equip-grid {
+        display: grid;
+        grid-template-columns: repeat(3, 1fr);
+        gap: 8px;
+        margin-bottom: 10px;
+    }
+    .equip-slot-box {
+        border: 2px solid #b8ccea;
+        border-radius: 5px;
+        padding: 10px 5px;
+        text-align: center;
+        background: linear-gradient(180deg, #f8faff 0%, #eef3fa 100%);
+        min-height: 80px;
+    }
+    .equip-slot-box.has-item { border-color: #4a86e8; background: linear-gradient(180deg, #e8f0ff 0%, #d8e8ff 100%); }
+    .equip-slot-box .slot-label { font-size: 10px; color: #999; margin-top: 2px; }
+    .equip-slot-box .item-icon { font-size: 28px; }
+    .equip-slot-box .item-name { font-size: 11px; font-weight: bold; color: #1a5dc7; margin-top: 2px; }
+    .equip-item {
+        border: 1px solid #e0e0e0;
+        border-radius: 4px;
+        padding: 8px;
+        margin-bottom: 6px;
+        background: white;
+    }
+    .equip-item:hover { border-color: #4a86e8; }
+    .rarity-common { color: #666; }
+    .rarity-uncommon { color: #3ac840; }
+    .rarity-rare { color: #4a86e8; }
+    .rarity-epic { color: #a855f7; }
+    .rarity-legendary { color: #f59e0b; }
+    .attr-tag {
+        display: inline-block;
+        background: #f0f4fa;
+        padding: 1px 5px;
+        border-radius: 3px;
+        font-size: 11px;
+        margin-right: 4px;
+        color: #1a5dc7;
+    }
+</style>
+{% endblock %}
+
+{% block breadcrumb %}
+<div class="nav-bar">
+    <a href="/home/">首页</a>
+    <span class="sep">›</span>
+    <a href="/home/gamelobby">游戏大厅</a>
+    <span class="sep">›</span>
+    <a href="/zongheng_sihai">纵横四海</a>
+    <span class="sep">›</span>
+    <span>装备</span>
+</div>
+{% endblock %}
+
+{% block content %}
+
+{% if message %}
+<div class="notice">{{ message }}</div>
+{% endif %}
+
+{# 属性总览 #}
+<div class="section">
+    <div class="section-title">📊 角色属性</div>
+    <div class="section-body">
+        <div style="display:grid; grid-template-columns:1fr 1fr 1fr 1fr; gap:6px; text-align:center; font-size:12px;">
+            <div style="background:#f0f4fa; padding:6px; border-radius:3px;">⚔️ 攻击<br><b class="text-red">{{ stats.atk }}</b></div>
+            <div style="background:#f0f4fa; padding:6px; border-radius:3px;">🛡️ 防御<br><b class="text-blue">{{ stats.def }}</b></div>
+            <div style="background:#f0f4fa; padding:6px; border-radius:3px;">❤️ 生命<br><b>{{ stats.max_hp }}</b></div>
+            <div style="background:#f0f4fa; padding:6px; border-radius:3px;">💨 敏捷<br><b>{{ stats.agi }}</b></div>
+        </div>
+    </div>
+</div>
+
+{# 已装备 #}
+<div class="section">
+    <div class="section-title">⚔️ 当前装备</div>
+    <div class="section-body">
+        <div class="equip-grid">
+            {% for slot in ['weapon', 'helmet', 'armor', 'boots', 'necklace', 'ring'] %}
+            <div class="equip-slot-box {% if slot in equipped %}has-item{% endif %}">
+                {% if slot in equipped %}
+                <div class="item-icon">{{ equipped[slot].equip.icon }}</div>
+                <div class="item-name rarity-{{ equipped[slot].equip.rarity }}">{{ equipped[slot].equip.name }}</div>
+                {% if equipped[slot].ue.enhance_level > 0 %}
+                <div style="font-size:10px; color:#f59e0b;">+{{ equipped[slot].ue.enhance_level }}</div>
+                {% endif %}
+                {% else %}
+                <div class="item-icon" style="color:#ccc;">?</div>
+                {% endif %}
+                <div class="slot-label">{{ slot_names[slot] }}</div>
+                {% if slot in equipped %}
+                <div style="margin-top:3px;">
+                    <a href="/zongheng_sihai/equipment/unequip/{{ equipped[slot].ue.id }}" class="btn btn-small" style="font-size:10px; padding:2px 5px;">卸下</a>
+                </div>
+                {% endif %}
+            </div>
+            {% endfor %}
+        </div>
+    </div>
+</div>
+
+{# 背包中的装备 #}
+<div class="section">
+    <div class="section-title">🎒 背包装备（未装备）</div>
+    <div class="section-body">
+        {% if unequipped %}
+            {% for item in unequipped %}
+            <div class="equip-item">
+                <div style="display:flex; justify-content:space-between; align-items:center;">
+                    <div>
+                        <span style="font-size:20px; margin-right:5px;">{{ item.equip.icon }}</span>
+                        <b class="rarity-{{ item.equip.rarity }}">{{ item.equip.name }}</b>
+                        {% if item.ue.enhance_level > 0 %}
+                        <span style="color:#f59e0b; font-size:11px;">+{{ item.ue.enhance_level }}</span>
+                        {% endif %}
+                        <span style="font-size:11px; color:#999; margin-left:4px;">{{ slot_names.get(item.equip.slot_type, item.equip.slot_type) }}</span>
+                        <span style="font-size:11px; color:#999;">Lv.{{ item.equip.level_required }}</span>
+                    </div>
+                </div>
+                <div style="margin-top:4px;">
+                    {% for attr_name, attr_val in item.attrs.items() %}
+                    <span class="attr-tag">
+                        {% if attr_name == 'atk' %}⚔️+{{ attr_val }}
+                        {% elif attr_name == 'def' %}🛡️+{{ attr_val }}
+                        {% elif attr_name == 'hp' %}❤️+{{ attr_val }}
+                        {% elif attr_name == 'agi' %}💨+{{ attr_val }}
+                        {% else %}{{ attr_name }}+{{ attr_val }}{% endif %}
+                    </span>
+                    {% endfor %}
+                </div>
+                <div style="margin-top:6px;">
+                    <a href="/zongheng_sihai/equipment/equip/{{ item.ue.id }}" class="btn btn-small">装备</a>
+                    <a href="/zongheng_sihai/equipment/enhance/{{ item.ue.id }}" class="btn btn-small"
+                       onclick="return confirm('强化需要花费{{ (item.ue.enhance_level + 1) * 200 }}银两，确定吗？')">
+                        强化 ({{ (item.ue.enhance_level + 1) * 200 }}银)
+                    </a>
+                </div>
+            </div>
+            {% endfor %}
+        {% else %}
+        <div class="text-gray text-center" style="padding:15px;">背包中没有未装备的装备</div>
+        {% endif %}
+    </div>
+</div>
+
+<div class="notice">
+    💡 提示：装备可以提升攻防属性。强化装备可以增强属性，但有失败风险。
+</div>
+
+<div class="text-center mt-10">
+    <a href="/zongheng_sihai">« 返回首页</a> |
+    <a href="/zongheng_sihai/shop">去商店</a>
+</div>
+{% endblock %}

@@ -1,0 +1,47 @@
+{% extends "base_wap.html" %}
+{% block title %}副本战斗 - 精武堂{% endblock %}
+{% block breadcrumb %}
+<div class="nav-bar">
+    <a href="/home/">首页</a><span class="sep">›</span><a href="/home/gamelobby">游戏大厅</a>
+    <span class="sep">›</span><a href="/jingwutang/">精武堂</a><span class="sep">›</span>
+    <a href="/jingwutang/dungeon">副本</a><span class="sep">›</span><span>战斗</span>
+</div>
+{% endblock %}
+{% block content %}
+<div class="section">
+    <div class="section-body text-center" style="padding:20px;">
+        {% if result.winner == role %}
+        <div style="font-size:56px;">🏆</div>
+        <div class="text-green" style="font-size:22px; font-weight:bold;">通关成功！</div>
+        {% else %}
+        <div style="font-size:56px;">💔</div>
+        <div class="text-red" style="font-size:22px; font-weight:bold;">挑战失败</div>
+        {% endif %}
+        <div style="font-size:13px; color:#666;">{{ stage.name }} - {{ stage.boss }}</div>
+    </div>
+</div>
+{% if result.winner == role %}
+<div class="section">
+    <div class="section-title">🎁 战斗奖励</div>
+    <div class="section-body">
+        {% if result.reward_gcoin %}<div class="info-row"><span class="info-label">💰 G币</span><span class="info-value text-blue">+{{ result.reward_gcoin }}</span></div>{% endif %}
+        {% if result.reward_exp %}<div class="info-row"><span class="info-label">⭐ 经验</span><span class="info-value text-green">+{{ result.reward_exp }}</span></div>{% endif %}
+        {% if result.reward_items %}
+        <div class="info-row"><span class="info-label">📦 掉落</span><span class="info-value text-red">{{ result.reward_items|join('、') }}</span></div>
+        {% endif %}
+    </div>
+</div>
+{% endif %}
+<div class="section">
+    <div class="section-title">📜 战斗日志</div>
+    <div class="section-body" style="font-size:12px; line-height:1.9; max-height:400px; overflow-y:auto; background:#fafafa; padding:10px; border-radius:3px;">
+        {% for line in battle_log %}
+        <div style="padding:2px 0; border-bottom:1px dotted #eee;">{{ line }}</div>
+        {% endfor %}
+    </div>
+</div>
+<div class="text-center mt-10" style="display:flex; gap:10px; justify-content:center;">
+    <a href="/jingwutang/dungeon" class="btn">🏔️ 继续副本</a>
+    <a href="/jingwutang/" class="btn">🏠 返回首页</a>
+</div>
+{% endblock %}

@@ -1,0 +1,317 @@
+{% extends "base_wap.html" %}
+
+{% block title %}纵横四海 - 航海首页{% endblock %}
+
+{% block extra_css %}
+<style>
+    .sea-status {
+        background: linear-gradient(180deg, #e0f0ff 0%, #c8e0f8 100%);
+        border: 2px solid #4a86c8;
+        border-radius: 5px;
+        padding: 12px;
+        margin-bottom: 10px;
+    }
+    .port-card {
+        border: 1px solid #b8ccea;
+        border-radius: 4px;
+        padding: 10px;
+        text-align: center;
+        background: linear-gradient(180deg, #f8faff 0%, #eef3fa 100%);
+    }
+    .port-card .emoji { font-size: 28px; }
+    .port-card .name { font-weight: bold; color: #1a5dc7; margin-top: 4px; font-size:12px; }
+    .port-card .desc { font-size: 11px; color: #666; margin-top: 2px; }
+    .bar-label {
+        display: flex;
+        justify-content: space-between;
+        font-size: 12px;
+        margin-bottom: 2px;
+    }
+    .hp-bar {
+        height: 10px;
+        background: #e0e0e0;
+        border-radius: 5px;
+        overflow: hidden;
+        margin-bottom: 6px;
+    }
+    .hp-bar-fill {
+        height: 100%;
+        background: linear-gradient(90deg, #e8403a 0%, #f0605a 100%);
+        border-radius: 5px;
+    }
+    .supply-bar-fill {
+        height: 100%;
+        background: linear-gradient(90deg, #4a8a2a 0%, #6aaa4a 100%);
+        border-radius: 5px;
+    }
+    .power-bar-fill {
+        height: 100%;
+        background: linear-gradient(90deg, #d0a020 0%, #f0c040 100%);
+        border-radius: 5px;
+    }
+    .wave {
+        display: inline-block;
+        animation: wave 2s infinite;
+    }
+    @keyframes wave {
+        0%, 100% { transform: translateY(0); }
+        50% { transform: translateY(-3px); }
+    }
+    .equip-slot {
+        display: inline-block;
+        width: 40px;
+        height: 40px;
+        border: 1px solid #b8ccea;
+        border-radius: 4px;
+        text-align: center;
+        line-height: 40px;
+        font-size: 20px;
+        background: #f8faff;
+        margin: 2px;
+        position: relative;
+    }
+    .equip-slot.empty { color: #ccc; }
+    .equip-slot .slot-name {
+        position: absolute;
+        bottom: -14px;
+        left: 0;
+        right: 0;
+        font-size: 9px;
+        color: #999;
+        line-height: 1;
+    }
+</style>
+{% endblock %}
+
+{% block breadcrumb %}
+<div class="nav-bar">
+    <a href="/home/">首页</a>
+    <span class="sep">›</span>
+    <a href="/home/gamelobby">游戏大厅</a>
+    <span class="sep">›</span>
+    <span>纵横四海</span>
+</div>
+{% endblock %}
+
+{% block content %}
+
+{% if error %}
+<div class="notice" style="background:#fff0f0; border-color:#e8403a; color:#a8302a;">{{ error }}</div>
+{% endif %}
+{% if message %}
+<div class="notice">{{ message }}</div>
+{% endif %}
+
+{# 船只信息卡 #}
+<div class="sea-status">
+    <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:8px;">
+        <div style="font-weight:bold; font-size:16px;">⛵ {{ sea.ship_name }}</div>
+        <div style="background:#2a5caa; color:white; padding:2px 8px; border-radius:10px; font-size:12px;">
+            Lv.{{ sea.level }}
+        </div>
+    </div>
+    <div style="font-size:13px; margin-bottom:8px;">
+        ⚓ 当前港口: <b>{{ current_city.name if current_city else '泉州' }}</b>
+        &nbsp;|&nbsp;
+        🪙 银两: <b class="text-blue">{{ sea.silver_coin }}</b>
+    </div>
+
+    {# 船只耐久 #}
+    <div class="bar-label">
+        <span>🛡️ 船只耐久</span>
+        <span>{{ sea.ship_hp }}/{{ sea.ship_max_hp }}</span>
+    </div>
+    <div class="hp-bar">
+        <div class="hp-bar-fill" style="width: {{ (sea.ship_hp / sea.ship_max_hp * 100) if sea.ship_max_hp else 100 }}%;"></div>
+    </div>
+
+    {# 补给 #}
+    <div class="bar-label">
+        <span>🍞 补给</span>
+        <span>{{ sea.supplies }}/{{ sea.max_supplies }}</span>
+    </div>
+    <div class="hp-bar">
+        <div class="supply-bar-fill" style="width: {{ (sea.supplies / sea.max_supplies * 100) if sea.max_supplies else 100 }}%;"></div>
+    </div>
+
+    {# 体力 #}
+    <div class="bar-label">
+        <span>⚡ 体力</span>
+        <span>{{ sea.power }}/{{ sea.max_power }}</span>
+    </div>
+    <div class="hp-bar">
+        <div class="power-bar-fill" style="width: {{ (sea.power / sea.max_power * 100) if sea.max_power else 100 }}%;"></div>
+    </div>
+
+    <div style="display:grid; grid-template-columns:1fr 1fr 1fr 1fr; gap:5px; font-size:12px; margin-top:8px; text-align:center;">
+        <div style="background:rgba(255,255,255,0.6); padding:4px; border-radius:3px;">⚔️ 攻击<br><b>{{ stats.atk }}</b></div>
+        <div style="background:rgba(255,255,255,0.6); padding:4px; border-radius:3px;">🛡️ 防御<br><b>{{ stats.def }}</b></div>
+        <div style="background:rgba(255,255,255,0.6); padding:4px; border-radius:3px;">❤️ 生命<br><b>{{ stats.max_hp }}</b></div>
+        <div style="background:rgba(255,255,255,0.6); padding:4px; border-radius:3px;">💨 敏捷<br><b>{{ stats.agi }}</b></div>
+    </div>
+
+    <div style="margin-top:8px; font-size:12px;">
+        经验: {{ sea.exp }}/{{ sea.level * 200 }}
+        <div class="progress-bar mt-5">
+            <div class="progress-fill" style="width: {{ (sea.exp / (sea.level * 200) * 100) if sea.level else 0 }}%;"></div>
+        </div>
+    </div>
+</div>
+
+{# 快捷操作 #}
+<div class="section">
+    <div class="section-title">🎮 快捷操作</div>
+    <div class="section-body">
+        <div class="grid-3">
+            <a href="/zongheng_sihai/city" style="text-decoration:none; color:inherit;">
+                <div class="port-card">
+                    <div class="emoji">🏯</div>
+                    <div class="name">城市</div>
+                </div>
+            </a>
+            <a href="/zongheng_sihai/sail" style="text-decoration:none; color:inherit;">
+                <div class="port-card">
+                    <div class="emoji"><span class="wave">⛵</span></div>
+                    <div class="name">出海航行</div>
+                </div>
+            </a>
+            <a href="/zongheng_sihai/battle" style="text-decoration:none; color:inherit;">
+                <div class="port-card">
+                    <div class="emoji">⚔️</div>
+                    <div class="name">海战</div>
+                </div>
+            </a>
+        </div>
+        <div class="grid-3" style="margin-top:8px;">
+            <a href="/zongheng_sihai/tasks" style="text-decoration:none; color:inherit;">
+                <div class="port-card">
+                    <div class="emoji">📋</div>
+                    <div class="name">任务</div>
+                </div>
+            </a>
+            <a href="/zongheng_sihai/equipment" style="text-decoration:none; color:inherit;">
+                <div class="port-card">
+                    <div class="emoji">⚔️</div>
+                    <div class="name">装备</div>
+                </div>
+            </a>
+            <a href="/zongheng_sihai/inventory" style="text-decoration:none; color:inherit;">
+                <div class="port-card">
+                    <div class="emoji">🎒</div>
+                    <div class="name">背包</div>
+                </div>
+            </a>
+        </div>
+        <div class="grid-3" style="margin-top:8px;">
+            <a href="/zongheng_sihai/shop" style="text-decoration:none; color:inherit;">
+                <div class="port-card">
+                    <div class="emoji">🏪</div>
+                    <div class="name">商店</div>
+                </div>
+            </a>
+            <a href="/zongheng_sihai/hideout" style="text-decoration:none; color:inherit;">
+                <div class="port-card">
+                    <div class="emoji">🏡</div>
+                    <div class="name">山寨</div>
+                </div>
+            </a>
+            <a href="/zongheng_sihai/rest" style="text-decoration:none; color:inherit;" onclick="return confirm('确定要休息吗？将完全恢复体力和船只耐久。');">
+                <div class="port-card">
+                    <div class="emoji">💤</div>
+                    <div class="name">休息</div>
+                </div>
+            </a>
+        </div>
+    </div>
+</div>
+
+{# 当前装备 #}
+<div class="section">
+    <div class="section-title">⚔️ 当前装备</div>
+    <div class="section-body" style="text-align:center; padding:10px 5px;">
+        <div>
+            {% for slot in ['helmet', 'necklace', 'weapon', 'armor', 'ring', 'boots'] %}
+            <div class="equip-slot {% if slot not in equipped %}empty{% endif %}">
+                {% if slot in equipped %}
+                    {{ equipped[slot].equip.icon }}
+                {% else %}
+                    ?
+                {% endif %}
+                <span class="slot-name">{{ slot_names[slot] }}</span>
+            </div>
+            {% endfor %}
+        </div>
+        <div style="clear:both; height:20px;"></div>
+        <div class="mt-10">
+            <a href="/zongheng_sihai/equipment" class="btn btn-small">管理装备</a>
+        </div>
+    </div>
+</div>
+
+{# 当前任务 #}
+{% if task_details %}
+<div class="section">
+    <div class="section-title">📋 进行中任务</div>
+    <div class="section-body">
+        <ul class="link-list">
+            {% for td in task_details %}
+            {% if td.user_task.status == 'accepted' %}
+            <li>
+                <b>{{ td.task.title }}</b>
+                <span style="color:{% if td.task.task_type == 'main' %}#e8403a{% else %}#1a5dc7{% endif %}; font-size:11px;">
+                    [{{ '主线' if td.task.task_type == 'main' else '支线' }}]
+                </span>
+                <br><span style="color:#666; font-size:12px;">{{ td.task.description[:40] }}{% if td.task.description|length > 40 %}...{% endif %}</span>
+            </li>
+            {% elif td.user_task.status == 'completed' %}
+            <li>
+                <b style="color:#3ac840;">{{ td.task.title }}</b>
+                <span style="font-size:11px; color:#3ac840;">[可领取奖励]</span>
+                <br><a href="/zongheng_sihai/tasks/claim/{{ td.task.id }}" class="btn btn-small btn-success">领取奖励</a>
+            </li>
+            {% endif %}
+            {% endfor %}
+        </ul>
+    </div>
+</div>
+{% endif %}
+
+{# 最近战斗记录 #}
+{% if recent_battles %}
+<div class="section">
+    <div class="section-title">⚔️ 最近战斗</div>
+    <div class="section-body">
+        <ul class="link-list">
+            {% for b in recent_battles %}
+            <li>
+                vs {{ b.enemy_name }} - 
+                <span class="{% if b.battle_result == 'win' %}text-green{% else %}text-red{% endif %}">
+                    {{ '胜利' if b.battle_result == 'win' else '失败' }}
+                </span>
+                <span style="color:#999; font-size:11px;">{{ b.created_at.strftime('%m-%d %H:%M') }}</span>
+            </li>
+            {% endfor %}
+        </ul>
+    </div>
+</div>
+{% endif %}
+
+{# 状态提示 #}
+{% if sea.supplies < 20 %}
+<div class="notice" style="background:#fff0f0; border-color:#e8403a; color:#a8302a;">
+    ⚠️ 补给不足！请尽快补给，否则无法远航！
+</div>
+{% elif sea.ship_hp < sea.ship_max_hp * 0.3 %}
+<div class="notice" style="background:#fff0f0; border-color:#e8403a; color:#a8302a;">
+    ⚠️ 船只受损严重！请修理或休息！
+</div>
+{% else %}
+<div class="notice">
+    💡 提示：完成任务可获得丰厚奖励，航行中注意补给和耐久！
+</div>
+{% endif %}
+
+<div class="text-center mt-10">
+    <a href="/home/gamelobby">« 返回游戏大厅</a>
+</div>
+{% endblock %}

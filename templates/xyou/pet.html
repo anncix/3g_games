@@ -1,0 +1,69 @@
+{% extends "base_wap.html" %}
+
+{% block title %}宠物 · 幻想西游{% endblock %}
+
+{% block breadcrumb %}
+<div class="nav-bar">
+    <a href="/home/">首页</a>
+    <span class="sep">›</span>
+    <a href="/games/xyou">幻想西游</a>
+    <span class="sep">›</span>
+    <span>宠物</span>
+</div>
+{% endblock %}
+
+{% block content %}
+<div class="section">
+    <div class="section-title">🐾 我的宠物 ({{ my_pets|length }}/{{ max_pets }})</div>
+    <div class="section-body">
+        {% if my_pets %}
+        {% for x in my_pets %}
+        {% set up = x.user_pet %}
+        {% set pd = x.pet_def %}
+        <div style="border:1px solid #e0e8f4;border-radius:3px;padding:8px;margin-bottom:8px;">
+            <div style="font-weight:bold;color:#1a5dc7;">
+                {{ up.nickname or (pd.name if pd else up.pet_key) }}
+                {% if up.in_battle %}<span class="badge">出战</span>{% endif %}
+            </div>
+            <div style="font-size:12px;color:#666;margin-top:2px;">
+                Lv.{{ up.level }} 
+                {% if pd %} · 血{{ pd.base_hp }} 攻{{ pd.base_atk }} 防{{ pd.base_def }}{% endif %}
+                {% if pd and pd.skill %} · 天赋:{{ pd.skill }}{% endif %}
+            </div>
+            {% if not up.in_battle %}
+            <form method="post" action="/games/xyou/pet/set_battle/{{ up.id }}" style="margin-top:4px;">
+                <button type="submit" class="btn btn-small">设为出战</button>
+            </form>
+            {% endif %}
+        </div>
+        {% endfor %}
+        {% else %}
+        <div style="font-size:12px;color:#999;">暂无宠物，去图鉴捕捉吧</div>
+        {% endif %}
+    </div>
+</div>
+
+<div class="section">
+    <div class="section-title">📖 宠物图鉴</div>
+    <div class="section-body">
+        {% for p in catalog %}
+        <div style="border:1px solid #e0e8f4;border-radius:3px;padding:8px;margin-bottom:8px;">
+            <div style="font-weight:bold;color:#1a5dc7;">{{ p.name }}</div>
+            <div style="font-size:12px;color:#666;margin-top:2px;">
+                需{{ p.level_req }}级 · 血{{ p.base_hp }} 攻{{ p.base_atk }} 防{{ p.base_def }} · 捕捉率{{ (p.capture_rate * 100)|int }}%
+                {% if p.skill %} · 天赋:{{ p.skill }}{% endif %}
+            </div>
+            {% if st.level >= p.level_req %}
+            <form method="post" action="/games/xyou/pet/capture/{{ p.key }}" style="margin-top:4px;">
+                <button type="submit" class="btn btn-small">捕捉</button>
+            </form>
+            {% else %}
+            <div style="font-size:12px;color:#999;margin-top:4px;">等级不足 (需 {{ p.level_req }} 级)</div>
+            {% endif %}
+        </div>
+        {% else %}
+        <div style="font-size:12px;color:#999;">图鉴已集齐或暂无宠物</div>
+        {% endfor %}
+    </div>
+</div>
+{% endblock %}

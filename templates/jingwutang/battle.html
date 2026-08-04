@@ -1,0 +1,122 @@
+{% extends "base_wap.html" %}
+
+{% block title %}战斗结果 - 精武堂{% endblock %}
+
+{% block breadcrumb %}
+<div class="nav-bar">
+    <a href="/home/">首页</a>
+    <span class="sep">›</span>
+    <a href="/home/gamelobby">游戏大厅</a>
+    <span class="sep">›</span>
+    <a href="/jingwutang/">精武堂</a>
+    <span class="sep">›</span>
+    <a href="/jingwutang/arena">比武</a>
+    <span class="sep">›</span>
+    <span>战斗</span>
+</div>
+{% endblock %}
+
+{% block content %}
+
+{# 战斗结果 #}
+<div class="section">
+    <div class="section-body text-center" style="padding:20px;">
+        {% if is_win %}
+        <div style="font-size:56px;">🏆</div>
+        <div class="text-green" style="font-size:22px; font-weight:bold; margin:10px 0;">胜利！</div>
+        {% else %}
+        <div style="font-size:56px;">💔</div>
+        <div class="text-red" style="font-size:22px; font-weight:bold; margin:10px 0;">战败</div>
+        {% endif %}
+        <div style="font-size:12px; color:#666;">{{ result.rounds }}回合结束</div>
+    </div>
+</div>
+
+{# 双方状态 #}
+<div class="section">
+    <div class="section-title">⚔️ 双方状态</div>
+    <div class="section-body">
+        <div style="display:flex; justify-content:space-between;">
+            <div style="text-align:center; flex:1;">
+                <div class="avatar" style="margin:0 auto 5px;">⚔️</div>
+                <div style="font-weight:bold;">{{ role.name }}</div>
+                <div style="font-size:11px; color:#666;">Lv.{{ role.level }}</div>
+                <div class="progress-bar mt-5" style="height:8px;">
+                    <div class="progress-fill" style="width:{{ (result.attacker_hp_remaining / stats.max_hp * 100)|round|int }}%; background:linear-gradient(90deg,#e8403a,#ff6060);"></div>
+                </div>
+                <div style="font-size:11px;">剩余: {{ result.attacker_hp_remaining }}</div>
+            </div>
+            <div style="display:flex; align-items:center; font-size:24px; color:#999; padding:0 10px;">VS</div>
+            <div style="text-align:center; flex:1;">
+                <div class="avatar" style="margin:0 auto 5px; background:#fff0f0;">🗡️</div>
+                <div style="font-weight:bold;">{{ opponent.name }}</div>
+                <div style="font-size:11px; color:#666;">Lv.{{ opponent.level }}</div>
+                <div class="progress-bar mt-5" style="height:8px;">
+                    <div class="progress-fill" style="width:{{ (result.defender_hp_remaining / opp_stats.max_hp * 100)|round|int }}%; background:linear-gradient(90deg,#e8403a,#ff6060);"></div>
+                </div>
+                <div style="font-size:11px;">剩余: {{ result.defender_hp_remaining }}</div>
+            </div>
+        </div>
+    </div>
+</div>
+
+{# 战斗奖励 #}
+{% if is_win %}
+<div class="section">
+    <div class="section-title">🎁 战斗奖励</div>
+    <div class="section-body">
+        {% if result.reward_gcoin %}
+        <div class="info-row"><span class="info-label">💰 G币</span><span class="info-value text-blue">+{{ result.reward_gcoin }}</span></div>
+        {% endif %}
+        {% if result.reward_exp %}
+        <div class="info-row"><span class="info-label">⭐ 经验</span><span class="info-value text-green">+{{ result.reward_exp }}</span></div>
+        {% endif %}
+        {% if result.reward_items %}
+        <div class="info-row">
+            <span class="info-label">📦 掉落</span>
+            <span class="info-value text-red">{{ result.reward_items|join('、') }}</span>
+        </div>
+        {% endif %}
+    </div>
+</div>
+{% endif %}
+
+{# 战斗日志 #}
+<div class="section">
+    <div class="section-title">📜 战斗日志</div>
+    <div class="section-body" style="font-size:12px; line-height:1.9; max-height:400px; overflow-y:auto; background:#fafafa; padding:10px; border-radius:3px;">
+        {% for line in battle_log %}
+        <div style="padding:2px 0; border-bottom:1px dotted #eee;">
+            {% if '获胜' in line or '胜利' in line or '结束' in line or '平局' in line %}
+                <b class="text-center block" style="display:block; text-align:center; color:#e8403a; padding:4px 0;">{{ line }}</b>
+            {% elif '暴击' in line or '💥' in line %}
+                <span class="text-red">{{ line }}</span>
+            {% elif '闪避' in line or '💨' in line %}
+                <span class="text-green">{{ line }}</span>
+            {% elif '恢复' in line or '回' in line or '💚' in line %}
+                <span class="text-green">{{ line }}</span>
+            {% elif '封印' in line or '🔒' in line %}
+                <span style="color:#9b59b6;">{{ line }}</span>
+            {% elif '反弹' in line or '🔔' in line %}
+                <span style="color:#f39c12;">{{ line }}</span>
+            {% elif '吸取' in line or '🌀' in line %}
+                <span style="color:#9b59b6;">{{ line }}</span>
+            {% elif '宠物' in line or '🐾' in line %}
+                <span class="text-blue">{{ line }}</span>
+            {% elif 'VS' in line or '比武开始' in line or '副本战斗' in line %}
+                <b style="color:#1a5dc7;">{{ line }}</b>
+            {% elif '回合' in line and '———' in line %}
+                <div style="text-align:center; color:#666; font-weight:bold; padding:4px 0; border-top:1px dashed #ddd; margin-top:4px;">{{ line }}</div>
+            {% else %}
+                {{ line }}
+            {% endif %}
+        </div>
+        {% endfor %}
+    </div>
+</div>
+
+<div class="text-center mt-10" style="display:flex; gap:10px; justify-content:center;">
+    <a href="/jingwutang/arena" class="btn">⚔️ 继续比武</a>
+    <a href="/jingwutang/" class="btn">🏠 返回首页</a>
+</div>
+{% endblock %}

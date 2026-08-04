@@ -1,0 +1,40 @@
+{% extends "base_wap.html" %}
+{% block title %}消息中心{% endblock %}
+
+{% block breadcrumb %}
+<div class="nav-bar">
+    <a href="/home/">首页</a>
+    <span class="sep">›</span>
+    <span>消息中心</span>
+</div>
+{% endblock %}
+
+{% block content %}
+<div class="section">
+    <div class="section-title">💬 我的消息 ({{ messages|length }})</div>
+    <div class="section-body">
+        {% if messages %}
+            {% for msg in messages %}
+            <div class="msg-item {% if not msg.is_read %}unread{% endif %}">
+                <div class="msg-title">
+                    {% if msg.msg_type == 'system' %}📢
+                    {% elif msg.msg_type == 'guestbook' %}📝
+                    {% elif msg.msg_type == 'friend' %}👥
+                    {% elif msg.msg_type == 'forum' %}📋
+                    {% else %}💬{% endif %}
+                    {{ msg.title or '消息通知' }}
+                    {% if not msg.is_read %}<span class="text-red" style="font-size:12px;">[新]</span>{% endif %}
+                </div>
+                {% if msg.sender_nickname %}
+                <div style="font-size:12px; color:#666;">来自: {{ msg.sender_nickname }}</div>
+                {% endif %}
+                <div class="msg-content">{{ msg.content }}</div>
+                <div class="msg-time">{{ msg.created_at.strftime('%Y-%m-%d %H:%M') }}</div>
+            </div>
+            {% endfor %}
+        {% else %}
+            <div class="text-gray text-center" style="padding: 20px;">暂无消息~</div>
+        {% endif %}
+    </div>
+</div>
+{% endblock %}

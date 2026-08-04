@@ -1,0 +1,109 @@
+{% extends "base_wap.html" %}
+
+{% block title %}加点 - 精武堂{% endblock %}
+
+{% block breadcrumb %}
+<div class="nav-bar">
+    <a href="/home/">首页</a>
+    <span class="sep">›</span>
+    <a href="/home/gamelobby">游戏大厅</a>
+    <span class="sep">›</span>
+    <a href="/jingwutang/">精武堂</a>
+    <span class="sep">›</span>
+    <span>加点</span>
+</div>
+{% endblock %}
+
+{% block content %}
+
+{% if status_msg %}<div class="notice">{{ status_msg }}</div>{% endif %}
+
+{# 角色状态 #}
+<div class="section">
+    <div class="section-title">📋 {{ role.name }} - Lv.{{ role.level }}</div>
+    <div class="section-body">
+        <div class="info-row"><span class="info-label">⚔️ 战斗力</span><span class="info-value text-red" style="font-size:16px;">{{ role.combat_power }}</span></div>
+        <div class="info-row"><span class="info-label">⭐ 剩余潜能点</span><span class="info-value text-red bold" style="font-size:18px;">{{ role.potential or 0 }}</span></div>
+        <div class="info-row"><span class="info-label">❤️ 气血</span><span class="info-value">{{ role.hp }}/{{ stats.max_hp }}</span></div>
+        <div class="info-row"><span class="info-label">💧 精气</span><span class="info-value">{{ role.mp }}/{{ stats.max_mp }}</span></div>
+        <div class="info-row"><span class="info-label">⚡ 体力</span><span class="info-value">{{ role.sp }}/{{ role.max_sp }}</span></div>
+    </div>
+</div>
+
+{# 五行加点 #}
+<div class="section">
+    <div class="section-title">📊 属性加点（每级获得3点潜能）</div>
+    <div class="section-body">
+        <form method="post" action="/jingwutang/add_point">
+        {% for key, info in stat_detail.items() %}
+        <div style="display:flex; align-items:center; padding:10px 0; border-bottom:1px dotted #eee;">
+            <div style="width:50px; font-size:28px; text-align:center;">{{ info.icon }}</div>
+            <div style="flex:1; padding:0 10px;">
+                <div style="font-weight:bold; font-size:15px;">
+                    {{ info.name }}
+                    <span class="text-blue" style="margin-left:8px;">已加: {{ info.current }}点</span>
+                </div>
+                <div style="font-size:12px; color:#666; margin-top:2px;">{{ info.effect }}</div>
+            </div>
+            <div>
+                <button type="submit" name="stat" value="{{ key }}" class="btn btn-success btn-small"
+                    {% if (role.potential or 0) <= 0 %}disabled style="opacity:0.5;cursor:not-allowed;"{% endif %}>
+                    ➕ 加1点
+                </button>
+            </div>
+        </div>
+        {% endfor %}
+        </form>
+    </div>
+</div>
+
+{# 属性转化公式 #}
+<div class="section">
+    <div class="section-title">📖 属性公式</div>
+    <div class="section-body" style="font-size:12px; line-height:1.8; color:#555;">
+        <p>• <b>最大气血</b> = 100 + 等级×20 + 体质×20 + 装备加成</p>
+        <p>• <b>最大精气</b> = 50 + 等级×5 + 智力×15 + 装备加成</p>
+        <p>• <b>伤害</b> = 10 + 等级×3 + 力量×3 + 装备加成</p>
+        <p>• <b>防御</b> = 5 + 等级×2 + 耐力×2 + 装备加成</p>
+        <p>• <b>速度</b> = 10 + 等级×1 + 敏捷×2 + 装备加成</p>
+        <p class="tip mt-5">💡 速度决定战斗先手权，暴击和闪避也与敏捷相关</p>
+    </div>
+</div>
+
+{# 当前战斗属性 #}
+<div class="section">
+    <div class="section-title">⚔️ 当前战斗属性</div>
+    <div class="section-body">
+        <div class="grid-3" style="gap:6px; text-align:center; font-size:12px;">
+            <div style="padding:6px; background:#fff0f0; border-radius:3px;">
+                <div style="color:#e8403a; font-weight:bold; font-size:16px;">{{ stats.damage }}</div>
+                <div style="color:#666;">伤害</div>
+            </div>
+            <div style="padding:6px; background:#f0f0ff; border-radius:3px;">
+                <div style="color:#3a76c8; font-weight:bold; font-size:16px;">{{ stats.defense }}</div>
+                <div style="color:#666;">防御</div>
+            </div>
+            <div style="padding:6px; background:#f0fff0; border-radius:3px;">
+                <div style="color:#3ac840; font-weight:bold; font-size:16px;">{{ stats.speed }}</div>
+                <div style="color:#666;">速度</div>
+            </div>
+            <div style="padding:6px; background:#fff8f0; border-radius:3px;">
+                <div style="color:#f39c12; font-weight:bold; font-size:16px;">{{ stats.crit }}%</div>
+                <div style="color:#666;">暴击</div>
+            </div>
+            <div style="padding:6px; background:#f8f0ff; border-radius:3px;">
+                <div style="color:#9b59b6; font-weight:bold; font-size:16px;">{{ stats.dodge }}%</div>
+                <div style="color:#666;">闪避</div>
+            </div>
+            <div style="padding:6px; background:#f0faf8; border-radius:3px;">
+                <div style="color:#1abc9c; font-weight:bold; font-size:16px;">{{ stats.crit_damage }}%</div>
+                <div style="color:#666;">暴伤</div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<div class="text-center mt-10">
+    <a href="/jingwutang/">« 返回精武堂</a>
+</div>
+{% endblock %}

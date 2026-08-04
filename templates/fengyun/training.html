@@ -1,0 +1,38 @@
+{% extends "base_wap.html" %}
+
+{% block title %}演武 · 风云三国{% endblock %}
+
+{% block breadcrumb %}
+<div class="nav-bar">
+    <a href="/home/">首页</a>
+    <span class="sep">›</span>
+    <a href="/games/fengyun">风云三国</a>
+    <span class="sep">›</span>
+    <span>演武</span>
+</div>
+{% endblock %}
+
+{% block content %}
+<div class="section">
+    <div class="section-title">🧘 演武挂机</div>
+    <div class="section-body">
+        <div style="font-size:12px;color:#666;">挂机演武 {{ max_hours }} 小时，可领取经验与银两收益</div>
+        <div style="font-size:12px;color:#666;margin-top:4px;">
+            收益: 经验+{{ exp_yield }} · 银两+{{ silver_yield }}
+            {% if is_monday %}<span class="text-red">（周一 10 倍经验加成！）</span>{% endif %}
+        </div>
+        {% if ready %}
+        <div class="text-green" style="margin:10px 0;">✅ 演武完成，可领取收益！</div>
+        <form method="post" action="/games/fengyun/training/claim">
+            <button type="submit" class="btn">领取收益</button>
+        </form>
+        {% elif seconds_left %}
+        <div style="font-size:12px;color:#999;margin-top:8px;">演武进行中，剩余 {{ seconds_left|int // 3600 }} 小时 {{ (seconds_left|int % 3600) // 60 }} 分钟</div>
+        {% else %}
+        <form method="post" action="/games/fengyun/training/start" style="margin-top:8px;">
+            <button type="submit" class="btn">开始演武</button>
+        </form>
+        {% endif %}
+    </div>
+</div>
+{% endblock %}

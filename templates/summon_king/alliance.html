@@ -1,0 +1,191 @@
+{% extends "base_wap.html" %}
+{% block title %}联盟系统 - 召唤之王{% endblock %}
+{% block breadcrumb %}
+<div class="nav-bar">
+    <a href="/home/gamelobby">游戏大厅</a>
+    <span class="sep">›</span>
+    <a href="/summon_king">召唤之王</a>
+    <span class="sep">›</span> 联盟系统
+</div>
+{% endblock %}
+{% block content %}
+{% if my_alliance %}
+<div class="section">
+    <div class="section-title">🏛️ {{ my_alliance.name }} <span style="font-size:12px;">(Lv.{{ my_alliance.level }})</span></div>
+    <div class="section-body">
+        <div class="info-row">
+            <span class="info-label">盟主</span>
+            <span class="info-value">{{ my_alliance.leader_nickname }}</span>
+        </div>
+        <div class="info-row">
+            <span class="info-label">成员</span>
+            <span class="info-value">{{ my_alliance.member_count }}/{{ my_alliance.member_limit }}</span>
+        </div>
+        <div class="info-row">
+            <span class="info-label">联盟资金</span>
+            <span class="info-value" style="color:#daa520;">🪙 {{ my_alliance.funds }}</span>
+        </div>
+        <div class="info-row">
+            <span class="info-label">总贡献</span>
+            <span class="info-value text-blue">{{ my_alliance.contribution_total }}</span>
+        </div>
+        {% if my_membership %}
+        <div class="info-row">
+            <span class="info-label">我的职位</span>
+            <span class="info-value">
+                {% if my_membership.role == 'leader' %}👑 盟主
+                {% elif my_membership.role == 'elder' %}⭐ 长老
+                {% else %}👤 成员{% endif %}
+            </span>
+        </div>
+        <div class="info-row">
+            <span class="info-label">我的贡献</span>
+            <span class="info-value text-green">{{ my_membership.contribution }}</span>
+        </div>
+        {% endif %}
+        <div class="info-row">
+            <span class="info-label">公告</span>
+            <span class="info-value" style="font-size:12px;">{{ my_alliance.notice }}</span>
+        </div>
+    </div>
+</div>
+
+<div class="section">
+    <div class="section-title">💰 联盟捐献</div>
+    <div class="section-body">
+        <p class="tip">捐献铜币或元宝可增加联盟资金和个人贡献值（100铜币=1贡献，1元宝=10贡献）。</p>
+        <hr>
+        <form method="post" action="/summon_king/alliance/donate">
+            <input type="hidden" name="donate_type" value="copper">
+            <div class="form-group">
+                <label>捐献铜币数量</label>
+                <select name="amount">
+                    <option value="1000">1000铜币（+10贡献）</option>
+                    <option value="5000">5000铜币（+50贡献）</option>
+                    <option value="10000">10000铜币（+100贡献）</option>
+                    <option value="50000">50000铜币（+500贡献）</option>
+                </select>
+            </div>
+            <div class="text-center">
+                <button type="submit" class="btn" style="border:none; cursor:pointer;">🪙 捐献铜币</button>
+            </div>
+        </form>
+        <hr>
+        <form method="post" action="/summon_king/alliance/donate">
+            <input type="hidden" name="donate_type" value="yuanbao">
+            <div class="form-group">
+                <label>捐献元宝数量</label>
+                <select name="amount">
+                    <option value="10">10元宝（+100贡献）</option>
+                    <option value="50">50元宝（+500贡献）</option>
+                    <option value="100">100元宝（+1000贡献）</option>
+                </select>
+            </div>
+            <div class="text-center">
+                <button type="submit" class="btn btn-success" style="border:none; cursor:pointer;">💰 捐献元宝</button>
+            </div>
+        </form>
+        <p class="text-center mt-5" style="font-size:12px; color:#999;">当前铜币：{{ profile.copper_coin }}，元宝：{{ profile.yuanbao }}</p>
+    </div>
+</div>
+
+<div class="section">
+    <div class="section-title">👥 联盟成员（{{ members|length }}人）</div>
+    <div class="section-body">
+        {% for m in members %}
+        <div class="info-row">
+            <span class="info-label">
+                {% if m.role == 'leader' %}👑{% elif m.role == 'elder' %}⭐{% else %}👤{% endif %}
+                {{ m.user_nickname }}
+            </span>
+            <span class="info-value" style="font-size:12px;">
+                贡献:{{ m.contribution }}
+            </span>
+        </div>
+        {% endfor %}
+    </div>
+</div>
+
+{% if donation_logs %}
+<div class="section">
+    <div class="section-title">📜 捐献记录</div>
+    <div class="section-body">
+        {% for log in donation_logs[:10] %}
+        <div class="info-row" style="font-size:12px;">
+            <span class="info-label">{{ log.user_nickname }}</span>
+            <span class="info-value">
+                捐献{{ log.amount }}{% if log.donation_type == 'copper' %}铜币{% else %}元宝{% endif %}
+                <span class="text-green">+{{ log.contribution_reward }}贡献</span>
+            </span>
+        </div>
+        {% endfor %}
+    </div>
+</div>
+{% endif %}
+
+{% if my_membership and my_membership.role != 'leader' %}
+<div class="section">
+    <div class="section-body text-center">
+        <form method="post" action="/summon_king/alliance/leave" onsubmit="return confirm('确定退出联盟吗？');">
+            <button type="submit" class="btn btn-danger" style="border:none; cursor:pointer;">🚪 退出联盟</button>
+        </form>
+    </div>
+</div>
+{% endif %}
+
+{% else %}
+<div class="section">
+    <div class="section-title">🏛️ 创建联盟</div>
+    <div class="section-body">
+        <p class="tip">创建联盟需要5000铜币，可以招募其他召唤师加入。</p>
+        <form method="post" action="/summon_king/alliance/create">
+            <div class="form-group">
+                <label>联盟名称</label>
+                <input type="text" name="name" maxlength="20" placeholder="输入联盟名称" required>
+            </div>
+            <div class="text-center">
+                <button type="submit" class="btn" style="border:none; cursor:pointer;"
+                    {% if profile.copper_coin < 5000 %}disabled{% endif %}>
+                    🏛️ 创建联盟（5000铜币）
+                </button>
+            </div>
+        </form>
+        <p class="text-center text-gray" style="font-size:12px; margin-top:4px;">当前铜币：{{ profile.copper_coin }}</p>
+    </div>
+</div>
+
+<div class="section">
+    <div class="section-title">🌐 联盟列表</div>
+    <div class="section-body">
+        {% if alliances %}
+        {% for a in alliances %}
+        <div style="padding:8px 0; border-bottom:1px dotted #e0e0e0;">
+            <div style="display:flex; justify-content:space-between; align-items:center;">
+                <div>
+                    <b>{{ a.name }}</b>
+                    <span style="font-size:12px; color:#999;">
+                        Lv.{{ a.level }} · {{ a.member_count }}/{{ a.member_limit }}人
+                    </span>
+                    <div style="font-size:12px; color:#666;">盟主：{{ a.leader_nickname }} · 资金：{{ a.funds }}</div>
+                </div>
+                {% if a.member_count < a.member_limit %}
+                <form method="post" action="/summon_king/alliance/join/{{ a.id }}" style="display:inline;">
+                    <button type="submit" class="btn btn-small" style="border:none; cursor:pointer;">加入</button>
+                </form>
+                {% else %}
+                <span class="text-gray" style="font-size:12px;">已满</span>
+                {% endif %}
+            </div>
+        </div>
+        {% endfor %}
+        {% else %}
+        <p class="text-gray text-center">暂无联盟，快来创建第一个联盟吧！</p>
+        {% endif %}
+    </div>
+</div>
+{% endif %}
+
+<div class="text-center mt-10">
+    <a href="/summon_king" class="btn btn-small">← 返回首页</a>
+</div>
+{% endblock %}

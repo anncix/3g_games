@@ -1,0 +1,192 @@
+{% extends "base_wap.html" %}
+{% block title %}家族 - QQ家园{% endblock %}
+
+{% block content %}
+{% if request.query_params.get('error') == '1' %}
+<div class="error-msg">G币不足，创建家族需要10000G币！</div>
+{% elif request.query_params.get('error') == '2' %}
+<div class="error-msg">该家族名已存在！</div>
+{% elif request.query_params.get('error') == '3' %}
+<div class="error-msg">该家族人数已满！</div>
+{% endif %}
+
+{% if my_gang %}
+{# 已加入家族 #}
+<div class="section">
+    <div class="section-title">🏛️ {{ my_gang.name }}</div>
+    <div class="section-body">
+        <div style="text-align: center; margin-bottom: 10px;">
+            {% if can_signin %}
+            <a href="/home/gang/signin" class="btn" style="background: #ff9800;">📅 每日签到</a>
+            {% else %}
+            <span class="btn" style="background: #4caf50;">✓ 今日已签到</span>
+            {% endif %}
+        </div>
+        
+        <div class="info-row">
+            <span class="info-label">家族口号</span>
+            <span>{{ my_gang.slogan or '暂无' }}</span>
+        </div>
+        <div class="info-row">
+            <span class="info-label">家族等级</span>
+            <span class="info-value">Lv.{{ my_gang.level }}</span>
+        </div>
+        <div class="info-row">
+            <span class="info-label">总贡献</span>
+            <span class="info-value">{{ my_gang.contribution_total }}</span>
+        </div>
+        <div class="info-row">
+            <span class="info-label">成员数量</span>
+            <span class="info-value">{{ my_gang.member_count }}/{{ my_gang.member_limit }}</span>
+        </div>
+        <div class="info-row">
+            <span class="info-label">我的职位</span>
+            <span class="info-value text-blue">
+                {% if user.family_role == 'leader' %}👑 族长
+                {% elif user.family_role == 'elder' %}⭐ 长老
+                {% else %}👤 族员{% endif %}
+            </span>
+        </div>
+        {% if my_gang.description %}
+        <hr>
+        <div style="font-size:12px; color:#666;">{{ my_gang.description }}</div>
+        {% endif %}
+    </div>
+</div>
+
+{# 家族聊天 #}
+<div class="section">
+    <div class="section-title">💬 家族聊天</div>
+    <div class="section-body">
+        <div class="chat-area">
+            <div class="chat-messages" style="height: 200px; overflow-y: auto; padding: 8px; background: #fafcff; border: 1px solid #e0e8f4; border-radius: 4px; margin-bottom: 8px;">
+                {% if messages %}
+                    {% for msg in messages %}
+                    <div style="font-size: 13px; margin-bottom: 6px;">
+                        <span style="color: #2a5caa; font-weight: bold;">{{ msg.user_nickname }}:</span>
+                        <span>{{ msg.content }}</span>
+                        <div style="font-size: 10px; color: #999;">{{ msg.created_at.strftime('%H:%M') }}</div>
+                    </div>
+                    {% endfor %}
+                {% else %}
+                    <div class="text-gray text-center" style="padding: 20px; font-size: 12px;">还没有聊天记录</div>
+                {% endif %}
+            </div>
+            <form method="post" action="/home/gang/chat" style="display: flex; gap: 5px;">
+                <input type="text" name="content" placeholder="说点什么..." style="flex:1; padding: 8px; border: 1px solid #ddd; border-radius: 3px; font-size: 13px;" required>
+                <button type="submit" class="btn btn-small">发送</button>
+            </form>
+        </div>
+    </div>
+</div>
+{% else %}
+{# 未加入家族 #}
+<div class="notice" style="background: #e3f2fd; padding: 10px; border-radius: 4px; text-align: center; margin-bottom: 10px; font-size: 13px;">
+    你还没有加入家族<br>
+    <span style="color: #666; font-size: 12px;">创建家族需要 <b style="color:#c00;">10000 G币</b></span>
+</div>
+
+<div class="section">
+    <div class="section-title">➕ 创建家族</div>
+    <div class="section-body">
+        <form method="post" action="/home/gang/create">
+            <div class="form-group">
+                <label>家族名称</label>
+                <input type="text" name="name" placeholder="输入家族名称" required maxlength="20">
+            </div>
+            <div class="form-group">
+                <label>家族口号</label>
+                <input type="text" name="slogan" placeholder="输入家族口号" maxlength="50">
+            </div>
+            <div class="form-group">
+                <label>家族简介</label>
+                <textarea name="description" rows="2" placeholder="简单介绍一下你的家族" maxlength="200"></textarea>
+            </div>
+            <div class="tip">当前G币: <b style="color:#c00;">{{ user.wallet.g_coin if user.wallet else 0 }}</b> | 创建费用: 10000 G币</div>
+            <div class="mt-10" style="text-align: center;">
+                <button type="submit" class="btn" {% if not user.wallet or user.wallet.g_coin < 10000 %}disabled{% endif %}>创建家族</button>
+            </div>
+        </form>
+    </div>
+</div>
+{% endif %}
+
+{# 家族列表 #}
+<div class="section">
+    <div class="section-title">🏛️ 家族列表 ({{ all_gangs|length }})</div>
+    <div class="section-body">
+        {% if all_gangs %}
+            {% for g in all_gangs %}
+            <div class="gang-item">
+                <div style="flex: 1;">
+                    <b>{{ g.name }}</b>
+                    <span style="font-size:11px; color:#666;">
+                        Lv.{{ g.level }} | {{ g.member_count }}/{{ g.member_limit }}人
+                    </span>
+                    {% if g.slogan %}<div style="font-size:11px; color:#888; margin-top:2px;">{{ g.slogan }}</div>{% endif %}
+                </div>
+                {% if not my_gang %}
+                <a href="/home/gang/join/{{ g.id }}" class="btn btn-small" onclick="return confirm('确定加入这个家族吗？')">加入</a>
+                {% endif %}
+            </div>
+            {% endfor %}
+        {% else %}
+            <div class="text-gray text-center" style="padding: 20px;">还没有家族，快来创建第一个吧~</div>
+        {% endif %}
+    </div>
+</div>
+
+<div class="mt-10" style="text-align: center;">
+    <a href="/home/" class="btn">返回首页</a>
+</div>
+
+<style>
+.error-msg {
+    background: #ffe5e5;
+    color: #c00;
+    padding: 8px;
+    border-radius: 4px;
+    font-size: 12px;
+    text-align: center;
+    margin-bottom: 10px;
+}
+.form-group {
+    margin-bottom: 10px;
+}
+.form-group label {
+    display: block;
+    font-size: 13px;
+    color: #333;
+    margin-bottom: 4px;
+}
+.form-group input, .form-group textarea {
+    width: 100%;
+    padding: 8px;
+    border: 1px solid #ddd;
+    border-radius: 3px;
+    font-size: 13px;
+    font-family: inherit;
+}
+.form-group textarea {
+    resize: vertical;
+}
+.tip {
+    font-size: 12px;
+    color: #666;
+    text-align: center;
+    padding: 5px;
+    background: #f5f5f5;
+    border-radius: 3px;
+}
+.gang-item {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    padding: 10px 0;
+    border-bottom: 1px solid #f0f4fa;
+}
+.gang-item:last-child {
+    border-bottom: none;
+}
+</style>
+{% endblock %}

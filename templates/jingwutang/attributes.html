@@ -1,0 +1,247 @@
+{% extends "base_wap.html" %}
+
+{% block title %}属性加点 - 精武堂{% endblock %}
+
+{% block breadcrumb %}
+<div class="nav-bar">
+    <a href="/home/">首页</a>
+    <span class="sep">›</span>
+    <a href="/home/gamelobby">游戏大厅</a>
+    <span class="sep">›</span>
+    <a href="/jingwutang">精武堂</a>
+    <span class="sep">›</span>
+    <span>属性加点</span>
+</div>
+{% endblock %}
+
+{% block content %}
+{# 角色概况 #}
+<div class="section">
+    <div class="section-title">📋 角色概况</div>
+    <div class="section-body">
+        <div class="info-row">
+            <span class="info-label">角色</span>
+            <span class="info-value">{{ role.name }} Lv.{{ role.level }}</span>
+        </div>
+        <div class="info-row">
+            <span class="info-label">战斗力</span>
+            <span class="info-value text-red bold">{{ role.combat_power }}</span>
+        </div>
+        <div class="info-row">
+            <span class="info-label">剩余潜能点</span>
+            <span class="info-value text-red bold" style="font-size:16px;">{{ role.potential or 0 }}</span>
+        </div>
+    </div>
+</div>
+
+{# 推荐加点方案 #}
+<div class="notice">
+    💡 <b>推荐加点方案：</b><br>
+    • <b>暴力输出型</b>：全力量，伤害爆表<br>
+    • <b>血牛坦克型</b>：全体质+耐力，皮糙肉厚<br>
+    • <b>高速先手型</b>：全敏捷，先下手为强<br>
+    • <b>均衡发展型</b>：每项属性均衡加点
+</div>
+
+{# 属性加点 #}
+<div class="section">
+    <div class="section-title">📊 潜能加点 <span class="text-red">(剩余{{ role.potential or 0 }}点)</span></div>
+    <div class="section-body">
+        <form method="post" action="/jingwutang/attributes/allocate" id="allocForm">
+            {# 体质 #}
+            <div style="display:flex; align-items:center; padding:10px 0; border-bottom:1px dotted #e0e0e0;">
+                <div style="width:60px; text-align:center;">
+                    <div style="font-size:28px;">💪</div>
+                    <div style="font-size:12px; color:#666;">体质</div>
+                </div>
+                <div style="flex:1; padding:0 10px;">
+                    <div style="display:flex; justify-content:space-between; font-size:13px;">
+                        <span>已加点: <b class="text-blue" id="con_val">{{ role.con_point or 0 }}</b></span>
+                        <span class="text-gray">+气血上限、+防御</span>
+                    </div>
+                    <div style="font-size:12px; color:#666; margin-top:3px;">
+                        预览: 气血+<span id="con_hp">{{ (role.con_point or 0) * 20 }}</span> → <span id="con_hp_new" class="text-green">{{ ((role.con_point or 0) + preview_add.con|default(0)) * 20 }}</span>
+                    </div>
+                </div>
+                <button type="submit" name="stat" value="con" class="btn btn-small" {% if not role.potential %}disabled style="opacity:0.5;"{% endif %}>+</button>
+            </div>
+
+            {# 智力 #}
+            <div style="display:flex; align-items:center; padding:10px 0; border-bottom:1px dotted #e0e0e0;">
+                <div style="width:60px; text-align:center;">
+                    <div style="font-size:28px;">🧠</div>
+                    <div style="font-size:12px; color:#666;">智力</div>
+                </div>
+                <div style="flex:1; padding:0 10px;">
+                    <div style="display:flex; justify-content:space-between; font-size:13px;">
+                        <span>已加点: <b class="text-blue" id="int_val">{{ role.int_point or 0 }}</b></span>
+                        <span class="text-gray">+精气上限、+技能伤害</span>
+                    </div>
+                    <div style="font-size:12px; color:#666; margin-top:3px;">
+                        预览: 精气+<span id="int_mp">{{ (role.int_point or 0) * 10 }}</span> → <span id="int_mp_new" class="text-green">{{ ((role.int_point or 0) + preview_add.int|default(0)) * 10 }}</span>
+                    </div>
+                </div>
+                <button type="submit" name="stat" value="int" class="btn btn-small" {% if not role.potential %}disabled style="opacity:0.5;"{% endif %}>+</button>
+            </div>
+
+            {# 力量 #}
+            <div style="display:flex; align-items:center; padding:10px 0; border-bottom:1px dotted #e0e0e0;">
+                <div style="width:60px; text-align:center;">
+                    <div style="font-size:28px;">⚔️</div>
+                    <div style="font-size:12px; color:#666;">力量</div>
+                </div>
+                <div style="flex:1; padding:0 10px;">
+                    <div style="display:flex; justify-content:space-between; font-size:13px;">
+                        <span>已加点: <b class="text-blue" id="str_val">{{ role.str_point or 0 }}</b></span>
+                        <span class="text-gray">+伤害、+命中</span>
+                    </div>
+                    <div style="font-size:12px; color:#666; margin-top:3px;">
+                        预览: 伤害+<span id="str_dmg">{{ (role.str_point or 0) * 5 }}</span> → <span id="str_dmg_new" class="text-green">{{ ((role.str_point or 0) + preview_add.str|default(0)) * 5 }}</span>
+                    </div>
+                </div>
+                <button type="submit" name="stat" value="str" class="btn btn-small" {% if not role.potential %}disabled style="opacity:0.5;"{% endif %}>+</button>
+            </div>
+
+            {# 耐力 #}
+            <div style="display:flex; align-items:center; padding:10px 0; border-bottom:1px dotted #e0e0e0;">
+                <div style="width:60px; text-align:center;">
+                    <div style="font-size:28px;">🛡️</div>
+                    <div style="font-size:12px; color:#666;">耐力</div>
+                </div>
+                <div style="flex:1; padding:0 10px;">
+                    <div style="display:flex; justify-content:space-between; font-size:13px;">
+                        <span>已加点: <b class="text-blue" id="def_val">{{ role.def_point or 0 }}</b></span>
+                        <span class="text-gray">+防御、+格挡</span>
+                    </div>
+                    <div style="font-size:12px; color:#666; margin-top:3px;">
+                        预览: 防御+<span id="def_def">{{ (role.def_point or 0) * 4 }}</span> → <span id="def_def_new" class="text-green">{{ ((role.def_point or 0) + preview_add.def|default(0)) * 4 }}</span>
+                    </div>
+                </div>
+                <button type="submit" name="stat" value="def" class="btn btn-small" {% if not role.potential %}disabled style="opacity:0.5;"{% endif %}>+</button>
+            </div>
+
+            {# 敏捷 #}
+            <div style="display:flex; align-items:center; padding:10px 0;">
+                <div style="width:60px; text-align:center;">
+                    <div style="font-size:28px;">💨</div>
+                    <div style="font-size:12px; color:#666;">敏捷</div>
+                </div>
+                <div style="flex:1; padding:0 10px;">
+                    <div style="display:flex; justify-content:space-between; font-size:13px;">
+                        <span>已加点: <b class="text-blue" id="agi_val">{{ role.agi_point or 0 }}</b></span>
+                        <span class="text-gray">+速度、+闪避</span>
+                    </div>
+                    <div style="font-size:12px; color:#666; margin-top:3px;">
+                        预览: 速度+<span id="agi_spd">{{ (role.agi_point or 0) * 3 }}</span> → <span id="agi_spd_new" class="text-green">{{ ((role.agi_point or 0) + preview_add.agi|default(0)) * 3 }}</span>
+                    </div>
+                </div>
+                <button type="submit" name="stat" value="agi" class="btn btn-small" {% if not role.potential %}disabled style="opacity:0.5;"{% endif %}>+</button>
+            </div>
+        </form>
+    </div>
+</div>
+
+{# 转职系统 #}
+{% if role.level >= 80 %}
+{% if not role.transferred %}
+<div class="section" style="border:2px solid #d4a017;">
+    <div class="section-title" style="background:linear-gradient(180deg, #fff8e8 0%, #ffecb0 100%); color:#8b6914;">✨ 转职 - 神/魔/仙</div>
+    <div class="section-body">
+        <div style="text-align:center; font-size:13px; color:#666; margin-bottom:10px;">
+            达到80级可选择转职路线，获得超强属性加成！
+        </div>
+        <form method="post" action="/jingwutang/transfer">
+            <div class="grid-3" style="gap:6px;">
+                <div style="text-align:center; padding:12px 5px; border:2px solid #ffd700; border-radius:5px; background:linear-gradient(135deg, #fff8e8 0%, #ffecb0 100%);">
+                    <div style="font-size:28px;">⚡</div>
+                    <div style="font-weight:bold; color:#8b6914; margin:4px 0;">神</div>
+                    <div style="font-size:11px; color:#8b6914;">伤害+30%<br>防御+20%<br>气血+30%</div>
+                    <button type="submit" name="path" value="shen" class="btn btn-small" style="margin-top:8px; background:#ffd700; color:#333; border-color:#cc9900;">入神</button>
+                </div>
+                <div style="text-align:center; padding:12px 5px; border:2px solid #9b59b6; border-radius:5px; background:linear-gradient(135deg, #f5e6ff 0%, #e0c4f0 100%);">
+                    <div style="font-size:28px;">🔥</div>
+                    <div style="font-weight:bold; color:#8e44ad; margin:4px 0;">魔</div>
+                    <div style="font-size:11px; color:#8e44ad;">伤害+50%<br>暴击+40%<br>速度+20%</div>
+                    <button type="submit" name="path" value="mo" class="btn btn-small btn-danger" style="margin-top:8px;">入魔</button>
+                </div>
+                <div style="text-align:center; padding:12px 5px; border:2px solid #3498db; border-radius:5px; background:linear-gradient(135deg, #e8f4ff 0%, #c8e0f8 100%);">
+                    <div style="font-size:28px;">🌟</div>
+                    <div style="font-weight:bold; color:#2980b9; margin:4px 0;">仙</div>
+                    <div style="font-size:11px; color:#2980b9;">气血+40%<br>精气+50%<br>闪避+30%</div>
+                    <button type="submit" name="path" value="xian" class="btn btn-small" style="margin-top:8px;">成仙</button>
+                </div>
+            </div>
+        </form>
+    </div>
+</div>
+{% else %}
+<div class="section" style="border:2px solid #d4a017;">
+    <div class="section-body text-center" style="background:linear-gradient(135deg, #fff8e8 0%, #ffecb0 100%); padding:15px;">
+        <div style="font-size:32px; margin-bottom:5px;">
+            {% if role.transfer_name == '神' %}⚡{% elif role.transfer_name == '魔' %}🔥{% else %}🌟{% endif %}
+        </div>
+        <div style="font-size:18px; font-weight:bold; color:#8b6914;">【{{ role.transfer_name }}】</div>
+        <div style="font-size:13px; color:#8b6914; margin-top:5px;">已转职，获得专属属性加成</div>
+    </div>
+</div>
+{% endif %}
+{% else %}
+<div class="section">
+    <div class="section-title">✨ 转职预览</div>
+    <div class="section-body text-center" style="color:#999; border:1px dashed #d0d0d0; border-radius:3px; padding:15px;">
+        达到80级可开启转职（神/魔/仙）<br>
+        当前等级: <b class="text-blue">{{ role.level }}</b>/80
+        <div class="progress-bar mt-5" style="max-width:200px; margin:8px auto 0;">
+            <div class="progress-fill" style="width: {{ (role.level / 80 * 100)|round|int }}%;"></div>
+        </div>
+    </div>
+</div>
+{% endif %}
+
+{# 属性总览 #}
+<div class="section">
+    <div class="section-title">📈 属性总览</div>
+    <div class="section-body">
+        <div class="info-row">
+            <span class="info-label">❤️ 气血</span>
+            <span class="info-value">{{ role.hp }}/{{ role.max_hp }}</span>
+        </div>
+        <div class="info-row">
+            <span class="info-label">💧 精气</span>
+            <span class="info-value">{{ role.mp }}/{{ role.max_mp }}</span>
+        </div>
+        <div class="info-row">
+            <span class="info-label">⚡ 体力</span>
+            <span class="info-value">{{ role.stamina }}/{{ role.max_stamina }}</span>
+        </div>
+        <div class="info-row">
+            <span class="info-label">⚔️ 伤害</span>
+            <span class="info-value text-red">{{ stats.damage or 0 }}</span>
+        </div>
+        <div class="info-row">
+            <span class="info-label">🛡️ 防御</span>
+            <span class="info-value text-blue">{{ stats.defense or 0 }}</span>
+        </div>
+        <div class="info-row">
+            <span class="info-label">💨 速度</span>
+            <span class="info-value text-green">{{ stats.speed or 0 }}</span>
+        </div>
+        <div class="info-row">
+            <span class="info-label">🎯 命中</span>
+            <span class="info-value">{{ stats.accuracy or 0 }}</span>
+        </div>
+        <div class="info-row">
+            <span class="info-label">🏃 闪避</span>
+            <span class="info-value">{{ stats.dodge or 0 }}</span>
+        </div>
+        <div class="info-row">
+            <span class="info-label">💥 暴击</span>
+            <span class="info-value">{{ stats.crit or 0 }}%</span>
+        </div>
+    </div>
+</div>
+
+<div class="text-center mt-10">
+    <a href="/jingwutang">« 返回精武堂</a>
+</div>
+{% endblock %}

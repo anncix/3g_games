@@ -1,0 +1,125 @@
+{% extends "base_wap.html" %}
+{% block title %}同城 - QQ家园{% endblock %}
+
+{% block content %}
+<div class="section">
+    <div class="section-title">🏙️ 同城交友</div>
+    <div class="section-body">
+        <div class="city-selector">
+            <div style="font-size: 12px; color: #666; margin-bottom: 8px;">选择城市:</div>
+            <div class="city-list">
+                {% for city in cities %}
+                <a href="/home/city/set/{{ city.code }}" class="city-tag {% if current_city == city.code %}active{% endif %}">
+                    {{ city.name }}
+                </a>
+                {% endfor %}
+            </div>
+        </div>
+        
+        {% if not current_city %}
+        <div class="text-gray text-center" style="padding: 20px;">
+            请先选择你所在的城市<br>
+            <span style="font-size: 12px; color: #999;">选择城市后可以看到同城的朋友</span>
+        </div>
+        {% else %}
+        <form method="post" action="/home/city/feed" class="feed-form">
+            <textarea name="content" placeholder="分享点同城新鲜事..." rows="3" required></textarea>
+            <div style="text-align: right; margin-top: 5px;">
+                <button type="submit" class="btn btn-small">发布</button>
+            </div>
+        </form>
+        
+        <div class="feed-list">
+            {% if feeds %}
+            {% for feed in feeds %}
+            <div class="feed-item">
+                <div class="feed-header">
+                    <span class="feed-user">{{ feed.user_nickname }}</span>
+                    <span class="feed-time">{{ feed.created_at.strftime('%m-%d %H:%M') }}</span>
+                </div>
+                <div class="feed-content">{{ feed.content }}</div>
+                <div class="feed-actions">
+                    <span>👍 {{ feed.like_count }}</span>
+                    <span>💬 {{ feed.comment_count }}</span>
+                </div>
+            </div>
+            {% endfor %}
+            {% else %}
+            <div class="text-gray text-center" style="padding: 20px;">
+                还没有同城动态，快来发布第一条吧~
+            </div>
+            {% endif %}
+        </div>
+        {% endif %}
+        
+        <div class="mt-10" style="text-align: center;">
+            <a href="/home/" class="btn">返回首页</a>
+        </div>
+    </div>
+</div>
+
+<style>
+.city-list {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 5px;
+}
+.city-tag {
+    padding: 5px 10px;
+    background: #f0f4fa;
+    border-radius: 15px;
+    font-size: 12px;
+    text-decoration: none;
+    color: #666;
+}
+.city-tag.active {
+    background: #2a5caa;
+    color: white;
+}
+.feed-form {
+    margin: 15px 0;
+    padding: 10px;
+    background: #f8faff;
+    border-radius: 4px;
+}
+.feed-form textarea {
+    width: 100%;
+    padding: 8px;
+    border: 1px solid #e0e8f4;
+    border-radius: 3px;
+    font-size: 13px;
+    resize: vertical;
+    font-family: inherit;
+}
+.feed-item {
+    padding: 12px 0;
+    border-bottom: 1px solid #f0f4fa;
+}
+.feed-header {
+    display: flex;
+    justify-content: space-between;
+    margin-bottom: 5px;
+}
+.feed-user {
+    font-size: 13px;
+    font-weight: bold;
+    color: #2a5caa;
+}
+.feed-time {
+    font-size: 11px;
+    color: #999;
+}
+.feed-content {
+    font-size: 13px;
+    color: #333;
+    line-height: 1.5;
+}
+.feed-actions {
+    margin-top: 8px;
+    font-size: 12px;
+    color: #999;
+    display: flex;
+    gap: 15px;
+}
+</style>
+{% endblock %}

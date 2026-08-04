@@ -1,0 +1,78 @@
+{% extends "base_wap.html" %}
+
+{% block title %}背包装备 - 精武堂{% endblock %}
+
+{% block breadcrumb %}
+<div class="nav-bar">
+    <a href="/home/">首页</a><span class="sep">›</span><a href="/home/gamelobby">游戏大厅</a>
+    <span class="sep">›</span><a href="/jingwutang/">精武堂</a><span class="sep">›</span><span>装备</span>
+</div>
+{% endblock %}
+
+{% block content %}
+
+<div class="section">
+    <div class="section-title">🗡️ 装备栏</div>
+    <div class="section-body">
+        <div class="info-row"><span class="info-label">⚔️ 战力</span><span class="info-value text-red bold">{{ combat_power }}</span></div>
+    </div>
+</div>
+
+{# 已装备 #}
+<div class="section">
+    <div class="section-title">✅ 已装备</div>
+    <div class="section-body">
+        {% for slot_key, slot_info in equipment_slots.items() %}
+        <div style="display:flex; align-items:center; padding:8px 0; border-bottom:1px dotted #eee;">
+            <div style="width:40px; font-size:24px; text-align:center;">{{ slot_info.icon }}</div>
+            <div style="flex:1; padding:0 8px;">
+                <div style="font-size:12px; color:#999;">{{ slot_info.name }}</div>
+                {% if equipped[slot_key] %}
+                <div style="font-weight:bold;">{{ equipped[slot_key].name }}</div>
+                <div style="font-size:11px; color:#666;">
+                    +{{ equipped[slot_key].enhance_level or 0 }}
+                    {% if equipped[slot_key].atk %}攻+{{ equipped[slot_key].atk }}{% endif %}
+                    {% if equipped[slot_key].defense %}防+{{ equipped[slot_key].defense }}{% endif %}
+                    {% if equipped[slot_key].hp %}血+{{ equipped[slot_key].hp }}{% endif %}
+                    {% if equipped[slot_key].speed %}速+{{ equipped[slot_key].speed }}{% endif %}
+                </div>
+                {% else %}
+                <div style="color:#ccc;">-- 空 --</div>
+                {% endif %}
+            </div>
+            {% if equipped[slot_key] %}
+            <a href="/jingwutang/equipment/equip/{{ equipped[slot_key].id }}" class="btn btn-small btn-danger">卸下</a>
+            {% endif %}
+        </div>
+        {% endfor %}
+    </div>
+</div>
+
+{# 未装备 #}
+<div class="section">
+    <div class="section-title">📦 背包装备</div>
+    <div class="section-body">
+        {% if unequipped %}
+        {% for eq in unequipped %}
+        <div style="display:flex; justify-content:space-between; align-items:center; padding:8px 0; border-bottom:1px dotted #eee;">
+            <div>
+                <b>{{ eq.name }}</b>
+                <span style="font-size:11px;">+{{ eq.enhance_level or 0 }}</span>
+                <div style="font-size:11px; color:#666;">
+                    {% if eq.atk %}攻+{{ eq.atk }} {% endif %}
+                    {% if eq.defense %}防+{{ eq.defense }} {% endif %}
+                    {% if eq.hp %}血+{{ eq.hp }} {% endif %}
+                    {% if eq.speed %}速+{{ eq.speed }}{% endif %}
+                </div>
+            </div>
+            <a href="/jingwutang/equipment/equip/{{ eq.id }}" class="btn btn-small btn-success">装备</a>
+        </div>
+        {% endfor %}
+        {% else %}
+        <div class="text-center" style="color:#999; padding:15px;">暂无未装备的装备</div>
+        {% endif %}
+    </div>
+</div>
+
+<div class="text-center mt-10"><a href="/jingwutang/">« 返回精武堂</a></div>
+{% endblock %}

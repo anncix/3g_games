@@ -1,0 +1,32 @@
+{% extends "base_wap.html" %}
+
+{% block title %}成就 · 风云三国{% endblock %}
+
+{% block breadcrumb %}
+<div class="nav-bar">
+    <a href="/home/">首页</a>
+    <span class="sep">›</span>
+    <a href="/games/fengyun">风云三国</a>
+    <span class="sep">›</span>
+    <span>成就</span>
+</div>
+{% endblock %}
+
+{% block content %}
+{% for diff, achvs in grouped.items() %}
+<div class="section">
+    <div class="section-title">🏆 {{ diff }}成就</div>
+    <div class="section-body">
+        {% for a in achvs %}
+        <div style="border:1px solid #e0e8f4;border-radius:3px;padding:8px;margin-bottom:8px;">
+            <div style="font-weight:bold;color:#1a5dc7;">{{ a.name }}</div>
+            <div style="font-size:12px;color:#666;margin-top:2px;">{{ a.desc }}</div>
+            <div style="font-size:12px;color:#666;margin-top:2px;">
+                血+{{ a.hp_bonus }} · 精+{{ a.mp_bonus }} · 攻+{{ a.atk_bonus }} · 防+{{ a.def_bonus }} · 闪+{{ a.dodge_bonus }} · 暴+{{ a.crit_bonus }}
+            </div>
+        </div>
+        {% endfor %}
+    </div>
+</div>
+{% endfor %}
+{% endblock %}

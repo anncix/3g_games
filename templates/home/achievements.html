@@ -1,0 +1,79 @@
+{% extends "base_wap.html" %}
+{% block title %}成就 - QQ家园{% endblock %}
+
+{% block content %}
+<div class="section">
+    <div class="section-title">⭐ 我的成就</div>
+    <div class="section-body">
+        <div style="background: #f0f4fa; padding: 8px; border-radius: 4px; font-size: 12px; margin-bottom: 10px;">
+            已完成: {{ completed_ids|length }} / {{ all_achievements|length }}
+        </div>
+        
+        {% for ach in all_achievements %}
+        <div class="achievement-item {% if ach.id in completed_ids %}completed{% endif %}">
+            <div class="ach-icon">{{ ach.icon }}</div>
+            <div class="ach-info">
+                <div class="ach-name">{{ ach.name }}</div>
+                <div class="ach-desc">{{ ach.description }}</div>
+            </div>
+            <div class="ach-points">
+                {% if ach.id in completed_ids %}
+                <span style="color: #4caf50;">✓ 已完成</span>
+                {% else %}
+                <span style="color: #999;">+{{ ach.points }}分</span>
+                {% endif %}
+            </div>
+        </div>
+        {% endfor %}
+        
+        <div class="mt-10" style="text-align: center;">
+            <a href="/home/" class="btn">返回首页</a>
+            <a href="/home/icons" class="btn">图标</a>
+        </div>
+    </div>
+</div>
+
+<style>
+.achievement-item {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    padding: 10px;
+    border-bottom: 1px solid #f0f4fa;
+}
+.achievement-item.completed {
+    background: #f1f8e9;
+}
+.ach-icon {
+    font-size: 28px;
+    width: 40px;
+    text-align: center;
+    filter: grayscale(100%);
+    opacity: 0.5;
+}
+.achievement-item.completed .ach-icon {
+    filter: none;
+    opacity: 1;
+}
+.ach-info {
+    flex: 1;
+}
+.ach-name {
+    font-size: 14px;
+    font-weight: bold;
+    color: #333;
+}
+.achievement-item:not(.completed) .ach-name {
+    color: #999;
+}
+.ach-desc {
+    font-size: 11px;
+    color: #888;
+    margin-top: 2px;
+}
+.ach-points {
+    font-size: 12px;
+    font-weight: bold;
+}
+</style>
+{% endblock %}

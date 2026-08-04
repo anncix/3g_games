@@ -1,0 +1,179 @@
+{% extends "base_wap.html" %}
+
+{% block title %}美味小镇{% endblock %}
+
+{% block extra_css %}
+<style>
+    .dish-card {
+        border: 1px solid #e0d0c0;
+        border-radius: 4px;
+        padding: 8px;
+        text-align: center;
+        background: linear-gradient(180deg, #fffaf0 0%, #fdf0e0 100%);
+    }
+    .dish-card .emoji { font-size: 28px; }
+    .dish-card .name { font-size: 12px; font-weight: bold; margin-top: 2px; }
+    .dish-card .status { font-size: 11px; margin-top: 2px; }
+    .cooking { color: #e88020; }
+    .ready { color: #2a8a2a; font-weight: bold; }
+    .seat-area {
+        background: linear-gradient(180deg, #f5f0e8 0%, #e8e0d0 100%);
+        border: 1px solid #d0c0b0;
+        border-radius: 4px;
+        padding: 10px;
+        text-align: center;
+    }
+    .customer {
+        display: inline-block;
+        font-size: 24px;
+        margin: 0 4px;
+        animation: bounce 0.6s infinite alternate;
+    }
+    @keyframes bounce {
+        from { transform: translateY(0); }
+        to { transform: translateY(-4px); }
+    }
+</style>
+{% endblock %}
+
+{% block breadcrumb %}
+<div class="nav-bar">
+    <a href="/home/">首页</a>
+    <span class="sep">›</span>
+    <a href="/home/gamelobby">游戏大厅</a>
+    <span class="sep">›</span>
+    <span>美味小镇</span>
+</div>
+{% endblock %}
+
+{% block content %}
+{# 餐厅信息卡 #}
+<div style="border:2px solid #d06020; border-radius:5px; padding:12px; margin-bottom:10px; background:linear-gradient(135deg, #fff8f0 0%, #ffe8d0 100%);">
+    <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:8px;">
+        <div style="font-weight:bold; font-size:16px;">🍳 {{ town.restaurant_name if town else '我的餐厅' }}</div>
+        <div style="background:#d06020; color:white; padding:2px 8px; border-radius:10px; font-size:12px;">
+            Lv.{{ town.restaurant_level if town else 1 }}
+        </div>
+    </div>
+    <div style="display:grid; grid-template-columns:1fr 1fr; gap:5px; font-size:13px;">
+        <div>🪙 金币: <b class="text-blue">{{ town.gold if town else 1000 }}</b></div>
+        <div>⭐ 口碑: <b class="text-red">{{ town.star_level if town else 0 }}</b></div>
+        <div>🪑 座位: <b>{{ town.seats if town else 4 }}</b></div>
+        <div>🍽️ 菜谱: <b>{{ (recipes | length) if town else 3 }}道</b></div>
+    </div>
+    <div style="margin-top:8px; font-size:12px;">
+        经验: {{ town.restaurant_exp if town else 0 }}/{{ (town.restaurant_level if town else 1) * 100 }}
+        <div class="progress-bar mt-5">
+            <div class="progress-fill" style="width: {{ ((town.restaurant_exp if town else 0) / ((town.restaurant_level if town else 1) * 100)) * 100 if (town.restaurant_level if town else 1) > 0 else 0 }}%; background:linear-gradient(90deg, #d06020 0%, #f08040 100%);"></div>
+        </div>
+    </div>
+</div>
+
+{# 营业状态 #}
+<div class="section">
+    <div class="section-title">🏪 餐厅营业</div>
+    <div class="section-body text-center">
+        {% if False %}
+        <div style="font-size:48px; margin-bottom:8px;">🍽️</div>
+        <div style="font-size:15px; font-weight:bold; color:#2a8a2a;">营业中</div>
+        <div style="margin-top:8px;">
+            {% for i in range(2) %}
+            <span class="customer">
+                {% if i % 3 == 0 %}👨{% elif i % 3 == 1 %}👩{% else %}🧑{% endif %}
+            </span>
+            {% endfor %}
+        </div>
+        <div style="margin-top:8px; font-size:12px; color:#666;">顾客盈门，财源滚滚！</div>
+        <div style="margin-top:10px;">
+            <a href="/delicious-town/close" class="btn btn-danger btn-small">🚫 打烊</a>
+            <a href="/delicious-town/serve" class="btn btn-success btn-small">🍜 上菜</a>
+        </div>
+        {% else %}
+        <div style="font-size:48px; margin-bottom:8px;">🏪</div>
+        <div style="font-size:15px; font-weight:bold; color:#999;">休息中</div>
+        <div style="margin-top:8px; font-size:12px; color:#666;">餐厅尚未营业，准备好食材就开张吧！</div>
+        <div style="margin-top:10px;">
+            <a href="/delicious-town/open" class="btn btn-success">🟢 开始营业</a>
+        </div>
+        {% endif %}
+    </div>
+</div>
+
+{# 主要操作 #}
+<div class="section">
+    <div class="section-title">🎮 快捷操作</div>
+    <div class="section-body">
+        <div class="grid-3">
+            <a href="/delicious-town/cook" style="text-decoration:none; color:inherit;">
+                <div style="border:1px solid #d0d0d0; padding:10px 5px; border-radius:3px; text-align:center;">
+                    <div style="font-size:28px;">🍳</div>
+                    <div style="font-size:12px; font-weight:bold;">烹饪</div>
+                </div>
+            </a>
+            <a href="/delicious-town/recipes" style="text-decoration:none; color:inherit;">
+                <div style="border:1px solid #d0d0d0; padding:10px 5px; border-radius:3px; text-align:center;">
+                    <div style="font-size:28px;">📖</div>
+                    <div style="font-size:12px; font-weight:bold;">菜谱</div>
+                </div>
+            </a>
+            <a href="/delicious-town/ingredients" style="text-decoration:none; color:inherit;">
+                <div style="border:1px solid #d0d0d0; padding:10px 5px; border-radius:3px; text-align:center;">
+                    <div style="font-size:28px;">🥬</div>
+                    <div style="font-size:12px; font-weight:bold;">食材</div>
+                </div>
+            </a>
+        </div>
+    </div>
+</div>
+
+{# 灶台 #}
+<div class="section">
+    <div class="section-title">🔥 灶台</div>
+    <div class="section-body">
+        <div class="grid-3">
+            <div class="dish-card">
+                <div class="emoji">🍜</div>
+                <div class="name">红烧牛肉面</div>
+                <div class="status cooking">🍳 烹饪中</div>
+            </div>
+            <div class="dish-card">
+                <div class="emoji">🥘</div>
+                <div class="name">麻婆豆腐</div>
+                <div class="status ready">✅ 已完成</div>
+            </div>
+            <a href="/delicious-town/cook" style="text-decoration:none; color:inherit;">
+                <div class="dish-card" style="opacity:0.6;">
+                    <div class="emoji">➕</div>
+                    <div class="name">空灶台</div>
+                    <div class="status">点击烹饪</div>
+                </div>
+            </a>
+        </div>
+    </div>
+</div>
+
+{# 功能菜单 #}
+<div class="section">
+    <div class="section-title">📋 功能菜单</div>
+    <div class="section-body">
+        <ul class="link-list">
+            <li><a href="/delicious-town/market">🛒 菜市场 - 购买新鲜食材</a></li>
+            <li><a href="/delicious-town/recipes">📖 菜谱大全 - 学习新菜品</a></li>
+            <li><a href="/delicious-town/staff">👨‍🍳 雇佣店员 - 提升服务效率</a></li>
+            <li><a href="/delicious-town/upgrade">⬆️ 升级餐厅 - 扩大规模</a></li>
+            <li><a href="/delicious-town/street">🏘️ 美食街 - 拜访邻居餐厅</a></li>
+            <li><a href="/delicious-town/tasks">📋 每日任务 - 领取奖励</a></li>
+            <li><a href="/delicious-town/decor">🎨 餐厅装饰 - 打造个性餐厅</a></li>
+        </ul>
+    </div>
+</div>
+
+{# 每日提示 #}
+<div class="notice">
+    💡 学会更多高级菜谱可以提升口碑，吸引更多顾客光临！
+</div>
+
+<div class="text-center mt-10">
+    <a href="/home/gamelobby">« 返回游戏大厅</a>
+</div>
+{% endblock %}

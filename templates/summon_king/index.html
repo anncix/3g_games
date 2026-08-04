@@ -1,0 +1,191 @@
+{% extends "base_wap.html" %}
+{% block title %}召唤之王 - QQ家园{% endblock %}
+{% block breadcrumb %}
+<div class="nav-bar">
+    <a href="/home/gamelobby">游戏大厅</a>
+    <span class="sep">›</span>
+    <a href="/summon_king">召唤之王</a>
+    <span class="sep">›</span> 首页
+</div>
+{% endblock %}
+{% block content %}
+<div class="section">
+    <div class="section-title">⚔️ 召唤师信息</div>
+    <div class="section-body">
+        <div class="info-row">
+            <span class="info-label">召唤师</span>
+            <span class="info-value">{{ profile.summoner_name }}</span>
+        </div>
+        <div class="info-row">
+            <span class="info-label">等级</span>
+            <span class="info-value">Lv.{{ profile.level }}</span>
+        </div>
+        <div class="info-row">
+            <span class="info-label">经验</span>
+            <span class="info-value">{{ profile.exp }} / {{ exp_needed }}</span>
+        </div>
+        <div class="progress-bar mt-5">
+            <div class="progress-fill" style="width: {{ (profile.exp / exp_needed * 100)|round|int }}%;"></div>
+        </div>
+        <div class="info-row mt-5">
+            <span class="info-label">体力</span>
+            <span class="info-value text-green">{{ profile.vitality }} / {{ profile.max_vitality }}</span>
+        </div>
+        <div class="info-row">
+            <span class="info-label">铜币</span>
+            <span class="info-value" style="color:#daa520;">🪙 {{ profile.copper_coin }}</span>
+        </div>
+        <div class="info-row">
+            <span class="info-label">元宝</span>
+            <span class="info-value" style="color:#ffd700;">💰 {{ profile.yuanbao }}</span>
+        </div>
+        <div class="info-row">
+            <span class="info-label">声望</span>
+            <span class="info-value text-blue">🏆 {{ profile.prestige }}</span>
+        </div>
+        <div class="info-row">
+            <span class="info-label">擂台排名</span>
+            <span class="info-value text-red">#{{ my_rank }}</span>
+        </div>
+        {% if alliance %}
+        <div class="info-row">
+            <span class="info-label">联盟</span>
+            <span class="info-value"><a href="/summon_king/alliance">{{ alliance.name }}</a></span>
+        </div>
+        {% endif %}
+    </div>
+</div>
+
+<div class="section">
+    <div class="section-title">🐉 当前出战幻兽</div>
+    <div class="section-body">
+        {% if battle_beast %}
+        {% set bdef = battle_beast.beast %}
+        <div style="text-align:center; margin-bottom:8px;">
+            <span style="font-size:48px;">{{ bdef.icon }}</span>
+        </div>
+        <div class="info-row">
+            <span class="info-label">名称</span>
+            <span class="info-value" style="color:{{ rarity_colors.get(bdef.rarity, '#333') }};">
+                {{ battle_beast.nickname or bdef.name }}
+                <span style="font-size:12px;">[{{ rarity_names.get(bdef.rarity, bdef.rarity) }}]</span>
+            </span>
+        </div>
+        <div class="info-row">
+            <span class="info-label">等级</span>
+            <span class="info-value">Lv.{{ battle_beast.level }} ({{ battle_beast.growth_star }}星)</span>
+        </div>
+        <div class="info-row">
+            <span class="info-label">HP</span>
+            <span class="info-value">{{ battle_beast.hp }}/{{ battle_beast.max_hp }}</span>
+        </div>
+        <div class="info-row">
+            <span class="info-label">物攻/魔攻</span>
+            <span class="info-value">{{ battle_beast.patk }} / {{ battle_beast.matk }}</span>
+        </div>
+        <div class="info-row">
+            <span class="info-label">物防/魔防</span>
+            <span class="info-value">{{ battle_beast.pdef }} / {{ battle_beast.mdef }}</span>
+        </div>
+        <div class="info-row">
+            <span class="info-label">速度</span>
+            <span class="info-value">{{ battle_beast.speed }}</span>
+        </div>
+        <div class="text-center mt-10">
+            <a href="/summon_king/beast/{{ battle_beast.id }}" class="btn btn-small">查看详情</a>
+        </div>
+        {% else %}
+        <p class="text-gray text-center">还没有设置出战幻兽，<a href="/summon_king/beasts">去设置</a></p>
+        {% endif %}
+    </div>
+</div>
+
+<div class="section">
+    <div class="section-title">🎮 功能菜单</div>
+    <div class="section-body">
+        <div class="grid-2">
+            <a href="/summon_king/maps" class="game-card">
+                <div class="icon">🗺️</div>
+                <div class="name">探索地图</div>
+                <div class="desc">遇怪捕捉幻兽</div>
+            </a>
+            <a href="/summon_king/beasts" class="game-card">
+                <div class="icon">🐲</div>
+                <div class="name">幻兽列表</div>
+                <div class="desc">共{{ beasts_count }}只幻兽</div>
+            </a>
+            <a href="/summon_king/bones" class="game-card">
+                <div class="icon">🦴</div>
+                <div class="name">战骨系统</div>
+                <div class="desc">强化战骨提升属性</div>
+            </a>
+            <a href="/summon_king/souls" class="game-card">
+                <div class="icon">🔮</div>
+                <div class="name">魔魂猎取</div>
+                <div class="desc">猎魂装备魔魂</div>
+            </a>
+            <a href="/summon_king/arena" class="game-card">
+                <div class="icon">⚔️</div>
+                <div class="name">擂台比武</div>
+                <div class="desc">挑战对手赢声望</div>
+            </a>
+            <a href="/summon_king/alliance" class="game-card">
+                <div class="icon">🏛️</div>
+                <div class="name">联盟系统</div>
+                <div class="desc">创建加入联盟</div>
+            </a>
+            <a href="/summon_king/inventory" class="game-card">
+                <div class="icon">🎒</div>
+                <div class="name">背包商店</div>
+                <div class="desc">道具与捕捉球</div>
+            </a>
+            <a href="/home/gamelobby" class="game-card">
+                <div class="icon">🎮</div>
+                <div class="name">返回大厅</div>
+                <div class="desc">回到游戏列表</div>
+            </a>
+        </div>
+    </div>
+</div>
+
+<div class="section">
+    <div class="section-title">📋 捕捉球</div>
+    <div class="section-body">
+        <div class="info-row">
+            <span class="info-label">⚪ 普球</span>
+            <span class="info-value">{{ profile.catch_ball_normal }}个</span>
+        </div>
+        <div class="info-row">
+            <span class="info-label">🔵 强力球</span>
+            <span class="info-value">{{ profile.catch_ball_strong }}个</span>
+        </div>
+        <div class="info-row">
+            <span class="info-label">🟣 超级球</span>
+            <span class="info-value">{{ profile.catch_ball_super }}个</span>
+        </div>
+        <div class="text-center mt-5">
+            <a href="/summon_king/inventory" class="btn btn-small">购买捕捉球</a>
+        </div>
+    </div>
+</div>
+
+{% if recent_catches %}
+<div class="section">
+    <div class="section-title">📜 最近捕捉记录</div>
+    <div class="section-body">
+        <ul class="link-list">
+            {% for log in recent_catches %}
+            <li>
+                {% if log.success %}
+                <span class="text-green">✓</span> 成功捕捉 <b>{{ log.beast_name }}</b>
+                {% else %}
+                <span class="text-red">✗</span> {{ log.beast_name }} 逃跑了
+                {% endif %}
+                <span class="text-gray" style="font-size:12px;">（{{ log.ball_type }}球）</span>
+            </li>
+            {% endfor %}
+        </ul>
+    </div>
+</div>
+{% endif %}
+{% endblock %}

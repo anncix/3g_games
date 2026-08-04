@@ -1,0 +1,191 @@
+{% extends "base_wap.html" %}
+{% block title %}游戏大厅{% endblock %}
+
+{% block breadcrumb %}
+<div class="nav-bar">
+    <a href="/home/">首页</a>
+    <span class="sep">›</span>
+    <span>游戏大厅</span>
+</div>
+{% endblock %}
+
+{% block content %}
+<div class="section">
+    <div class="section-title">🎮 游戏大厅</div>
+    <div class="section-body">
+        <div class="notice">
+            欢迎来到QQ家园游戏大厅！选择一款游戏开始你的冒险吧~
+        </div>
+        
+        {# 精武堂 #}
+        <div style="border:2px solid #d4a017; border-radius:5px; padding:12px; margin-bottom:10px; background:linear-gradient(135deg, #fff8e8 0%, #fff0d0 100%);">
+            <div style="display:flex; gap:10px;">
+                <div style="font-size:48px;">⚔️</div>
+                <div style="flex:1;">
+                    <div style="font-weight:bold; font-size:16px; color:#8b4513;">精武堂</div>
+                    <div style="font-size:12px; color:#666; margin:4px 0;">
+                        修炼、比武、帮派、转职，体验原汁原味的江湖
+                    </div>
+                    {% if game_status.jingwutang %}
+                    <div style="font-size:12px;">
+                        等级: Lv.{{ game_status.jingwutang.level }} | 
+                        战力: {{ game_status.jingwutang.combat_power }}
+                        {% if game_status.jingwutang.transferred %}
+                        | <span class="text-red">{{ game_status.jingwutang.transfer_name }}</span>
+                        {% endif %}
+                    </div>
+                    <div class="mt-5">
+                        <a href="/jingwutang/" class="btn btn-small">进入游戏</a>
+                        <a href="/jingwutang/training" class="btn btn-small">修炼</a>
+                        <a href="/jingwutang/arena" class="btn btn-small">比武</a>
+                    </div>
+                    {% else %}
+                    <div class="mt-5">
+                        <a href="/jingwutang/create" class="btn btn-small">创建角色</a>
+                    </div>
+                    {% endif %}
+                </div>
+            </div>
+        </div>
+        
+        {# 魔法花园 #}
+        <div style="border:2px solid #e878a8; border-radius:5px; padding:12px; margin-bottom:10px; background:linear-gradient(135deg, #fff0f5 0%, #ffe8f0 100%);">
+            <div style="display:flex; gap:10px;">
+                <div style="font-size:48px;">🌸</div>
+                <div style="flex:1;">
+                    <div style="font-weight:bold; font-size:16px; color:#c84878;">魔法花园</div>
+                    <div style="font-size:12px; color:#666; margin:4px 0;">
+                        种花、合成、点亮花谱，收集稀有花朵
+                    </div>
+                    {% if game_status.magic_garden %}
+                    <div style="font-size:12px;">
+                        等级: Lv.{{ game_status.magic_garden.level }} | 
+                        花园币: {{ game_status.magic_garden.coins }} |
+                        稀有花: {{ game_status.magic_garden.rare_flowers }}
+                    </div>
+                    <div class="mt-5">
+                        <a href="/magic_garden/" class="btn btn-small">进入花园</a>
+                    </div>
+                    {% else %}
+                    <div class="mt-5">
+                        <a href="/magic_garden/" class="btn btn-small">进入花园</a>
+                    </div>
+                    {% endif %}
+                </div>
+            </div>
+        </div>
+        
+        {# 阳光牧场 #}
+        <div style="border:2px solid #6ab04c; border-radius:5px; padding:12px; margin-bottom:10px; background:linear-gradient(135deg, #f0fff0 0%, #e8ffe8 100%);">
+            <div style="display:flex; gap:10px;">
+                <div style="font-size:48px;">🌾</div>
+                <div style="flex:1;">
+                    <div style="font-weight:bold; font-size:16px; color:#4a902c;">阳光牧场</div>
+                    <div style="font-size:12px; color:#666; margin:4px 0;">
+                        种菜、养动物、偷菜，体验田园生活
+                    </div>
+                    {% if game_status.sunny_farm %}
+                    <div style="font-size:12px;">
+                        等级: Lv.{{ game_status.sunny_farm.level }} | 
+                        金币: {{ game_status.sunny_farm.coins }}
+                    </div>
+                    <div class="mt-5">
+                        <a href="/sunny_farm/" class="btn btn-small">进入牧场</a>
+                    </div>
+                    {% else %}
+                    <div class="mt-5">
+                        <a href="/sunny_farm/" class="btn btn-small">进入牧场</a>
+                    </div>
+                    {% endif %}
+                </div>
+            </div>
+        </div>
+        
+        {# 美味小镇 #}
+        <div style="border:2px solid #f39c12; border-radius:5px; padding:12px; margin-bottom:10px; background:linear-gradient(135deg, #fffaf0 0%, #fff5e0 100%);">
+            <div style="display:flex; gap:10px;">
+                <div style="font-size:48px;">🍳</div>
+                <div style="flex:1;">
+                    <div style="font-weight:bold; font-size:16px; color:#d38c02;">美味小镇</div>
+                    <div style="font-size:12px; color:#666; margin:4px 0;">
+                        经营餐厅、学菜谱、升星级，成为厨神
+                    </div>
+                    {% if game_status.delicious_town %}
+                    <div style="font-size:12px;">
+                        餐厅: {{ game_status.delicious_town.restaurant_name }} | 
+                        星级: {{ game_status.delicious_town.stars }}星 |
+                        金币: {{ game_status.delicious_town.coins }}
+                    </div>
+                    <div class="mt-5">
+                        <a href="/delicious_town/" class="btn btn-small">进入餐厅</a>
+                    </div>
+                    {% else %}
+                    <div class="mt-5">
+                        <a href="/delicious_town/" class="btn btn-small">开餐厅</a>
+                    </div>
+                    {% endif %}
+                </div>
+            </div>
+        </div>
+        
+        {# 纵横四海 #}
+        <div style="border:2px solid #3498db; border-radius:5px; padding:12px; margin-bottom:10px; background:linear-gradient(135deg, #f0f8ff 0%, #e8f4ff 100%);">
+            <div style="display:flex; gap:10px;">
+                <div style="font-size:48px;">⛵</div>
+                <div style="flex:1;">
+                    <div style="font-weight:bold; font-size:16px; color:#2488cb;">纵横四海</div>
+                    <div style="font-size:12px; color:#666; margin:4px 0;">
+                        航行、贸易、战斗，探索未知的大海
+                    </div>
+                    {% if game_status.zongheng_sihai %}
+                    <div style="font-size:12px;">
+                        船名: {{ game_status.zongheng_sihai.ship_name }} | 
+                        当前: {{ game_status.zongheng_sihai.current_port }} |
+                        银子: {{ game_status.zongheng_sihai.silver }}
+                    </div>
+                    <div class="mt-5">
+                        <a href="/zongheng_sihai/" class="btn btn-small">出海</a>
+                    </div>
+                    {% else %}
+                    <div class="mt-5">
+                        <a href="/zongheng_sihai/" class="btn btn-small">开始航行</a>
+                    </div>
+                    {% endif %}
+                </div>
+            </div>
+        </div>
+        
+        {# 召唤之王 #}
+        <div style="border:2px solid #9b59b6; border-radius:5px; padding:12px; margin-bottom:10px; background:linear-gradient(135deg, #faf0ff 0%, #f5e8ff 100%);">
+            <div style="display:flex; gap:10px;">
+                <div style="font-size:48px;">🐉</div>
+                <div style="flex:1;">
+                    <div style="font-weight:bold; font-size:16px; color:#8b49a6;">召唤之王</div>
+                    <div style="font-size:12px; color:#666; margin:4px 0;">
+                        捕捉幻兽、养成对战、战骨魔魂，成为最强召唤师
+                    </div>
+                    {% if game_status.summon_king %}
+                    <div style="font-size:12px;">
+                        召唤师: {{ game_status.summon_king.summoner_name }} | 
+                        等级: Lv.{{ game_status.summon_king.level }} |
+                        幻兽: {{ game_status.summon_king.beast_count }}只
+                    </div>
+                    <div class="mt-5">
+                        <a href="/summon_king/" class="btn btn-small">进入</a>
+                        <a href="/summon_king/arena" class="btn btn-small">擂台</a>
+                    </div>
+                    {% else %}
+                    <div class="mt-5">
+                        <a href="/summon_king/" class="btn btn-small">成为召唤师</a>
+                    </div>
+                    {% endif %}
+                </div>
+            </div>
+        </div>
+        
+        <div class="text-center text-gray" style="padding: 15px; font-size:12px;">
+            更多游戏敬请期待...
+        </div>
+    </div>
+</div>
+{% endblock %}

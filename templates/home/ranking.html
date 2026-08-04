@@ -1,0 +1,106 @@
+{% extends "base_wap.html" %}
+{% block title %}排行榜 - QQ家园{% endblock %}
+
+{% block content %}
+<div class="section">
+    <div class="section-title">🏆 {{ title }}</div>
+    <div class="section-body">
+        <div class="tab-bar">
+            <a href="/home/ranking?rank_key=home_level" class="tab-item {% if current_rank == 'home_level' %}active{% endif %}">等级榜</a>
+            <a href="/home/ranking?rank_key=home_popularity" class="tab-item {% if current_rank == 'home_popularity' %}active{% endif %}">人气榜</a>
+            <a href="/home/ranking?rank_key=home_wealth" class="tab-item {% if current_rank == 'home_wealth' %}active{% endif %}">财富榜</a>
+        </div>
+        
+        {% if my_rank %}
+        <div class="my-rank">
+            我的排名: <b style="color:#c00;">第{{ my_rank }}名</b>
+        </div>
+        {% endif %}
+        
+        <div class="rank-list">
+            {% for item in rank_list %}
+            <div class="rank-item {% if loop.index <= 3 %}top-{{ loop.index }}{% endif %}">
+                <div class="rank-no">
+                    {% if loop.index == 1 %}🥇
+                    {% elif loop.index == 2 %}🥈
+                    {% elif loop.index == 3 %}🥉
+                    {% else %}{{ item.rank }}{% endif %}
+                </div>
+                <div class="rank-name">
+                    <a href="/home/profile/{{ item.user_id }}">{{ item.nickname }}</a>
+                </div>
+                <div class="rank-score">{{ item.score }}</div>
+            </div>
+            {% endfor %}
+            
+            {% if not rank_list %}
+            <div class="text-gray text-center" style="padding: 30px;">暂无数据</div>
+            {% endif %}
+        </div>
+        
+        <div class="mt-10" style="text-align: center;">
+            <a href="/home/" class="btn">返回首页</a>
+        </div>
+    </div>
+</div>
+
+<style>
+.tab-bar {
+    display: flex;
+    gap: 5px;
+    padding-bottom: 10px;
+    border-bottom: 1px solid #e0e8f4;
+    margin-bottom: 10px;
+}
+.tab-item {
+    flex: 1;
+    padding: 8px;
+    background: #f0f4fa;
+    border-radius: 3px;
+    font-size: 12px;
+    text-decoration: none;
+    color: #666;
+    text-align: center;
+}
+.tab-item.active {
+    background: #2a5caa;
+    color: white;
+}
+.my-rank {
+    background: #fff8e8;
+    padding: 8px;
+    border-radius: 4px;
+    text-align: center;
+    font-size: 13px;
+    margin-bottom: 10px;
+}
+.rank-item {
+    display: flex;
+    align-items: center;
+    padding: 10px;
+    border-bottom: 1px solid #f0f4fa;
+}
+.rank-item.top-1 { background: linear-gradient(90deg, #fff8e0 0%, transparent 100%); }
+.rank-item.top-2 { background: linear-gradient(90deg, #f5f5f5 0%, transparent 100%); }
+.rank-item.top-3 { background: linear-gradient(90deg, #fff0e8 0%, transparent 100%); }
+.rank-no {
+    width: 40px;
+    font-size: 18px;
+    font-weight: bold;
+    text-align: center;
+}
+.rank-name {
+    flex: 1;
+    font-size: 14px;
+}
+.rank-name a {
+    color: #333;
+    text-decoration: none;
+}
+.rank-score {
+    font-size: 12px;
+    color: #c00;
+    font-weight: bold;
+}
+</style>
+{% endblock %}

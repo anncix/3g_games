@@ -1,0 +1,66 @@
+{% extends "base_wap.html" %}
+{% block title %}{{ post.title }}{% endblock %}
+
+{% block breadcrumb %}
+<div class="nav-bar">
+    <a href="/home/">首页</a>
+    <span class="sep">›</span>
+    <a href="/home/forum">论坛</a>
+    <span class="sep">›</span>
+    <span>帖子内容</span>
+</div>
+{% endblock %}
+
+{% block content %}
+<div class="section">
+    <div class="section-title">📄 {{ post.title }}</div>
+    <div class="section-body">
+        <div class="post-meta mb-10" style="padding-bottom:8px; border-bottom:1px solid #f0f0f0;">
+            作者: <a href="/home/profile/{{ post.author_id }}">{{ author.nickname or author.username }}</a> | 
+            浏览: {{ post.views }} | 
+            回复: {{ post.replies }} | 
+            {{ post.created_at.strftime('%Y-%m-%d %H:%M') }}
+        </div>
+        <div style="line-height:1.8; white-space:pre-wrap;">{{ post.content }}</div>
+    </div>
+</div>
+
+<div class="section">
+    <div class="section-title">💬 回复 ({{ replies|length }})</div>
+    <div class="section-body">
+        {% if replies %}
+            {% for r in replies %}
+            <div class="guestbook-item">
+                <div>
+                    <span class="guestbook-author">
+                        <a href="/home/profile/{{ r.author_id }}">{{ r.author.nickname or r.author.username }}</a>
+                    </span>
+                    <span class="guestbook-time">{{ r.created_at.strftime('%m-%d %H:%M') }}</span>
+                </div>
+                <div class="guestbook-content">{{ r.content }}</div>
+            </div>
+            {% endfor %}
+        {% else %}
+            <div class="text-gray text-center" style="padding: 10px;">暂无回复，快来抢沙发吧~</div>
+        {% endif %}
+    </div>
+</div>
+
+<div class="section">
+    <div class="section-title">✏️ 发表回复</div>
+    <div class="section-body">
+        <form method="post" action="/home/forum/reply/{{ post.id }}">
+            <div class="form-group">
+                <textarea name="content" placeholder="输入回复内容" required></textarea>
+            </div>
+            <div class="text-right">
+                <button type="submit" class="btn">回复</button>
+            </div>
+        </form>
+    </div>
+</div>
+
+<div class="text-center mt-10">
+    <a href="/home/forum">« 返回论坛</a>
+</div>
+{% endblock %}

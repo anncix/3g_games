@@ -1,0 +1,24 @@
+{% extends "base_wap.html" %}
+{% block title %}商城 - 精武堂{% endblock %}
+{% block breadcrumb %}
+<div class="nav-bar">
+    <a href="/home/">首页</a><span class="sep">›</span><a href="/home/gamelobby">游戏大厅</a>
+    <span class="sep">›</span><a href="/jingwutang/">精武堂</a><span class="sep">›</span><span>商城</span>
+</div>
+{% endblock %}
+{% block content %}
+<div class="section">
+    <div class="section-title">🏪 商城</div>
+    <div class="section-body">
+        <div class="info-row"><span class="info-label">💰 G币</span><span class="info-value text-blue bold">{{ role.gcoin or 0 }}</span></div>
+    </div>
+</div>
+<div class="section">
+    <div class="section-body text-center" style="color:#999; padding:20px;">
+        <div style="font-size:48px; margin-bottom:10px;">🏪</div>
+        <p>商城正在备货中...</p>
+        <p style="font-size:12px; color:#999;">敬请期待</p>
+    </div>
+</div>
+<div class="text-center mt-10"><a href="/jingwutang/">« 返回精武堂</a></div>
+{% endblock %}

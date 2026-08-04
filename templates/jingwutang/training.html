@@ -1,0 +1,150 @@
+{% extends "base_wap.html" %}
+
+{% block title %}修炼 - 精武堂{% endblock %}
+
+{% block breadcrumb %}
+<div class="nav-bar">
+    <a href="/home/">首页</a>
+    <span class="sep">›</span>
+    <a href="/home/gamelobby">游戏大厅</a>
+    <span class="sep">›</span>
+    <a href="/jingwutang/">精武堂</a>
+    <span class="sep">›</span>
+    <span>修炼</span>
+</div>
+{% endblock %}
+
+{% block content %}
+
+{% if status_msg %}<div class="notice">{{ status_msg }}</div>{% endif %}
+
+{# 角色状态 #}
+<div class="section">
+    <div class="section-title">🧘 {{ role.name }} 的修炼场</div>
+    <div class="section-body">
+        <div class="info-row"><span class="info-label">⚡ 体力</span><span class="info-value">{{ role.sp }}/{{ role.max_sp }}</span></div>
+        <div class="info-row"><span class="info-label">🔮 技能点</span><span class="info-value text-blue">{{ role.skill_points or 0 }}</span></div>
+        <div class="info-row"><span class="info-label">💰 G币</span><span class="info-value text-blue">{{ role.gcoin or 0 }}</span></div>
+        <div class="info-row"><span class="info-label">⭐ Lv.{{ role.level }}</span><span class="info-value">EXP: {{ role.exp }}</span></div>
+    </div>
+</div>
+
+{% if can_treat %}
+{# 异常状态治疗 #}
+<div class="section">
+    <div class="section-title" style="color:#e8403a;">⚠️ 异常状态</div>
+    <div class="section-body text-center">
+        <div style="font-size:48px; margin:10px 0;">😵</div>
+        <div class="text-red bold" style="margin-bottom:10px;">
+            {% if role.train_status == 3 %}你走火入魔了！{% endif %}
+            {% if role.train_status == 2 %}你气血不顺！{% endif %}
+        </div>
+        <div style="font-size:12px; color:#666; margin-bottom:10px;">
+            {% if role.train_status == 3 %}1分钟内治疗可避免损失，否则损失20%气血！{% endif %}
+            {% if role.train_status == 2 %}治疗后可恢复正常修炼{% endif %}
+        </div>
+        <a href="/jingwutang/training/treat" class="btn btn-success" onclick="return confirm('确定使用内力治疗？')">💊 立即治疗</a>
+    </div>
+</div>
+{% endif %}
+
+{# 修炼状态 #}
+{% if train_progress.is_training and role.train_status == 1 %}
+<div class="section">
+    <div class="section-title">🧘 修炼中...</div>
+    <div class="section-body">
+        <div style="text-align:center; font-size:48px; margin:10px 0;">🧘‍♂️</div>
+        <div class="text-center" style="margin-bottom:10px;">
+            <div class="text-green bold">正在【{{ train_progress.type_name }}】</div>
+            <div style="font-size:12px; color:#666; margin-top:5px;">剩余时间: {{ training_remaining }}</div>
+        </div>
+        <div style="background:#f8faff; border:1px solid #e0e8f4; border-radius:3px; padding:10px; margin:10px 0;">
+            <div class="info-row"><span class="info-label">已修炼</span><span class="info-value">{{ train_progress.elapsed_minutes }} 分钟</span></div>
+            <div class="info-row"><span class="info-label">已获得经验</span><span class="info-value text-green">+{{ train_progress.gained_exp }}</span></div>
+            <div class="info-row"><span class="info-label">已获得技能点</span><span class="info-value text-blue">+{{ train_progress.gained_sp }}</span></div>
+            <div class="info-row"><span class="info-label">已获得G币</span><span class="info-value">+{{ train_progress.gained_gcoin }}</span></div>
+        </div>
+        <div class="text-center">
+            <a href="/jingwutang/training/stop" class="btn btn-danger" onclick="return confirm('确定停止修炼并领取奖励？')">⏹️ 停止修炼并领取</a>
+        </div>
+        <div class="tip text-center mt-5">💡 修炼每分钟获得经验、技能点和G币，最长4小时</div>
+    </div>
+</div>
+{% elif not can_treat %}
+{# 开始修炼 #}
+<div class="section">
+    <div class="section-title">▶️ 开始修炼</div>
+    <div class="section-body">
+        <form method="post" action="/jingwutang/training/start">
+            <div style="margin-bottom:10px;">
+                <label style="display:block; margin-bottom:5px; font-weight:bold;">选择修炼方式：</label>
+                {% for key, tt in training_types.items() %}
+                <div style="padding:8px; margin-bottom:6px; border:1px solid #d0d0d0; border-radius:3px; background:#f8faff;">
+                    <label style="display:flex; align-items:center; cursor:pointer;">
+                        <input type="radio" name="training_type" value="{{ key }}" {% if loop.first %}checked{% endif %} style="margin-right:8px;">
+                        <div>
+                            <div style="font-weight:bold;">{{ tt.name_zh }}</div>
+                            <div style="font-size:12px; color:#666;">
+                                消耗{{ tt.stamina_cost }}体力 | 每分钟+{{ tt.exp_per_min }}经验 +{{ tt.sp_per_min }}技能点 +{{ tt.gcoin_per_min }}G币
+                            </div>
+                        </div>
+                    </label>
+                </div>
+                {% endfor %}
+            </div>
+            <div class="text-center">
+                <button type="submit" class="btn btn-success" style="padding:8px 30px; font-size:15px;"
+                    {% if role.sp < 20 %}disabled{% endif %}>
+                    🧘 开始修炼
+                </button>
+            </div>
+            {% if role.sp < 20 %}
+            <div class="text-center text-red" style="margin-top:8px; font-size:12px;">体力不足（需要至少20点）</div>
+            {% endif %}
+        </form>
+    </div>
+</div>
+{% endif %}
+
+{# 吸星功法 & 骚扰 #}
+{% if friends_training %}
+<div class="section">
+    <div class="section-title">👥 修炼中的好友</div>
+    <div class="section-body">
+        <div style="font-size:12px; color:#666; margin-bottom:8px;">对修炼中的好友使用吸星功法偷取经验，或骚扰他们走火入魔</div>
+        {% for f in friends_training %}
+        <div style="display:flex; justify-content:space-between; align-items:center; padding:8px 0; border-bottom:1px dotted #eee;">
+            <div>
+                <b>{{ f.user.nickname or f.user.username }}</b>
+                <span style="font-size:12px; color:#666;">({{ f.role.name }} Lv.{{ f.role.level }})</span>
+                <div style="font-size:11px; color:#999;">{{ f.progress.type_name }} - {{ f.progress.elapsed_minutes }}分钟</div>
+            </div>
+            <div style="display:flex; gap:4px;">
+                <a href="/jingwutang/training/steal/{{ f.role.id }}" class="btn btn-small" style="background:linear-gradient(180deg,#9b59b6,#8e44ad);border-color:#7d3c98;" onclick="return confirm('对{{ f.user.nickname }}使用吸星功法？(消耗5体力)')">🌀吸星</a>
+                <a href="/jingwutang/training/harass/{{ f.role.id }}" class="btn btn-small btn-danger" onclick="return confirm('骚扰{{ f.user.nickname }}？(消耗8体力)')">👊骚扰</a>
+            </div>
+        </div>
+        {% endfor %}
+    </div>
+</div>
+{% else %}
+<div class="section">
+    <div class="section-title">👥 好友修炼</div>
+    <div class="section-body text-center" style="color:#999; font-size:13px;">
+        暂无好友在修炼中<br>
+        <span style="font-size:12px;">添加更多好友来吸星/骚扰吧！</span>
+    </div>
+</div>
+{% endif %}
+
+{# 闻香炉入口 #}
+<div class="section">
+    <div class="section-body text-center">
+        <a href="/jingwutang/xianglu" class="btn">🏺 闻香炉（恢复体力）</a>
+    </div>
+</div>
+
+<div class="text-center mt-10">
+    <a href="/jingwutang/">« 返回精武堂</a>
+</div>
+{% endblock %}

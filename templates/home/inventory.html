@@ -1,0 +1,107 @@
+{% extends "base_wap.html" %}
+{% block title %}我的背包 - QQ家园{% endblock %}
+
+{% block content %}
+<div class="section">
+    <div class="section-title">🎒 我的背包</div>
+    <div class="section-body">
+        <div class="tab-bar">
+            {% for m in modules %}
+            <a href="/home/inventory?module_key={{ m.key }}" class="tab-item {% if current_module == m.key %}active{% endif %}">
+                {{ m.icon }} {{ m.name }}
+            </a>
+            {% endfor %}
+        </div>
+        
+        <div class="mt-10">
+            <div style="display: flex; justify-content: space-between; font-size: 12px; color: #666; margin-bottom: 8px;">
+                <span>G币: {{ user.wallet.g_coin if user.wallet else 0 }}</span>
+                <span>物品数: {{ items|length }}</span>
+            </div>
+            
+            {% if items %}
+            <div class="grid-3">
+                {% for item in items %}
+                <div class="item-card">
+                    <div class="item-icon">{{ item.icon or '📦' }}</div>
+                    <div class="item-name">{{ item.item_name }}</div>
+                    <div class="item-count">x{{ item.quantity }}</div>
+                    {% if item.quality != 'common' %}
+                    <div class="item-quality quality-{{ item.quality }}">
+                        {% if item.quality == 'rare' %}稀有
+                        {% elif item.quality == 'epic' %}珍贵
+                        {% elif item.quality == 'legendary' %}传说
+                        {% else %}{{ item.quality }}{% endif %}
+                    </div>
+                    {% endif %}
+                </div>
+                {% endfor %}
+            </div>
+            {% else %}
+            <div class="text-gray text-center" style="padding: 30px;">
+                这个分类里还没有物品<br>
+                <a href="/home/shop" style="color: #2a5caa;">去商城看看 »</a>
+            </div>
+            {% endif %}
+        </div>
+        
+        <div class="mt-10" style="text-align: center;">
+            <a href="/home/" class="btn">返回首页</a>
+        </div>
+    </div>
+</div>
+
+<style>
+.tab-bar {
+    display: flex;
+    overflow-x: auto;
+    gap: 5px;
+    padding-bottom: 5px;
+    border-bottom: 1px solid #e0e8f4;
+}
+.tab-item {
+    flex-shrink: 0;
+    padding: 6px 12px;
+    background: #f0f4fa;
+    border-radius: 3px;
+    font-size: 12px;
+    text-decoration: none;
+    color: #666;
+}
+.tab-item.active {
+    background: #2a5caa;
+    color: white;
+}
+.item-card {
+    background: #f8faff;
+    border: 1px solid #e0e8f4;
+    border-radius: 4px;
+    padding: 10px 5px;
+    text-align: center;
+}
+.item-icon {
+    font-size: 28px;
+    margin-bottom: 4px;
+}
+.item-name {
+    font-size: 11px;
+    color: #333;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+}
+.item-count {
+    font-size: 11px;
+    color: #c00;
+    font-weight: bold;
+    margin-top: 2px;
+}
+.item-quality {
+    font-size: 10px;
+    margin-top: 2px;
+}
+.quality-rare { color: #2a5caa; }
+.quality-epic { color: #9c27b0; }
+.quality-legendary { color: #ff9800; }
+</style>
+{% endblock %}

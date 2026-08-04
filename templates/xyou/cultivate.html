@@ -1,0 +1,37 @@
+{% extends "base_wap.html" %}
+
+{% block title %}修炼 · 幻想西游{% endblock %}
+
+{% block breadcrumb %}
+<div class="nav-bar">
+    <a href="/home/">首页</a>
+    <span class="sep">›</span>
+    <a href="/games/xyou">幻想西游</a>
+    <span class="sep">›</span>
+    <span>修炼</span>
+</div>
+{% endblock %}
+
+{% block content %}
+<div class="section">
+    <div class="section-title">🧘 修炼挂机</div>
+    <div class="section-body">
+        <div style="font-size:12px;color:#666;">挂机修炼 {{ max_hours }} 小时，可领取经验与银两收益</div>
+        <div style="font-size:12px;color:#666;margin-top:4px;">
+            收益: 经验+{{ exp_per_hour * max_hours }} · 银两+{{ silver_per_hour * max_hours }}
+        </div>
+        {% if ready %}
+        <div class="text-green" style="margin:10px 0;">✅ 修炼完成，可领取收益！</div>
+        <form method="post" action="/games/xyou/cultivate/claim">
+            <button type="submit" class="btn">领取收益</button>
+        </form>
+        {% elif in_progress %}
+        <div style="font-size:12px;color:#999;margin-top:8px;">修炼进行中，剩余 {{ remain|int // 3600 }} 小时 {{ (remain|int % 3600) // 60 }} 分钟</div>
+        {% else %}
+        <form method="post" action="/games/xyou/cultivate/start" style="margin-top:8px;">
+            <button type="submit" class="btn">开始修炼</button>
+        </form>
+        {% endif %}
+    </div>
+</div>
+{% endblock %}

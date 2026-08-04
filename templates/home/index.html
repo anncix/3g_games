@@ -1,0 +1,272 @@
+{% extends "base_wap.html" %}
+{% block title %}QQ家园 - 首页{% endblock %}
+
+{% block content %}
+<div class="section">
+    <div class="section-title">👤 我的资料</div>
+    <div class="section-body">
+        <div style="display: flex; gap: 10px;">
+            <div class="avatar">{{ user.avatar }}</div>
+            <div style="flex: 1;">
+                <div style="font-weight: bold; font-size: 16px;">
+                    {{ user.nickname or user.username }}
+                    {% if user.family %}<span style="font-size:12px; color:#666;">[{{ user.family.name }}]</span>{% endif %}
+                </div>
+                <div style="font-size: 12px; color: #666; margin-top: 2px;">
+                    Q号: {{ user.qq_number or '100001' }} | 
+                    家园Lv.{{ user.level }}
+                </div>
+                <div style="font-size: 12px; color: #888; margin-top: 2px;">
+                    "{{ user.signature }}"
+                </div>
+            </div>
+        </div>
+        <hr>
+        <div class="info-row">
+            <span class="info-label">💰 G币</span>
+            <span class="info-value">{{ user.wallet.g_coin if user.wallet else 0 }}</span>
+        </div>
+        <div class="info-row">
+            <span class="info-label">💎 元宝</span>
+            <span class="info-value">{{ user.wallet.premium_coin if user.wallet else 0 }}</span>
+        </div>
+        <div class="info-row">
+            <span class="info-label">⭐ 人气</span>
+            <span class="info-value">{{ user.popularity }}</span>
+        </div>
+        <div class="info-row">
+            <span class="info-label">👥 好友</span>
+            <span class="info-value">{{ user.friends|length }}</span>
+        </div>
+        <div style="margin-top: 8px;">
+            <span style="font-size:12px; color:#666;">家园经验</span>
+            <div class="progress-bar mt-5">
+                <div class="progress-fill" style="width: {{ (user.exp / (user.level * 100)) * 100 if user.level * 100 > 0 else 0 }}%"></div>
+            </div>
+            <div style="font-size:11px; color:#999; text-align:right;">{{ user.exp }}/{{ user.level * 100 }}</div>
+        </div>
+        <div class="mt-10" style="text-align: center;">
+            <a href="/home/my" class="btn btn-small">我的家园</a>
+            <a href="/home/profile/{{ user.id }}" class="btn btn-small">查看主页</a>
+            <a href="/home/settings" class="btn btn-small">修改资料</a>
+        </div>
+    </div>
+</div>
+
+<div class="section">
+    <div class="section-title">🎮 游戏大厅</div>
+    <div class="section-body">
+        <div class="grid-3">
+            <a href="/jingwutang" style="text-decoration:none; color:inherit;">
+                <div class="game-card">
+                    <div class="icon">⚔️</div>
+                    <div class="name">精武堂</div>
+                    <div class="desc">
+                        {% if user.jw_role %}
+                        Lv.{{ user.jw_role.level }}
+                        {% else %}
+                        未创建
+                        {% endif %}
+                    </div>
+                </div>
+            </a>
+            <a href="/magic_garden" style="text-decoration:none; color:inherit;">
+                <div class="game-card">
+                    <div class="icon">🌸</div>
+                    <div class="name">魔法花园</div>
+                    <div class="desc">
+                        {% if user.garden %}
+                        Lv.{{ user.garden.garden_level }}
+                        {% else %}
+                        未进入
+                        {% endif %}
+                    </div>
+                </div>
+            </a>
+            <a href="/sunny_farm" style="text-decoration:none; color:inherit;">
+                <div class="game-card">
+                    <div class="icon">🌾</div>
+                    <div class="name">阳光牧场</div>
+                    <div class="desc">
+                        {% if user.farm %}
+                        Lv.{{ user.farm.farm_level }}
+                        {% else %}
+                        未进入
+                        {% endif %}
+                    </div>
+                </div>
+            </a>
+            <a href="/delicious_town" style="text-decoration:none; color:inherit;">
+                <div class="game-card">
+                    <div class="icon">🍳</div>
+                    <div class="name">美味小镇</div>
+                    <div class="desc">
+                        {% if user.town %}
+                        {{ user.town.star_level }}星
+                        {% else %}
+                        未进入
+                        {% endif %}
+                    </div>
+                </div>
+            </a>
+            <a href="/zongheng_sihai" style="text-decoration:none; color:inherit;">
+                <div class="game-card">
+                    <div class="icon">⛵</div>
+                    <div class="name">纵横四海</div>
+                    <div class="desc">
+                        {% if user.sea %}
+                        Lv.{{ user.sea.level }}
+                        {% else %}
+                        未进入
+                        {% endif %}
+                    </div>
+                </div>
+            </a>
+            <a href="/summon_king" style="text-decoration:none; color:inherit;">
+                <div class="game-card">
+                    <div class="icon">🐉</div>
+                    <div class="name">召唤之王</div>
+                    <div class="desc">
+                        {% if user.summon %}
+                        Lv.{{ user.summon.level }}
+                        {% else %}
+                        未进入
+                        {% endif %}
+                    </div>
+                </div>
+            </a>
+        </div>
+        <div style="text-align:center; margin-top:8px;">
+            <a href="/home/gamelobby" style="font-size:12px; color:#2a5caa;">查看全部游戏 »</a>
+        </div>
+    </div>
+</div>
+
+<div class="section">
+    <div class="section-title">📋 快捷入口</div>
+    <div class="section-body">
+        <div class="grid-3" style="margin-bottom: 10px;">
+            <a href="/home/friends" style="text-decoration:none; color:inherit;">
+                <div class="game-card" style="padding: 8px;">
+                    <div class="icon" style="font-size: 24px;">👥</div>
+                    <div class="name" style="font-size: 12px;">好友</div>
+                </div>
+            </a>
+            <a href="/home/gang" style="text-decoration:none; color:inherit;">
+                <div class="game-card" style="padding: 8px;">
+                    <div class="icon" style="font-size: 24px;">🏛️</div>
+                    <div class="name" style="font-size: 12px;">家族</div>
+                </div>
+            </a>
+            <a href="/home/forum" style="text-decoration:none; color:inherit;">
+                <div class="game-card" style="padding: 8px;">
+                    <div class="icon" style="font-size: 24px;">📋</div>
+                    <div class="name" style="font-size: 12px;">论坛</div>
+                </div>
+            </a>
+            <a href="/home/chat" style="text-decoration:none; color:inherit;">
+                <div class="game-card" style="padding: 8px;">
+                    <div class="icon" style="font-size: 24px;">💬</div>
+                    <div class="name" style="font-size: 12px;">聊天室</div>
+                </div>
+            </a>
+            <a href="/home/city" style="text-decoration:none; color:inherit;">
+                <div class="game-card" style="padding: 8px;">
+                    <div class="icon" style="font-size: 24px;">🏙️</div>
+                    <div class="name" style="font-size: 12px;">同城</div>
+                </div>
+            </a>
+            <a href="/home/ranking" style="text-decoration:none; color:inherit;">
+                <div class="game-card" style="padding: 8px;">
+                    <div class="icon" style="font-size: 24px;">🏆</div>
+                    <div class="name" style="font-size: 12px;">排行榜</div>
+                </div>
+            </a>
+        </div>
+        <ul class="link-list">
+            <li><a href="/home/inventory">🎒 我的背包</a></li>
+            <li><a href="/home/shop">🛒 商城</a></li>
+            <li><a href="/home/icons">🏅 图标</a></li>
+            <li><a href="/home/achievements">⭐ 成就</a></li>
+            <li><a href="/home/messages">📨 消息中心{% if unread_count %}<span class="badge">{{ unread_count }}</span>{% endif %}</a></li>
+            {% if friend_request_count %}<li><a href="/home/friends">👋 好友申请 <span class="badge">{{ friend_request_count }}</span></a></li>{% endif %}
+        </ul>
+    </div>
+</div>
+
+{% if announcements %}
+<div class="section">
+    <div class="section-title">📢 系统公告</div>
+    <div class="section-body">
+        {% for a in announcements %}
+        <div class="post-item">
+            <div class="post-title" style="color: #c00;">
+                📣 {{ a.title }}
+            </div>
+            <div class="post-meta" style="color: #666;">{{ a.content[:50] }}{% if a.content|length > 50 %}...{% endif %}</div>
+        </div>
+        {% endfor %}
+    </div>
+</div>
+{% endif %}
+
+<div class="section">
+    <div class="section-title">📢 论坛热帖</div>
+    <div class="section-body">
+        {% if topics %}
+            {% for t in topics[:5] %}
+            <div class="post-item">
+                <div class="post-title">
+                    {% if t.is_pinned %}<span class="text-red">[顶]</span>{% endif %}
+                    {% if t.is_elite %}<span class="text-green">[精]</span>{% endif %}
+                    <a href="/home/forum/post/{{ t.id }}">{{ t.title }}</a>
+                </div>
+                <div class="post-meta">{{ t.user_nickname }} | {{ t.reply_count }}回复</div>
+            </div>
+            {% endfor %}
+        {% else %}
+            <div class="text-gray text-center" style="padding:10px;">暂无帖子</div>
+        {% endif %}
+    </div>
+</div>
+
+<div class="section">
+    <div class="section-title">👀 最近访客</div>
+    <div class="section-body">
+        {% if visitors %}
+            <div style="display: flex; flex-wrap: wrap; gap: 8px;">
+            {% for v in visitors %}
+                <a href="/home/profile/{{ v.visitor_user_id }}" style="text-align:center; text-decoration:none; color:inherit;">
+                    <div style="width:40px; height:40px; background:#e0e8f4; border:1px solid #b8ccea; border-radius:3px; display:flex; align-items:center; justify-content:center; font-size:20px;">👤</div>
+                    <div style="font-size:11px; margin-top:2px; max-width:40px; overflow:hidden; text-overflow:ellipsis; white-space:nowrap;">{{ v.visitor_nickname }}</div>
+                </a>
+            {% endfor %}
+            </div>
+        {% else %}
+            <div class="text-gray text-center" style="padding: 10px;">还没有人来看过你~</div>
+        {% endif %}
+    </div>
+</div>
+
+<div class="section">
+    <div class="section-title">📝 留言板</div>
+    <div class="section-body">
+        {% if guestbook %}
+            {% for entry in guestbook[:5] %}
+            <div class="guestbook-item">
+                <span class="guestbook-author">
+                    <a href="/home/profile/{{ entry.author_user_id }}">{{ entry.author_nickname }}</a>:
+                </span>
+                <div class="guestbook-content">{{ entry.content }}</div>
+                <div class="guestbook-time">{{ entry.created_at.strftime('%m-%d %H:%M') }}</div>
+            </div>
+            {% endfor %}
+            {% if guestbook|length > 5 %}
+            <div class="text-center mt-5"><a href="/home/my">查看全部留言 »</a></div>
+            {% endif %}
+        {% else %}
+            <div class="text-gray text-center" style="padding: 10px;">还没有留言，去好友家串串门吧~</div>
+        {% endif %}
+    </div>
+</div>
+{% endblock %}

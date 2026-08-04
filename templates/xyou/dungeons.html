@@ -1,0 +1,40 @@
+{% extends "base_wap.html" %}
+
+{% block title %}副本 · 幻想西游{% endblock %}
+
+{% block breadcrumb %}
+<div class="nav-bar">
+    <a href="/home/">首页</a>
+    <span class="sep">›</span>
+    <a href="/games/xyou">幻想西游</a>
+    <span class="sep">›</span>
+    <span>副本</span>
+</div>
+{% endblock %}
+
+{% block content %}
+<div class="section">
+    <div class="section-title">🏰 副本挑战</div>
+    <div class="section-body" style="font-size:12px;color:#666;">
+        挑战副本可获得经验与银两，胜利有概率掉落高级装备
+    </div>
+</div>
+{% for d in dungeon_list %}
+<div class="section">
+    <div class="section-title">🏰 {{ d.name }} <span class="badge">{{ d.difficulty }}</span></div>
+    <div class="section-body">
+        <div style="font-size:12px;color:#666;">所在 {{ scenes.get(d.scene, d.scene) }}</div>
+        <div style="font-size:12px;color:#666;margin-top:2px;">
+            等级 {{ d.level_min }}-{{ d.level_max }} · 经验+{{ d.reward_exp }} · 银两+{{ d.reward_silver }} · 掉落{{ d.drop_quality }}装
+        </div>
+        {% if st.level >= d.level_min %}
+        <form method="post" action="/games/xyou/dungeon/{{ d.key }}" style="margin-top:6px;">
+            <button type="submit" class="btn btn-small">挑战</button>
+        </form>
+        {% else %}
+        <div style="font-size:12px;color:#999;margin-top:4px;">等级不足 (需 {{ d.level_min }} 级)</div>
+        {% endif %}
+    </div>
+</div>
+{% endfor %}
+{% endblock %}

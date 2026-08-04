@@ -1,0 +1,236 @@
+{% extends "base_wap.html" %}
+
+{% block title %}海战 - 纵横四海{% endblock %}
+
+{% block extra_css %}
+<style>
+    .battle-arena {
+        background: linear-gradient(180deg, #87ceeb 0%, #4a90d9 50%, #1a5dc7 100%);
+        border-radius: 5px;
+        padding: 20px;
+        color: white;
+        text-align: center;
+        margin-bottom: 10px;
+    }
+    .ship-icon {
+        font-size: 48px;
+        display: inline-block;
+        animation: rock 3s ease-in-out infinite;
+    }
+    @keyframes rock {
+        0%, 100% { transform: rotate(-3deg); }
+        50% { transform: rotate(3deg); }
+    }
+    .enemy-icon {
+        font-size: 48px;
+        display: inline-block;
+        animation: rock 2s ease-in-out infinite reverse;
+    }
+    .hp-bar-battle {
+        height: 12px;
+        background: rgba(0,0,0,0.3);
+        border-radius: 6px;
+        overflow: hidden;
+        margin-top: 5px;
+        border: 1px solid rgba(255,255,255,0.3);
+    }
+    .hp-fill-player {
+        height: 100%;
+        background: linear-gradient(90deg, #4ae84a 0%, #6afa6a 100%);
+        border-radius: 6px;
+        transition: width 0.5s;
+    }
+    .hp-fill-enemy {
+        height: 100%;
+        background: linear-gradient(90deg, #e84a4a 0%, #fa6a6a 100%);
+        border-radius: 6px;
+        transition: width 0.5s;
+    }
+    .vs-text {
+        font-size: 32px;
+        font-weight: bold;
+        text-shadow: 2px 2px 4px rgba(0,0,0,0.5);
+    }
+    .battle-log-box {
+        background: #f5f5f5;
+        border: 1px solid #ddd;
+        border-radius: 3px;
+        padding: 10px;
+        font-size: 12px;
+        max-height: 300px;
+        overflow-y: auto;
+        line-height: 1.8;
+    }
+    .battle-log-box .win-text { color: #3ac840; font-weight: bold; font-size:14px; }
+    .battle-log-box .lose-text { color: #e8403a; font-weight: bold; font-size:14px; }
+    .enemy-select {
+        display: grid;
+        grid-template-columns: 1fr 1fr;
+        gap: 8px;
+        margin-bottom: 10px;
+    }
+    .enemy-card {
+        border: 2px solid #b8ccea;
+        border-radius: 5px;
+        padding: 12px;
+        text-align: center;
+        background: linear-gradient(180deg, #f8faff 0%, #eef3fa 100%);
+        text-decoration: none;
+        color: inherit;
+    }
+    .enemy-card:hover { border-color: #4a86e8; }
+    .enemy-card .emoji { font-size: 36px; }
+    .enemy-card .name { font-weight: bold; color: #1a5dc7; margin-top: 4px; }
+</style>
+{% endblock %}
+
+{% block breadcrumb %}
+<div class="nav-bar">
+    <a href="/home/">首页</a>
+    <span class="sep">›</span>
+    <a href="/home/gamelobby">游戏大厅</a>
+    <span class="sep">›</span>
+    <a href="/zongheng_sihai">纵横四海</a>
+    <span class="sep">›</span>
+    <span>海战</span>
+</div>
+{% endblock %}
+
+{% block content %}
+
+{% if error %}
+<div class="notice" style="background:#fff0f0; border-color:#e8403a; color:#a8302a;">{{ error }}</div>
+{% endif %}
+
+{# 战斗结果显示 #}
+{% if result is defined %}
+<div class="battle-arena">
+    <div style="display:grid; grid-template-columns:1fr auto 1fr; gap:10px; align-items:center;">
+        <div>
+            <div class="ship-icon">⛵</div>
+            <div style="font-weight:bold; margin-top:5px;">{{ sea.ship_name }}</div>
+            <div style="font-size:12px;">Lv.{{ sea.level }}</div>
+            <div class="hp-bar-battle">
+                <div class="hp-fill-player" style="width: {{ (sea.ship_hp / sea.ship_max_hp * 100) if sea.ship_max_hp else 100 }}%;"></div>
+            </div>
+            <div style="font-size:11px; margin-top:2px;">{{ sea.ship_hp }}/{{ sea.ship_max_hp }}</div>
+        </div>
+        <div class="vs-text">VS</div>
+        <div>
+            <div class="enemy-icon">
+                {% if enemy_type == 'pirate' %}🏴‍☠️{% else %}🐙{% endif %}
+            </div>
+            <div style="font-weight:bold; margin-top:5px;">{{ result.enemy_name }}</div>
+            <div style="font-size:12px;">Lv.{{ result.enemy_level }}</div>
+        </div>
+    </div>
+</div>
+
+<div class="section">
+    <div class="section-title">📜 战斗结果</div>
+    <div class="section-body">
+        <div style="text-align:center; margin-bottom:10px;">
+            <span style="font-size:48px;">{% if result.win %}🏆{% else %}💀{% endif %}</span>
+            <div class="{% if result.win %}win-text{% else %}lose-text{% endif %}">
+                {{ '战斗胜利！' if result.win else '战斗失败！' }}
+            </div>
+            {% if result.win %}
+            <div style="font-size:13px; margin-top:5px;">
+                获得 <span style="color:#d0a020; font-weight:bold;">{{ result.silver }} 银两</span>，
+                <span style="color:#1a5dc7; font-weight:bold;">{{ result.exp }} 经验</span>
+            </div>
+            {% else %}
+            <div style="font-size:13px; margin-top:5px; color:#e8403a;">
+                损失 {{ -result.silver }} 银两，船只受损
+            </div>
+            {% endif %}
+        </div>
+
+        <div class="battle-log-box">
+            {% for line in result.log %}
+            <div>{{ line }}</div>
+            {% endfor %}
+        </div>
+    </div>
+</div>
+
+<div class="text-center" style="margin-top:10px; display:grid; grid-template-columns:1fr 1fr 1fr; gap:8px;">
+    <a href="/zongheng_sihai/battle/fight?enemy_type=pirate&enemy_level={{ sea.level }}" class="btn btn-small">再战海盗</a>
+    <a href="/zongheng_sihai/battle/fight?enemy_type=monster&enemy_level={{ sea.level }}" class="btn btn-small">挑战海怪</a>
+    <a href="/zongheng_sihai" class="btn btn-small">返回</a>
+</div>
+
+{# 战斗前选择敌人 #}
+{% elif enemy_name is defined %}
+<div class="battle-arena">
+    <div style="display:grid; grid-template-columns:1fr auto 1fr; gap:10px; align-items:center;">
+        <div>
+            <div class="ship-icon">⛵</div>
+            <div style="font-weight:bold; margin-top:5px;">{{ sea.ship_name }}</div>
+            <div style="font-size:12px;">Lv.{{ sea.level }}</div>
+            <div class="hp-bar-battle">
+                <div class="hp-fill-player" style="width: {{ (stats.hp / stats.max_hp * 100) if stats.max_hp else 100 }}%;"></div>
+            </div>
+            <div style="font-size:11px; margin-top:2px;">{{ stats.hp }}/{{ stats.max_hp }}</div>
+            <div style="font-size:11px;">⚔️{{ stats.atk }} 🛡️{{ stats.def }}</div>
+        </div>
+        <div class="vs-text">VS</div>
+        <div>
+            <div class="enemy-icon">
+                {% if enemy_type == 'pirate' %}🏴‍☠️{% else %}🐙{% endif %}
+            </div>
+            <div style="font-weight:bold; margin-top:5px;">{{ enemy_name }}</div>
+            <div style="font-size:12px;">Lv.{{ enemy_level }}</div>
+        </div>
+    </div>
+</div>
+
+<div class="section">
+    <div class="section-body text-center">
+        <p style="margin-bottom:10px; font-size:13px;">你遭遇了{{ enemy_name }}！准备战斗！</p>
+        <p style="font-size:12px; color:#999; margin-bottom:10px;">消耗10点体力</p>
+        <a href="/zongheng_sihai/battle/fight?enemy_type={{ enemy_type }}&enemy_level={{ enemy_level }}" class="btn"
+           onclick="this.innerHTML='⚔️ 战斗中...'; this.style.pointerEvents='none';">⚔️ 开始战斗</a>
+    </div>
+</div>
+
+<div class="text-center mt-10">
+    <a href="/zongheng_sihai/battle">« 重新选择对手</a>
+</div>
+
+{# 选择敌人页面 #}
+{% else %}
+<div class="section">
+    <div class="section-title">⚔️ 选择战斗目标</div>
+    <div class="section-body">
+        <div style="background:#f0f4fa; border-radius:3px; padding:8px; margin-bottom:10px; font-size:12px;">
+            <div>⚔️ 攻击: {{ stats.atk }} | 🛡️ 防御: {{ stats.def }} | ❤️ 生命: {{ stats.hp }}/{{ stats.max_hp }}</div>
+            <div>⚡ 体力: {{ sea.power }}/{{ sea.max_power }} (每次战斗消耗10体力)</div>
+        </div>
+
+        <div class="enemy-select">
+            <a href="/zongheng_sihai/battle?enemy_type=pirate" class="enemy-card">
+                <div class="emoji">🏴‍☠️</div>
+                <div class="name">海盗</div>
+                <div style="font-size:11px; color:#666;">等级附近的海盗</div>
+                <div style="font-size:11px; color:#d0a020;">💰 银两奖励</div>
+            </a>
+            <a href="/zongheng_sihai/battle?enemy_type=monster" class="enemy-card">
+                <div class="emoji">🐙</div>
+                <div class="name">海怪</div>
+                <div style="font-size:11px; color:#666;">深海中的怪物</div>
+                <div style="font-size:11px; color:#1a5dc7;">⭐ 经验奖励高</div>
+            </a>
+        </div>
+    </div>
+</div>
+
+<div class="notice">
+    💡 提示：战斗中可能触发暴击和闪避。提升装备可以增强战斗力！
+</div>
+{% endif %}
+
+<div class="text-center mt-10">
+    <a href="/zongheng_sihai">« 返回首页</a>
+</div>
+{% endblock %}

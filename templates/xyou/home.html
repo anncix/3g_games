@@ -1,0 +1,145 @@
+{% extends "base_wap.html" %}
+
+{% block title %}幻想西游{% endblock %}
+
+{% block breadcrumb %}
+<div class="nav-bar">
+    <a href="/home/">首页</a>
+    <span class="sep">›</span>
+    <a href="/home/gamelobby">游戏大厅</a>
+    <span class="sep">›</span>
+    <span>幻想西游</span>
+</div>
+{% endblock %}
+
+{% block extra_css %}
+<style>
+    .xy-header{background:linear-gradient(180deg,#3a1a5a 0%,#6a2a8a 100%);color:#ffe;padding:12px 10px;position:relative;overflow:hidden;}
+    .xy-header::after{content:"";position:absolute;right:-20px;top:-20px;width:100px;height:100px;background:rgba(255,255,255,0.08);border-radius:50%;}
+    .xy-char-info{display:flex;align-items:center;}
+    .xy-avatar{width:60px;height:60px;border-radius:50%;background:#ffd9b0;color:#6a2a8a;font-size:30px;display:flex;align-items:center;justify-content:center;border:3px solid rgba(255,255,255,0.3);margin-right:10px;flex-shrink:0;}
+    .xy-name{font-size:16px;font-weight:bold;}
+    .xy-badge{display:inline-block;background:rgba(255,255,255,0.2);padding:1px 6px;border-radius:2px;font-size:11px;margin-left:4px;}
+    .xy-stats-bar{display:flex;justify-content:space-around;background:rgba(0,0,0,0.15);border-radius:5px;padding:8px 5px;margin-top:10px;font-size:11px;}
+    .xy-stat-item{text-align:center;flex:1;}
+    .xy-stat-val{font-size:14px;font-weight:bold;color:#fff;}
+    .xy-stat-label{opacity:0.85;margin-top:1px;}
+    .xy-menu{display:grid;grid-template-columns:repeat(4,1fr);gap:8px;padding:10px;}
+    .xy-menu-item{background:#fff;border:1px solid #e0e8f4;border-radius:5px;padding:10px 4px;text-align:center;text-decoration:none;color:#333;transition:all 0.15s;}
+    .xy-menu-item:active{background:#f0f4fa;transform:scale(0.95);}
+    .xy-menu-icon{font-size:28px;margin-bottom:3px;}
+    .xy-menu-name{font-size:12px;color:#333;}
+</style>
+{% endblock %}
+
+{% block content %}
+{% if need_create %}
+<div class="section">
+    <div class="section-title">⛩️ 创建角色</div>
+    <div class="section-body">
+        <div class="text-center" style="margin-bottom:15px;">
+            <div style="font-size:48px;">🐒</div>
+            <div style="font-weight:bold; color:#6a2a8a; margin-top:5px;">欢迎来到幻想西游</div>
+            <div style="font-size:12px; color:#666; margin-top:4px;">选择你的门派，踏上西行取经之路</div>
+        </div>
+        <div class="text-center">
+            <a href="/games/xyou/create" class="btn" style="padding:8px 30px;">⛩️ 选择门派</a>
+        </div>
+    </div>
+</div>
+{% else %}
+<div class="xy-header">
+    <div class="xy-char-info">
+        <div class="xy-avatar">🐒</div>
+        <div>
+            <div class="xy-name">{{ sect_name }}<span class="xy-badge">{{ st.sect_key }}</span></div>
+            <div style="font-size:12px;opacity:0.9;margin-top:2px;">Lv.{{ st.level }} · 当前 {{ scene_name }}</div>
+            <div style="font-size:12px;margin-top:2px;color:#ffd700;font-weight:bold;">⚔️ 战力 {{ power }}</div>
+        </div>
+    </div>
+    <div class="xy-stats-bar">
+        <div class="xy-stat-item">
+            <div class="xy-stat-val">{{ st.hp }}</div>
+            <div class="xy-stat-label">❤️ 气血</div>
+        </div>
+        <div class="xy-stat-item">
+            <div class="xy-stat-val">{{ st.mp }}</div>
+            <div class="xy-stat-label">💧 法力</div>
+        </div>
+        <div class="xy-stat-item">
+            <div class="xy-stat-val">{{ st.atk }}</div>
+            <div class="xy-stat-label">⚔️ 攻击</div>
+        </div>
+        <div class="xy-stat-item">
+            <div class="xy-stat-val">{{ st.defense }}</div>
+            <div class="xy-stat-label">🛡️ 防御</div>
+        </div>
+    </div>
+    <div style="margin-top:8px; font-size:11px; text-align:center; opacity:0.85;">
+        EXP: {{ st.exp }}/{{ exp_need }} · 银两: {{ silver }}
+    </div>
+</div>
+
+{# 待办提示 #}
+{% if todo %}
+<div class="notice">
+    {% for text, btntext, href in todo %}
+    <div style="margin-bottom:4px;">💡 {{ text }} <a href="{{ href }}" class="btn btn-small">{{ btntext }}</a></div>
+    {% endfor %}
+</div>
+{% endif %}
+
+{# 主功能菜单 #}
+<div class="section" style="margin-top:8px;">
+    <div class="xy-menu">
+        <a href="/games/xyou/scenes" class="xy-menu-item">
+            <div class="xy-menu-icon">🗺️</div>
+            <div class="xy-menu-name">世界地图</div>
+        </a>
+        <a href="/games/xyou/skills" class="xy-menu-item">
+            <div class="xy-menu-icon">📖</div>
+            <div class="xy-menu-name">技能</div>
+        </a>
+        <a href="/games/xyou/equip" class="xy-menu-item">
+            <div class="xy-menu-icon">🗡️</div>
+            <div class="xy-menu-name">装备</div>
+        </a>
+        <a href="/games/xyou/dungeons" class="xy-menu-item">
+            <div class="xy-menu-icon">🏰</div>
+            <div class="xy-menu-name">副本</div>
+        </a>
+        <a href="/games/xyou/cultivate" class="xy-menu-item">
+            <div class="xy-menu-icon">🧘</div>
+            <div class="xy-menu-name">修炼</div>
+        </a>
+        <a href="/games/xyou/pet" class="xy-menu-item">
+            <div class="xy-menu-icon">🐾</div>
+            <div class="xy-menu-name">宠物</div>
+        </a>
+        <a href="/games/xyou/medicines" class="xy-menu-item">
+            <div class="xy-menu-icon">💊</div>
+            <div class="xy-menu-name">药品</div>
+        </a>
+        <a href="/games/xyou/promote" class="xy-menu-item">
+            <div class="xy-menu-icon">🏅</div>
+            <div class="xy-menu-name">转职</div>
+        </a>
+    </div>
+</div>
+
+{# 属性详情 #}
+<div class="section">
+    <div class="section-title">📊 角色属性</div>
+    <div class="section-body">
+        <div class="info-row"><span class="info-label">❤️ 气血</span><span class="info-value">{{ st.hp }}</span></div>
+        <div class="info-row"><span class="info-label">💧 法力</span><span class="info-value">{{ st.mp }}</span></div>
+        <div class="info-row"><span class="info-label">⚔️ 攻击</span><span class="info-value text-red">{{ st.atk }}</span></div>
+        <div class="info-row"><span class="info-label">🛡️ 防御</span><span class="info-value text-blue">{{ st.defense }}</span></div>
+        <div class="info-row"><span class="info-label">💨 速度</span><span class="info-value text-green">{{ st.speed }}</span></div>
+        <div class="info-row"><span class="info-label">✨ 灵力</span><span class="info-value text-blue">{{ st.lingli }}</span></div>
+        <div class="info-row"><span class="info-label">🏅 声望</span><span class="info-value text-blue">{{ st.shengwang }}</span></div>
+        <div class="info-row"><span class="info-label">💵 银两</span><span class="info-value text-blue">{{ silver }}</span></div>
+    </div>
+</div>
+{% endif %}
+{% endblock %}

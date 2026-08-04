@@ -1,0 +1,137 @@
+{% extends "base_wap.html" %}
+{% block title %}背包商店 - 召唤之王{% endblock %}
+{% block breadcrumb %}
+<div class="nav-bar">
+    <a href="/home/gamelobby">游戏大厅</a>
+    <span class="sep">›</span>
+    <a href="/summon_king">召唤之王</a>
+    <span class="sep">›</span> 背包商店
+</div>
+{% endblock %}
+{% block content %}
+<div class="section">
+    <div class="section-title">🎒 召唤师资产</div>
+    <div class="section-body">
+        <div class="info-row">
+            <span class="info-label">🪙 铜币</span>
+            <span class="info-value" style="color:#daa520;">{{ profile.copper_coin }}</span>
+        </div>
+        <div class="info-row">
+            <span class="info-label">💰 元宝</span>
+            <span class="info-value" style="color:#ffd700;">{{ profile.yuanbao }}</span>
+        </div>
+        <div class="info-row">
+            <span class="info-label">❤️ 体力</span>
+            <span class="info-value text-green">{{ profile.vitality }}/{{ profile.max_vitality }}</span>
+        </div>
+        <div class="info-row">
+            <span class="info-label">🏆 声望</span>
+            <span class="info-value text-blue">{{ profile.prestige }}</span>
+        </div>
+    </div>
+</div>
+
+<div class="section">
+    <div class="section-title">⚪ 捕捉球</div>
+    <div class="section-body">
+        <div class="info-row">
+            <span class="info-label">⚪ 普球</span>
+            <span class="info-value">{{ profile.catch_ball_normal }}个</span>
+        </div>
+        <div class="info-row">
+            <span class="info-label">🔵 强力球</span>
+            <span class="info-value">{{ profile.catch_ball_strong }}个</span>
+        </div>
+        <div class="info-row">
+            <span class="info-label">🟣 超级球</span>
+            <span class="info-value">{{ profile.catch_ball_super }}个</span>
+        </div>
+        <hr>
+        <p class="tip">购买捕捉球：</p>
+        <div class="text-center mt-5">
+            <form method="post" action="/summon_king/buy_balls" style="display:inline; margin:2px;">
+                <input type="hidden" name="ball_type" value="normal">
+                <input type="hidden" name="count" value="10">
+                <button type="submit" class="btn btn-small" style="border:none; cursor:pointer;">买10普球(500铜)</button>
+            </form>
+            <form method="post" action="/summon_king/buy_balls" style="display:inline; margin:2px;">
+                <input type="hidden" name="ball_type" value="strong">
+                <input type="hidden" name="count" value="5">
+                <button type="submit" class="btn btn-small" style="border:none; cursor:pointer;">买5强力球(1000铜)</button>
+            </form>
+            <form method="post" action="/summon_king/buy_balls" style="display:inline; margin:2px;">
+                <input type="hidden" name="ball_type" value="super">
+                <input type="hidden" name="count" value="1">
+                <button type="submit" class="btn btn-small" style="border:none; cursor:pointer;">买1超级球(1000铜)</button>
+            </form>
+        </div>
+        <p class="tip text-center mt-5">普球50铜/个，强力球200铜/个，超级球1000铜/个</p>
+    </div>
+</div>
+
+<div class="section">
+    <div class="section-title">💊 治疗中心</div>
+    <div class="section-body">
+        <p class="tip">治疗所有幻兽，恢复全部HP。治疗费用=缺失HP/2（最低10铜币/只）。</p>
+        <div class="text-center mt-10">
+            <form method="post" action="/summon_king/heal" style="display:inline;">
+                <button type="submit" class="btn btn-success" style="border:none; cursor:pointer;">
+                    ❤️ 一键治疗所有幻兽
+                </button>
+            </form>
+        </div>
+    </div>
+</div>
+
+<div class="section">
+    <div class="section-title">📦 其他道具</div>
+    <div class="section-body">
+        {% if balls or potions or materials or other_items %}
+        {% for item in balls %}
+        <div class="info-row">
+            <span class="info-label">{{ item.icon }} {{ item.item_name }}</span>
+            <span class="info-value">x{{ item.quantity }}</span>
+        </div>
+        {% endfor %}
+        {% for item in potions %}
+        <div class="info-row">
+            <span class="info-label">{{ item.icon }} {{ item.item_name }}</span>
+            <span class="info-value">x{{ item.quantity }}</span>
+        </div>
+        {% endfor %}
+        {% for item in materials %}
+        <div class="info-row">
+            <span class="info-label">{{ item.icon }} {{ item.item_name }}</span>
+            <span class="info-value">x{{ item.quantity }}</span>
+        </div>
+        {% endfor %}
+        {% for item in other_items %}
+        <div class="info-row">
+            <span class="info-label">{{ item.icon }} {{ item.item_name }}</span>
+            <span class="info-value">x{{ item.quantity }}</span>
+        </div>
+        {% endfor %}
+        {% else %}
+        <p class="text-gray text-center">暂无其他道具</p>
+        {% endif %}
+    </div>
+</div>
+
+<div class="section">
+    <div class="section-title">💡 游戏提示</div>
+    <div class="section-body">
+        <ul class="link-list">
+            <li>去<a href="/summon_king/maps">地图探索</a>遇怪并捕捉幻兽</li>
+            <li>在<a href="/summon_king/beasts">幻兽列表</a>训练升级幻兽</li>
+            <li>强化<a href="/summon_king/bones">战骨</a>和猎取<a href="/summon_king/souls">魔魂</a>提升实力</li>
+            <li>在<a href="/summon_king/arena">擂台</a>挑战其他玩家赢取声望</li>
+            <li>加入或创建<a href="/summon_king/alliance">联盟</a>获得更多福利</li>
+            <li>体力每3分钟恢复1点，也可以通过元宝购买体力药水</li>
+        </ul>
+    </div>
+</div>
+
+<div class="text-center mt-10">
+    <a href="/summon_king" class="btn btn-small">← 返回首页</a>
+</div>
+{% endblock %}

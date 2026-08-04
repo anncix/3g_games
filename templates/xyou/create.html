@@ -1,0 +1,49 @@
+{% extends "base_wap.html" %}
+
+{% block title %}创建角色 · 幻想西游{% endblock %}
+
+{% block breadcrumb %}
+<div class="nav-bar">
+    <a href="/home/">首页</a>
+    <span class="sep">›</span>
+    <a href="/games/xyou">幻想西游</a>
+    <span class="sep">›</span>
+    <span>选择门派</span>
+</div>
+{% endblock %}
+
+{% block content %}
+<div class="section">
+    <div class="section-title">⛩️ 选择门派</div>
+    <div class="section-body">
+        <form method="post" action="/games/xyou/create">
+            {% for key, name, role, core, desc in sects %}
+            <div style="border:1px solid #e0e8f4;border-radius:3px;padding:8px;margin-bottom:8px;">
+                <label style="display:flex;align-items:flex-start;cursor:pointer;">
+                    <input type="radio" name="sect_key" value="{{ key }}" style="width:auto;margin-right:8px;margin-top:2px;">
+                    <span>
+                        <b>{{ name }}</b> <span style="font-size:11px;color:#666;">{{ role }}</span><br>
+                        <span style="font-size:12px;color:#666;">{{ desc }}</span>
+                    </span>
+                </label>
+            </div>
+            {% endfor %}
+            <div class="form-group">
+                <label>初始属性（1 级裸装）</label>
+                <div style="font-size:12px;color:#666;">
+                    {% for key, name, role, core, desc in sects %}
+                    <div style="margin-bottom:2px;">
+                        <b>{{ name }}</b>：
+                        {% set a = base_attrs.get(key, {}) %}
+                        气血 {{ a.get('hp', 0) }} · 法力 {{ a.get('mp', 0) }} · 攻击 {{ a.get('atk', 0) }} · 防御 {{ a.get('defense', 0) }} · 速度 {{ a.get('speed', 0) }} · 灵力 {{ a.get('lingli', 0) }}
+                    </div>
+                    {% endfor %}
+                </div>
+            </div>
+            <div class="text-center">
+                <button type="submit" class="btn" style="padding:8px 30px;">⛩️ 拜入师门</button>
+            </div>
+        </form>
+    </div>
+</div>
+{% endblock %}

@@ -1,0 +1,248 @@
+{% extends "base_wap.html" %}
+
+{% block title %}精武堂{% endblock %}
+
+{% block breadcrumb %}
+<div class="nav-bar">
+    <a href="/home/">首页</a>
+    <span class="sep">›</span>
+    <a href="/home/gamelobby">游戏大厅</a>
+    <span class="sep">›</span>
+    <span>精武堂</span>
+</div>
+{% endblock %}
+
+{% block extra_head %}
+<style>
+    .jw-header{background:linear-gradient(180deg,#1a5dc7 0%,#2d7dd2 100%);color:#fff;padding:12px 10px;border-radius:0;position:relative;overflow:hidden;}
+    .jw-header::after{content:"";position:absolute;right:-20px;top:-20px;width:100px;height:100px;background:rgba(255,255,255,0.08);border-radius:50%;}
+    .jw-char-info{display:flex;align-items:center;}
+    .jw-avatar{width:60px;height:60px;border-radius:50%;background:#fff;color:#1a5dc7;font-size:30px;display:flex;align-items:center;justify-content:center;border:3px solid rgba(255,255,255,0.3);margin-right:10px;flex-shrink:0;}
+    .jw-name{font-size:16px;font-weight:bold;}
+    .jw-title{display:inline-block;background:rgba(255,255,255,0.2);padding:1px 6px;border-radius:2px;font-size:11px;margin-left:4px;}
+    .jw-level{font-size:12px;opacity:0.9;margin-top:2px;}
+    .jw-cp{font-size:12px;margin-top:2px;color:#ffd700;font-weight:bold;}
+    .jw-stats-bar{display:flex;justify-content:space-around;background:rgba(0,0,0,0.15);border-radius:5px;padding:8px 5px;margin-top:10px;font-size:11px;}
+    .jw-stat-item{text-align:center;flex:1;}
+    .jw-stat-val{font-size:14px;font-weight:bold;color:#fff;}
+    .jw-stat-label{opacity:0.85;margin-top:1px;}
+    .jw-progress{height:4px;background:rgba(0,0,0,0.2);border-radius:2px;margin-top:3px;overflow:hidden;}
+    .jw-progress-fill{height:100%;background:#fff;border-radius:2px;}
+
+    .jw-menu{display:grid;grid-template-columns:repeat(4,1fr);gap:8px;padding:10px;}
+    .jw-menu-item{background:#fff;border:1px solid #e0e8f4;border-radius:5px;padding:10px 4px;text-align:center;text-decoration:none;color:#333;transition:all 0.15s;}
+    .jw-menu-item:active{background:#f0f4fa;transform:scale(0.95);}
+    .jw-menu-icon{font-size:28px;margin-bottom:3px;}
+    .jw-menu-name{font-size:12px;color:#333;}
+    .jw-menu-red{position:absolute;top:2px;right:4px;background:#e8403a;color:#fff;font-size:9px;padding:0 3px;border-radius:6px;min-width:12px;text-align:center;}
+    .jw-menu-wrap{position:relative;}
+</style>
+{% endblock %}
+
+{% block content %}
+
+{# 创建角色 #}
+{% if not role %}
+<div class="section">
+    <div class="section-title">⚔️ 创建角色</div>
+    <div class="section-body">
+        <div class="text-center" style="margin-bottom:15px;">
+            <div style="font-size:48px;">🥋</div>
+            <div style="font-weight:bold; color:#1a5dc7; margin-top:5px;">欢迎来到精武堂</div>
+            <div style="font-size:12px; color:#666; margin-top:4px;">输入你的武侠名号，开始武林传奇</div>
+        </div>
+        <form method="post" action="/jingwutang/create">
+            <div class="form-group">
+                <label>角色名称</label>
+                <input type="text" name="name" maxlength="8" required placeholder="输入角色名（2-8字）">
+            </div>
+            <div class="text-center">
+                <button type="submit" class="btn btn-primary" style="padding:8px 30px;">⚔️ 踏入江湖</button>
+            </div>
+        </form>
+    </div>
+</div>
+{% else %}
+{# 角色头部 #}
+<div class="jw-header">
+    <div class="jw-char-info">
+        <div class="jw-avatar">🥋</div>
+        <div>
+            <div class="jw-name">{{ role.name }}<span class="jw-title">{{ title }}</span></div>
+            <div class="jw-level">Lv.{{ role.level }}</div>
+            <div class="jw-cp">⚔️ 战力 {{ combat_power }}</div>
+        </div>
+    </div>
+    <div class="jw-stats-bar">
+        <div class="jw-stat-item">
+            <div class="jw-stat-val">{{ role.hp }}/{{ stats.max_hp }}</div>
+            <div class="jw-stat-label">❤️ 气血</div>
+            <div class="jw-progress"><div class="jw-progress-fill" style="width:{{ (role.hp / stats.max_hp * 100)|round|int }}%;"></div></div>
+        </div>
+        <div class="jw-stat-item">
+            <div class="jw-stat-val">{{ role.mp }}/{{ stats.max_mp }}</div>
+            <div class="jw-stat-label">💧 精气</div>
+            <div class="jw-progress"><div class="jw-progress-fill" style="width:{{ (role.mp / stats.max_mp * 100)|round|int }}%;background:#4ea6ff;"></div></div>
+        </div>
+        <div class="jw-stat-item">
+            <div class="jw-stat-val">{{ role.sp }}/{{ role.max_sp }}</div>
+            <div class="jw-stat-label">⚡ 体力</div>
+            <div class="jw-progress"><div class="jw-progress-fill" style="width:{{ (role.sp / role.max_sp * 100)|round|int }}%;background:#ffd700;"></div></div>
+        </div>
+    </div>
+    <div style="margin-top:8px; font-size:11px; text-align:center; opacity:0.85;">
+        EXP: {{ role.exp }}/{{ next_exp }}
+        {% if role.train_status == 1 %}<span style="margin-left:8px;">🧘修炼中</span>{% endif %}
+        {% if role.train_status in [2,3] %}<span style="margin-left:8px; color:#ffcccb;">⚠️异常</span>{% endif %}
+    </div>
+</div>
+
+{# 主功能菜单 #}
+<div class="section" style="margin-top:8px;">
+    <div class="jw-menu">
+        <a href="/jingwutang/training" class="jw-menu-item jw-menu-wrap">
+            {% if role.train_status == 1 %}<span class="jw-menu-red">修</span>{% elif role.train_status in [2,3] %}<span class="jw-menu-red">!</span>{% endif %}
+            <div class="jw-menu-icon">🧘</div>
+            <div class="jw-menu-name">修炼</div>
+        </a>
+        <a href="/jingwutang/arena" class="jw-menu-item jw-menu-wrap">
+            <div class="jw-menu-icon">⚔️</div>
+            <div class="jw-menu-name">比武</div>
+        </a>
+        <a href="/jingwutang/skills" class="jw-menu-item">
+            <div class="jw-menu-icon">📖</div>
+            <div class="jw-menu-name">技能</div>
+        </a>
+        <a href="/jingwutang/add_point" class="jw-menu-item jw-menu-wrap">
+            {% if role.potential > 0 %}<span class="jw-menu-red">{{ role.potential }}</span>{% endif %}
+            <div class="jw-menu-icon">📊</div>
+            <div class="jw-menu-name">加点</div>
+        </a>
+        <a href="/jingwutang/equipment" class="jw-menu-item">
+            <div class="jw-menu-icon">🗡️</div>
+            <div class="jw-menu-name">装备</div>
+        </a>
+        <a href="/jingwutang/pet" class="jw-menu-item">
+            <div class="jw-menu-icon">🐾</div>
+            <div class="jw-menu-name">宠物</div>
+        </a>
+        <a href="/jingwutang/gang" class="jw-menu-item jw-menu-wrap">
+            {% if not role.gang_id %}<span class="jw-menu-red">!</span>{% endif %}
+            <div class="jw-menu-icon">🏯</div>
+            <div class="jw-menu-name">帮派</div>
+        </a>
+        <a href="/jingwutang/talisman" class="jw-menu-item">
+            <div class="jw-menu-icon">🔮</div>
+            <div class="jw-menu-name">法宝</div>
+        </a>
+        <a href="/jingwutang/wuhun" class="jw-menu-item">
+            <div class="jw-menu-icon">👻</div>
+            <div class="jw-menu-name">武魂</div>
+        </a>
+        <a href="/jingwutang/shop" class="jw-menu-item">
+            <div class="jw-menu-icon">🏪</div>
+            <div class="jw-menu-name">商城</div>
+        </a>
+        <a href="/jingwutang/xianglu" class="jw-menu-item">
+            <div class="jw-menu-icon">🏺</div>
+            <div class="jw-menu-name">香炉</div>
+        </a>
+        <a href="/jingwutang/rank" class="jw-menu-item">
+            <div class="jw-menu-icon">🏆</div>
+            <div class="jw-menu-name">排行</div>
+        </a>
+    </div>
+</div>
+
+{# 属性详情 #}
+<div class="section">
+    <div class="section-title">📊 角色属性</div>
+    <div class="section-body">
+        <div class="info-row"><span class="info-label">❤️ 气血</span><span class="info-value">{{ role.hp }}/{{ stats.max_hp }}</span></div>
+        <div class="info-row"><span class="info-label">💧 精气</span><span class="info-value">{{ role.mp }}/{{ stats.max_mp }}</span></div>
+        <div class="info-row"><span class="info-label">⚡ 体力</span><span class="info-value">{{ role.sp }}/{{ role.max_sp }}</span></div>
+        <div class="info-row"><span class="info-label">⚔️ 伤害</span><span class="info-value text-red">{{ stats.damage }}</span></div>
+        <div class="info-row"><span class="info-label">🛡️ 防御</span><span class="info-value text-blue">{{ stats.defense }}</span></div>
+        <div class="info-row"><span class="info-label">💨 速度</span><span class="info-value text-green">{{ stats.speed }}</span></div>
+        <div class="info-row"><span class="info-label">🎯 暴击率</span><span class="info-value text-red">{{ (stats.crit*100)|round|int }}%</span></div>
+        <div class="info-row"><span class="info-label">💨 闪避率</span><span class="info-value text-green">{{ (stats.dodge*100)|round|int }}%</span></div>
+        <div class="info-row"><span class="info-label">💰 G币</span><span class="info-value text-blue">{{ role.gcoin or 0 }}</span></div>
+        <div class="info-row"><span class="info-label">🔮 技能点</span><span class="info-value text-blue">{{ role.skill_points or 0 }}</span></div>
+    </div>
+</div>
+
+{# 五行加点 #}
+<div class="section">
+    <div class="section-title">☯️ 五行加点 <a href="/jingwutang/add_point" class="right-link">加点 »</a></div>
+    <div class="section-body">
+        <div style="display:flex; justify-content:space-around; text-align:center; font-size:12px;">
+            <div>
+                <div style="font-size:20px;">❤️</div>
+                <div>体质</div>
+                <div class="text-blue bold">{{ role.con_point }}</div>
+            </div>
+            <div>
+                <div style="font-size:20px;">💧</div>
+                <div>智力</div>
+                <div class="text-blue bold">{{ role.int_point }}</div>
+            </div>
+            <div>
+                <div style="font-size:20px;">⚔️</div>
+                <div>力量</div>
+                <div class="text-blue bold">{{ role.str_point }}</div>
+            </div>
+            <div>
+                <div style="font-size:20px;">🛡️</div>
+                <div>耐力</div>
+                <div class="text-blue bold">{{ role.end_point }}</div>
+            </div>
+            <div>
+                <div style="font-size:20px;">💨</div>
+                <div>敏捷</div>
+                <div class="text-blue bold">{{ role.agi_point }}</div>
+            </div>
+        </div>
+        {% if role.potential > 0 %}
+        <div class="text-center mt-8">
+            <a href="/jingwutang/add_point" class="btn btn-success btn-small">🌟 有 {{ role.potential }} 点潜能可分配</a>
+        </div>
+        {% endif %}
+    </div>
+</div>
+
+{# 今日战绩 #}
+<div class="section">
+    <div class="section-title">📊 今日战绩</div>
+    <div class="section-body" style="display:flex; justify-content:space-around; text-align:center;">
+        <div>
+            <div class="text-green" style="font-size:20px; font-weight:bold;">{{ role.wins_today or 0 }}</div>
+            <div style="font-size:12px; color:#666;">胜利</div>
+        </div>
+        <div>
+            <div class="text-red" style="font-size:20px; font-weight:bold;">{{ role.losses_today or 0 }}</div>
+            <div style="font-size:12px; color:#666;">失败</div>
+        </div>
+        <div>
+            <div style="font-size:20px; font-weight:bold; color:#f39c12;">{{ role.gcoin or 0 }}</div>
+            <div style="font-size:12px; color:#666;">G币</div>
+        </div>
+    </div>
+</div>
+
+{% if not is_today_signed %}
+<div class="section">
+    <div class="section-body text-center">
+        <a href="/jingwutang/sign" class="btn btn-primary" style="width:100%;">📅 每日签到（领取奖励）</a>
+    </div>
+</div>
+{% else %}
+<div class="section">
+    <div class="section-body text-center" style="color:#27ae60; font-size:13px;">
+        ✓ 今日已签到
+    </div>
+</div>
+{% endif %}
+
+{% endif %}
+
+{% endblock %}

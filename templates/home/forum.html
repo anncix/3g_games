@@ -1,0 +1,55 @@
+{% extends "base_wap.html" %}
+{% block title %}家园论坛 - QQ家园{% endblock %}
+
+{% block content %}
+<div class="section">
+    <div class="section-title">
+        📋 家园论坛
+        <a href="/home/forum/topic/create" class="btn btn-small" style="float:right; font-size:12px;">✏️ 发帖</a>
+    </div>
+    <div class="section-body">
+        <div class="grid-2">
+            {% for s in sections %}
+            <a href="/home/forum/section/{{ s.id }}" style="text-decoration:none; color:inherit;">
+                <div style="border:1px solid #d0d8e8; padding:8px; border-radius:3px; text-align:center; margin-bottom:8px; background: #f8faff;">
+                    <div style="font-size:24px;">{{ s.icon }}</div>
+                    <div style="font-weight:bold; color:#2a5caa;">{{ s.name }}</div>
+                    <div style="font-size:11px; color:#999;">{{ s.post_count }}帖</div>
+                </div>
+            </a>
+            {% endfor %}
+        </div>
+    </div>
+</div>
+
+<div class="section">
+    <div class="section-title">📢 最新帖子</div>
+    <div class="section-body">
+        {% if topics %}
+            {% for t in topics %}
+            <div class="post-item">
+                <div class="post-title">
+                    {% if t.is_pinned %}<span class="text-red">[顶]</span>{% endif %}
+                    {% if t.is_elite %}<span class="text-green">[精]</span>{% endif %}
+                    <a href="/home/forum/post/{{ t.id }}">{{ t.title }}</a>
+                </div>
+                <div class="post-meta">
+                    {{ t.user_nickname }} | 
+                    {{ t.reply_count }}回复 | 
+                    {{ t.created_at.strftime('%m-%d %H:%M') }}
+                </div>
+            </div>
+            {% endfor %}
+        {% else %}
+            <div class="text-gray text-center" style="padding: 20px;">
+                暂无帖子，快来发第一帖吧~<br>
+                <a href="/home/forum/topic/create" style="color:#2a5caa;">去发帖 »</a>
+            </div>
+        {% endif %}
+    </div>
+</div>
+
+<div class="mt-10" style="text-align: center;">
+    <a href="/home/" class="btn">返回首页</a>
+</div>
+{% endblock %}

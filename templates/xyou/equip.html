@@ -1,0 +1,73 @@
+{% extends "base_wap.html" %}
+
+{% block title %}装备 · 幻想西游{% endblock %}
+
+{% block breadcrumb %}
+<div class="nav-bar">
+    <a href="/home/">首页</a>
+    <span class="sep">›</span>
+    <a href="/games/xyou">幻想西游</a>
+    <span class="sep">›</span>
+    <span>装备</span>
+</div>
+{% endblock %}
+
+{% block content %}
+<div class="section">
+    <div class="section-title">⚔️ 当前装备 · 战力 {{ power }}</div>
+    <div class="section-body">
+        {% for slot in slots %}
+        <div class="info-row">
+            <span class="info-label">{{ slot }}</span>
+            {% set e = slot_map.get(slot) %}
+            {% if e %}
+            <span class="info-value text-blue">{{ def_map.get(e.equip_key).name if def_map.get(e.equip_key) else e.equip_key }}</span>
+            {% else %}
+            <span class="info-value text-gray">空</span>
+            {% endif %}
+        </div>
+        {% endfor %}
+    </div>
+</div>
+
+<div class="section">
+    <div class="section-title">🎒 背包装备</div>
+    <div class="section-body">
+        {% if bag_equips %}
+        {% for e in bag_equips %}
+        <div style="border:1px solid #e0e8f4;border-radius:3px;padding:8px;margin-bottom:8px;">
+            <div style="font-weight:bold;color:#1a5dc7;">{{ def_map.get(e.equip_key).name if def_map.get(e.equip_key) else e.equip_key }}</div>
+            <div style="font-size:12px;color:#666;margin-top:2px;">{{ e.slot }}</div>
+            <form method="post" action="/games/xyou/equip/wear/{{ e.id }}" style="margin-top:4px;">
+                <button type="submit" class="btn btn-small">穿戴</button>
+            </form>
+        </div>
+        {% endfor %}
+        {% else %}
+        <div style="font-size:12px;color:#999;">背包暂无装备</div>
+        {% endif %}
+    </div>
+</div>
+
+<div class="section">
+    <div class="section-title">🏪 商店</div>
+    <div class="section-body">
+        {% for e in shop_list %}
+        <div style="border:1px solid #e0e8f4;border-radius:3px;padding:8px;margin-bottom:8px;">
+            <div style="font-weight:bold;color:#1a5dc7;">{{ e.name }}</div>
+            <div style="font-size:12px;color:#666;margin-top:2px;">
+                {{ e.quality }} · {{ e.slot }} · 需{{ e.level_req }}级
+                {% if e.atk_bonus %} · 攻+{{ e.atk_bonus }}{% endif %}
+                {% if e.def_bonus %} · 防+{{ e.def_bonus }}{% endif %}
+                {% if e.hp_bonus %} · 血+{{ e.hp_bonus }}{% endif %}
+                {% if e.mp_bonus %} · 法+{{ e.mp_bonus }}{% endif %}
+            </div>
+            <div style="font-size:12px;color:#666;margin-top:2px;">价格: {{ e.price }} 银两</div>
+            <form method="post" action="/games/xyou/equip/buy/{{ e.key }}" style="margin-top:4px;">
+                <button type="submit" class="btn btn-small">购买</button>
+            </form>
+        </div>
+        {% endfor %}
+    </div>
+</div>
+{% endblock %}

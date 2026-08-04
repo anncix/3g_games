@@ -1,0 +1,56 @@
+{% extends "base_wap.html" %}
+{% block title %}探索地图 - 召唤之王{% endblock %}
+{% block breadcrumb %}
+<div class="nav-bar">
+    <a href="/home/gamelobby">游戏大厅</a>
+    <span class="sep">›</span>
+    <a href="/summon_king">召唤之王</a>
+    <span class="sep">›</span> 地图探索
+</div>
+{% endblock %}
+{% block content %}
+<div class="section">
+    <div class="section-title">🗺️ 探索地图</div>
+    <div class="section-body">
+        <p style="margin-bottom:8px;">体力: <span class="text-green">{{ profile.vitality }}/{{ profile.max_vitality }}</span>　
+           铜币: <span style="color:#daa520;">{{ profile.copper_coin }}</span></p>
+        <p class="tip">探索地图会消耗体力，遇到野生幻兽可以尝试捕捉。</p>
+    </div>
+</div>
+
+{% for map in maps %}
+<div class="section">
+    <div class="section-title">
+        {% if map.level_max >= 100 %}
+        🏔️ {{ map.name }} (Lv.{{ map.level_min }}+)
+        {% else %}
+        🌲 {{ map.name }} (Lv.{{ map.level_min }}-{{ map.level_max }})
+        {% endif %}
+    </div>
+    <div class="section-body">
+        <p style="margin-bottom:8px;">{{ map.description }}</p>
+        <div class="info-row">
+            <span class="info-label">推荐等级</span>
+            <span class="info-value">Lv.{{ map.level_min }} ~ {{ map.level_max if map.level_max < 100 else '∞' }}</span>
+        </div>
+        <div class="info-row">
+            <span class="info-label">体力消耗</span>
+            <span class="info-value text-red">{{ map.vitality_cost }} 点/次</span>
+        </div>
+        <div class="text-center mt-10">
+            {% if profile.level < map.level_min - 5 %}
+            <span class="text-gray">等级不足（需Lv.{{ map.level_min }}）</span>
+            {% elif profile.vitality < map.vitality_cost %}
+            <span class="text-red">体力不足</span>
+            {% else %}
+            <a href="/summon_king/explore/{{ map.id }}" class="btn">🔍 开始探索</a>
+            {% endif %}
+        </div>
+    </div>
+</div>
+{% endfor %}
+
+<div class="text-center mt-10">
+    <a href="/summon_king" class="btn btn-small">← 返回首页</a>
+</div>
+{% endblock %}

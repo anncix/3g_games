@@ -1,0 +1,179 @@
+{% extends "base_wap.html" %}
+
+{% block title %}{{ current_city.name if current_city else '城市' }} - 纵横四海{% endblock %}
+
+{% block breadcrumb %}
+<div class="nav-bar">
+    <a href="/home/">首页</a>
+    <span class="sep">›</span>
+    <a href="/home/gamelobby">游戏大厅</a>
+    <span class="sep">›</span>
+    <a href="/zongheng_sihai">纵横四海</a>
+    <span class="sep">›</span>
+    <span>城市</span>
+</div>
+{% endblock %}
+
+{% block content %}
+
+{% if message %}
+<div class="notice">{{ message }}</div>
+{% endif %}
+
+{# 城市信息 #}
+<div class="section">
+    <div class="section-title">🏯 {{ current_city.name if current_city else '未知城市' }}</div>
+    <div class="section-body">
+        <div style="text-align:center; padding:15px;">
+            <div style="font-size:56px;">
+                {% if sea.current_city_code == 'quanzhou' %}🏯
+                {% elif sea.current_city_code == 'hangzhou' %}🏞️
+                {% elif sea.current_city_code == 'guangzhou' %}🌴
+                {% elif sea.current_city_code == 'yangzhou' %}🌉
+                {% elif sea.current_city_code == 'lisbon' %}🏰
+                {% else %}🏙️{% endif %}
+            </div>
+            <div style="font-size:15px; font-weight:bold; margin-top:8px; color:#1a5dc7;">
+                {{ current_city.name if current_city else '未知' }}
+            </div>
+            <div style="font-size:12px; color:#666; margin-top:4px;">
+                {{ current_city.region if current_city else '' }} · 等级范围: {{ current_city.level_range if current_city else '?' }}
+            </div>
+            <div style="font-size:13px; color:#333; margin-top:8px;">
+                {{ current_city.description if current_city else '' }}
+            </div>
+        </div>
+    </div>
+</div>
+
+{# 城市功能 #}
+<div class="section">
+    <div class="section-title">🏛️ 城市设施</div>
+    <div class="section-body">
+        <div class="grid-2">
+            <a href="/zongheng_sihai/shop" style="text-decoration:none; color:inherit;">
+                <div style="border:1px solid #b8ccea; border-radius:4px; padding:12px; text-align:center; background:linear-gradient(180deg,#f8faff 0%,#eef3fa 100%);">
+                    <div style="font-size:28px;">🏪</div>
+                    <div style="font-weight:bold; color:#1a5dc7; font-size:12px; margin-top:4px;">商店</div>
+                    <div style="font-size:11px; color:#666;">购买补给/装备</div>
+                </div>
+            </a>
+            <a href="/zongheng_sihai/sail" style="text-decoration:none; color:inherit;">
+                <div style="border:1px solid #b8ccea; border-radius:4px; padding:12px; text-align:center; background:linear-gradient(180deg,#f8faff 0%,#eef3fa 100%);">
+                    <div style="font-size:28px;">⚓</div>
+                    <div style="font-weight:bold; color:#1a5dc7; font-size:12px; margin-top:4px;">港口</div>
+                    <div style="font-size:11px; color:#666;">选择航线出海</div>
+                </div>
+            </a>
+            <a href="/zongheng_sihai/tasks" style="text-decoration:none; color:inherit;">
+                <div style="border:1px solid #b8ccea; border-radius:4px; padding:12px; text-align:center; background:linear-gradient(180deg,#f8faff 0%,#eef3fa 100%);">
+                    <div style="font-size:28px;">📋</div>
+                    <div style="font-weight:bold; color:#1a5dc7; font-size:12px; margin-top:4px;">任务公告</div>
+                    <div style="font-size:11px; color:#666;">接取各种任务</div>
+                </div>
+            </a>
+            <a href="/zongheng_sihai/rest" style="text-decoration:none; color:inherit;" onclick="return confirm('确定休息吗？将恢复全部体力和船只耐久。');">
+                <div style="border:1px solid #b8ccea; border-radius:4px; padding:12px; text-align:center; background:linear-gradient(180deg,#f8faff 0%,#eef3fa 100%);">
+                    <div style="font-size:28px;">🏨</div>
+                    <div style="font-weight:bold; color:#1a5dc7; font-size:12px; margin-top:4px;">客栈休息</div>
+                    <div style="font-size:11px; color:#666;">恢复体力/修船</div>
+                </div>
+            </a>
+        </div>
+    </div>
+</div>
+
+{# 可用航线 #}
+<div class="section">
+    <div class="section-title">⛵ 可用航线</div>
+    <div class="section-body">
+        {% if route_info %}
+        <ul class="link-list">
+            {% for ri in route_info %}
+            <li>
+                <a href="/zongheng_sihai/sail/start/{{ ri.route.id }}">
+                    🧭 {{ ri.to_city.name if ri.to_city else ri.route.to_city_code }}
+                    <span style="color:#999; font-size:11px;">
+                        · 危险度:
+                        <span style="color:{% if ri.route.danger_level <= 2 %}#3ac840{% elif ri.route.danger_level <= 3 %}#d0a020{% else %}#e8403a{% endif %};">
+                            {{ ['','安全','轻微','中等','危险','极险'][ri.route.danger_level] }}
+                        </span>
+                        · 航行: {{ ri.route.travel_time }}秒
+                        · 需补给: {{ ri.route.travel_time // 5 + 10 }}
+                    </span>
+                </a>
+            </li>
+            {% endfor %}
+        </ul>
+        {% else %}
+        <div class="text-gray" style="text-align:center; padding:10px;">暂无可用航线</div>
+        {% endif %}
+        <div style="text-align:center; margin-top:8px;">
+            <a href="/zongheng_sihai/sail" class="btn btn-small">查看所有航线</a>
+        </div>
+    </div>
+</div>
+
+{# 可接任务 #}
+<div class="section">
+    <div class="section-title">📋 可接任务</div>
+    <div class="section-body">
+        {% if available_tasks %}
+        <ul class="link-list">
+            {% for task in available_tasks %}
+            {% if task.id not in accepted_task_ids %}
+            <li>
+                <b>{{ task.title }}</b>
+                <span style="color:{% if task.task_type == 'main' %}#e8403a{% else %}#1a5dc7{% endif %}; font-size:11px;">
+                    [{{ '主线' if task.task_type == 'main' else '支线' }}]
+                </span>
+                <br><span style="color:#666; font-size:12px;">{{ task.description[:50] }}{% if task.description|length > 50 %}...{% endif %}</span>
+                <br><a href="/zongheng_sihai/tasks/accept/{{ task.id }}" class="btn btn-small" style="margin-top:4px;">接取任务</a>
+            </li>
+            {% endif %}
+            {% endfor %}
+        </ul>
+        {% else %}
+        <div class="text-gray" style="text-align:center; padding:10px;">暂无新任务可接</div>
+        {% endif %}
+        <div style="text-align:center; margin-top:8px;">
+            <a href="/zongheng_sihai/tasks" class="btn btn-small">查看所有任务</a>
+        </div>
+    </div>
+</div>
+
+{# 角色状态 #}
+<div class="section">
+    <div class="section-title">📊 角色状态</div>
+    <div class="section-body">
+        <div class="info-row">
+            <span class="info-label">⛵ 船名</span>
+            <span class="info-value">{{ sea.ship_name }}</span>
+        </div>
+        <div class="info-row">
+            <span class="info-label">⭐ 等级</span>
+            <span class="info-value">Lv.{{ sea.level }}</span>
+        </div>
+        <div class="info-row">
+            <span class="info-label">🪙 银两</span>
+            <span class="info-value text-blue">{{ sea.silver_coin }}</span>
+        </div>
+        <div class="info-row">
+            <span class="info-label">🛡️ 船只耐久</span>
+            <span class="info-value">{{ sea.ship_hp }}/{{ sea.ship_max_hp }}</span>
+        </div>
+        <div class="info-row">
+            <span class="info-label">🍞 补给</span>
+            <span class="info-value">{{ sea.supplies }}/{{ sea.max_supplies }}</span>
+        </div>
+        <div class="info-row">
+            <span class="info-label">⚡ 体力</span>
+            <span class="info-value">{{ sea.power }}/{{ sea.max_power }}</span>
+        </div>
+    </div>
+</div>
+
+<div class="text-center mt-10">
+    <a href="/zongheng_sihai">« 返回首页</a>
+</div>
+{% endblock %}

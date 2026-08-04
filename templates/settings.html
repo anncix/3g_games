@@ -1,0 +1,47 @@
+{% extends "base.html" %}
+
+{% block title %}{{ t('settings') }}{% endblock %}
+{% block page_title %}{{ t('settings') }}{% endblock %}
+
+{% block nav %}
+<div class="nav-bar">
+    <a href="/">{{ t('home') }}</a>|
+    <a href="/profile">{{ t('profile') }}</a>|
+    <a href="/settings" class="active">{{ t('settings') }}</a>
+</div>
+{% endblock %}
+
+{% block content %}
+<div class="section">
+    <div class="section-title">🌐 {{ t('language') }}</div>
+    <div style="display: flex; gap: 10px; margin-top: 10px;">
+        <button class="btn {{ '' if lang == 'zh' else 'btn-secondary' }}" onclick="setLang('zh')">{{ t('chinese') }}</button>
+        <button class="btn {{ '' if lang == 'en' else 'btn-secondary' }}" onclick="setLang('en')">{{ t('english') }}</button>
+    </div>
+</div>
+
+<div class="section">
+    <div class="section-title">🎨 {{ t('theme') }}</div>
+    <div style="display: flex; gap: 10px; margin-top: 10px;">
+        <button class="btn {{ '' if theme == 'light' else 'btn-secondary' }}" onclick="setTheme('light')">☀️ {{ t('light') }}</button>
+        <button class="btn {{ '' if theme == 'dark' else 'btn-secondary' }}" onclick="setTheme('dark')">🌙 {{ t('dark') }}</button>
+    </div>
+</div>
+
+<div style="margin-top: 30px;">
+    <a href="/">{{ t('back') }}</a>
+</div>
+
+<script>
+function setLang(lang) {
+    document.cookie = `lang=${lang};path=/;max-age=31536000`;
+    location.reload();
+}
+
+function setTheme(theme) {
+    document.cookie = `theme=${theme};path=/;max-age=31536000`;
+    document.documentElement.setAttribute('data-theme', theme);
+    location.reload();
+}
+</script>
+{% endblock %}

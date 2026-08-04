@@ -1,0 +1,52 @@
+{% extends "base.html" %}
+
+{% block title %}{{ t('admin') }} - {{ t('app_name') }}{% endblock %}
+{% block page_title %}⚙️ {{ t('admin') }}{% endblock %}
+
+{% block nav %}
+<div class="nav-bar">
+    <a href="/">{{ t('home') }}</a>|
+    <a href="/admin" class="active">{{ t('admin_stats') }}</a>|
+    <a href="/admin/users">{{ t('admin_users') }}</a>
+</div>
+{% endblock %}
+
+{% block content %}
+<div class="section">
+    <div class="section-title">📊 {{ t('admin_stats') }}</div>
+    <div style="display: grid; grid-template-columns: repeat(2, 1fr); gap: 15px; margin-top: 15px;">
+        <div style="background: var(--card-bg); border: 1px solid var(--border-color); border-radius: 8px; padding: 20px; text-align: center;">
+            <div style="font-size: 32px; font-weight: bold; color: var(--link-color);">{{ total_users }}</div>
+            <div style="color: var(--silver-color); margin-top: 5px;">{{ t('total_users') }}</div>
+        </div>
+        <div style="background: var(--card-bg); border: 1px solid var(--border-color); border-radius: 8px; padding: 20px; text-align: center;">
+            <div style="font-size: 32px; font-weight: bold; color: var(--accent-color);">{{ total_jw_chars }}</div>
+            <div style="color: var(--silver-color); margin-top: 5px;">{{ t('jingwutang') }}角色</div>
+        </div>
+    </div>
+</div>
+
+<div class="section">
+    <div class="section-title">👥 最近注册用户</div>
+    <table class="admin-table">
+        <thead>
+            <tr>
+                <th>ID</th>
+                <th>{{ t('username') }}</th>
+                <th>{{ t('nickname') }}</th>
+                <th>注册时间</th>
+            </tr>
+        </thead>
+        <tbody>
+            {% for u in recent_users %}
+            <tr>
+                <td>{{ u.id }}</td>
+                <td>{{ u.username }}</td>
+                <td>{{ u.nickname or '-' }}</td>
+                <td>{{ u.created_at.strftime('%m-%d %H:%M') if u.created_at else '-' }}</td>
+            </tr>
+            {% endfor %}
+        </tbody>
+    </table>
+</div>
+{% endblock %}

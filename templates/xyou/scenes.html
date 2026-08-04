@@ -1,0 +1,59 @@
+{% extends "base_wap.html" %}
+
+{% block title %}世界地图 · 幻想西游{% endblock %}
+
+{% block breadcrumb %}
+<div class="nav-bar">
+    <a href="/home/">首页</a>
+    <span class="sep">›</span>
+    <a href="/games/xyou">幻想西游</a>
+    <span class="sep">›</span>
+    <span>世界地图</span>
+</div>
+{% endblock %}
+
+{% block content %}
+<div class="section">
+    <div class="section-title">🗺️ 世界地图</div>
+    <div class="section-body" style="font-size:12px;color:#666;">
+        当前所在：<b>{{ current.name if current else st.current_scene }}</b>
+    </div>
+</div>
+
+{% if current %}
+<div class="section">
+    <div class="section-title">🚪 可前往</div>
+    <div class="section-body">
+        {% if exits %}
+        {% for s in exits %}
+        <div style="border:1px solid #e0e8f4;border-radius:3px;padding:8px;margin-bottom:8px;">
+            <div style="font-weight:bold;color:#1a5dc7;">{{ s.name }} <span style="font-size:11px;color:#999;">({{ s.region }})</span></div>
+            <div style="font-size:12px;color:#666;margin-top:2px;">{{ s.intro }} · 需 {{ s.level_min }} 级</div>
+            {% if st.level >= s.level_min %}
+            <form method="post" action="/games/xyou/scene/move/{{ s.key }}" style="margin-top:4px;">
+                <button type="submit" class="btn btn-small">前往</button>
+            </form>
+            {% else %}
+            <div style="font-size:12px;color:#999;margin-top:4px;">等级不足 (需 {{ s.level_min }} 级)</div>
+            {% endif %}
+        </div>
+        {% endfor %}
+        {% else %}
+        <div style="font-size:12px;color:#999;">当前场景暂无出口</div>
+        {% endif %}
+    </div>
+</div>
+{% endif %}
+
+<div class="section">
+    <div class="section-title">🌍 全部场景</div>
+    <div class="section-body">
+        {% for s in all_scenes %}
+        <div class="info-row">
+            <span class="info-label">{{ s.name }} <span style="color:#999;">({{ s.region }})</span></span>
+            <span class="info-value" style="font-size:12px;">{% if s.key == st.current_scene %}<span class="text-green">当前</span>{% else %}需 {{ s.level_min }} 级{% endif %}</span>
+        </div>
+        {% endfor %}
+    </div>
+</div>
+{% endblock %}

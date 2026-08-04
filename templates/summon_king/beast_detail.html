@@ -1,0 +1,206 @@
+{% extends "base_wap.html" %}
+{% block title %}{{ bdef.name }} - 幻兽详情{% endblock %}
+{% block breadcrumb %}
+<div class="nav-bar">
+    <a href="/home/gamelobby">游戏大厅</a>
+    <span class="sep">›</span>
+    <a href="/summon_king">召唤之王</a>
+    <span class="sep">›</span>
+    <a href="/summon_king/beasts">幻兽列表</a>
+    <span class="sep">›</span> {{ bdef.name }}
+</div>
+{% endblock %}
+{% block content %}
+<div class="section">
+    <div class="section-title" style="color:{{ rarity_colors.get(bdef.rarity, '#1a5dc7') }};">
+        {{ bdef.icon }} {{ ub.nickname or bdef.name }}
+        <span style="font-size:12px; font-weight:normal;">[{{ rarity_names.get(bdef.rarity, bdef.rarity) }}]</span>
+    </div>
+    <div class="section-body text-center">
+        <span style="font-size:64px;">{{ bdef.icon }}</span>
+        <p style="margin-top:8px; color:#666;">{{ bdef.description }}</p>
+    </div>
+</div>
+
+<div class="section">
+    <div class="section-title">📊 基本信息</div>
+    <div class="section-body">
+        <div class="info-row">
+            <span class="info-label">名称</span>
+            <span class="info-value">{{ ub.nickname or bdef.name }}</span>
+        </div>
+        <div class="info-row">
+            <span class="info-label">种族</span>
+            <span class="info-value">{{ bdef.race_type }}</span>
+        </div>
+        <div class="info-row">
+            <span class="info-label">等级</span>
+            <span class="info-value">Lv.{{ ub.level }}</span>
+        </div>
+        <div class="info-row">
+            <span class="info-label">经验</span>
+            <span class="info-value">{{ ub.exp }} / {{ level_exp }}</span>
+        </div>
+        <div class="progress-bar mt-5">
+            <div class="progress-fill" style="width: {{ (ub.exp / level_exp * 100)|round|int }}%;"></div>
+        </div>
+        <div class="info-row mt-5">
+            <span class="info-label">成长星级</span>
+            <span class="info-value text-red">{{ '★' * ub.growth_star }}{{ '☆' * (5 - ub.growth_star) }}</span>
+        </div>
+        <div class="info-row">
+            <span class="info-label">性格</span>
+            <span class="info-value">{{ personality_names.get(ub.personality, ub.personality) }}</span>
+        </div>
+        <div class="info-row">
+            <span class="info-label">品质</span>
+            <span class="info-value">{{ ub.quality }}</span>
+        </div>
+        <div class="info-row">
+            <span class="info-label">状态</span>
+            <span class="info-value">{% if ub.status == 'battle' %}<span class="text-green">出战中</span>{% else %}<span class="text-gray">休息中</span>{% endif %}</span>
+        </div>
+    </div>
+</div>
+
+<div class="section">
+    <div class="section-title">💪 属性数值</div>
+    <div class="section-body">
+        <div class="info-row">
+            <span class="info-label">❤️ 生命</span>
+            <span class="info-value">{{ ub.hp }} / {{ stats.max_hp }}</span>
+        </div>
+        <div class="info-row">
+            <span class="info-label">⚔️ 物攻</span>
+            <span class="info-value">{{ stats.patk }}</span>
+        </div>
+        <div class="info-row">
+            <span class="info-label">🔮 魔攻</span>
+            <span class="info-value">{{ stats.matk }}</span>
+        </div>
+        <div class="info-row">
+            <span class="info-label">🛡️ 物防</span>
+            <span class="info-value">{{ stats.pdef }}</span>
+        </div>
+        <div class="info-row">
+            <span class="info-label">🔯 魔防</span>
+            <span class="info-value">{{ stats.mdef }}</span>
+        </div>
+        <div class="info-row">
+            <span class="info-label">💨 速度</span>
+            <span class="info-value">{{ stats.speed }}</span>
+        </div>
+    </div>
+</div>
+
+<div class="section">
+    <div class="section-title">✨ 已学技能</div>
+    <div class="section-body">
+        {% if ub.skills %}
+        {% for us in ub.skills %}
+        {% set sk = us.skill %}
+        <div class="info-row">
+            <span class="info-label">{{ sk.icon }} {{ sk.name }}</span>
+            <span class="info-value" style="font-size:12px;">
+                Lv.{{ us.skill_level }} · 
+                {% if sk.category == 'patk' %}物攻{% elif sk.category == 'matk' %}魔攻{% elif sk.category == 'buff' %}增益{% elif sk.category == 'debuff' %}减益{% elif sk.category == 'heal' %}回复{% else %}{{ sk.category }}{% endif %}
+            </span>
+        </div>
+        <p style="font-size:12px; color:#999; margin:2px 0 6px 0;">{{ sk.description }}</p>
+        {% endfor %}
+        {% else %}
+        <p class="text-gray">暂无技能</p>
+        {% endif %}
+    </div>
+</div>
+
+{% if available_skills %}
+<div class="section">
+    <div class="section-title">📖 可学技能（200铜币/个）</div>
+    <div class="section-body">
+        {% for sk in available_skills %}
+        <div class="info-row">
+            <span class="info-label">{{ sk.icon }} {{ sk.name }}</span>
+            <span class="info-value">
+                <form method="post" action="/summon_king/beast/{{ ub.id }}/learn_skill/{{ sk.id }}" style="display:inline;">
+                    <button type="submit" class="btn btn-small" style="border:none; cursor:pointer;">学习</button>
+                </form>
+            </span>
+        </div>
+        <p style="font-size:12px; color:#999;">{{ sk.description }}</p>
+        {% endfor %}
+    </div>
+</div>
+{% endif %}
+
+<div class="section">
+    <div class="section-title">🦴 装备战骨</div>
+    <div class="section-body">
+        {% for slot, ub_bone in equipped_bones.items() %}
+        {% set bndef = bone_defs.get(slot) %}
+        <div class="info-row">
+            <span class="info-label">{{ slot_names.get(slot, slot) }}</span>
+            <span class="info-value" style="font-size:12px;">
+                {% if bndef %}{{ bndef.icon }} {{ bndef.name }} +{{ ub_bone.enhance_level }}{% else %}<span class="text-gray">未装备</span>{% endif %}
+            </span>
+        </div>
+        {% endfor %}
+        <div class="text-center mt-5">
+            <a href="/summon_king/bones" class="btn btn-small">管理战骨</a>
+        </div>
+    </div>
+</div>
+
+{% if equipped_souls %}
+<div class="section">
+    <div class="section-title">🔮 装备魔魂</div>
+    <div class="section-body">
+        {% for us in equipped_souls %}
+        {% set sdef = us.soul %}
+        <div class="info-row">
+            <span class="info-label" style="color:{{ soul_quality_colors.get(sdef.quality, '#333') }};">
+                {{ sdef.icon }} {{ sdef.name }}
+            </span>
+            <span class="info-value" style="font-size:12px;">[{{ soul_quality_names.get(sdef.quality, sdef.quality) }}品]</span>
+        </div>
+        {% endfor %}
+        <div class="text-center mt-5">
+            <a href="/summon_king/souls" class="btn btn-small">管理魔魂</a>
+        </div>
+    </div>
+</div>
+{% endif %}
+
+<div class="section">
+    <div class="section-title">⚙️ 操作</div>
+    <div class="section-body text-center">
+        <form method="post" action="/summon_king/beast/{{ ub.id }}/train" style="display:inline;">
+            <button type="submit" class="btn" style="border:none; cursor:pointer;">
+                🏋️ 训练升级（{{ ub.level * 20 }}铜币）
+            </button>
+        </form>
+        <br><br>
+        {% if ub.status == 'battle' %}
+        <form method="post" action="/summon_king/beast/{{ ub.id }}/rest" style="display:inline;">
+            <button type="submit" class="btn btn-small" style="border:none; cursor:pointer;">休息</button>
+        </form>
+        {% else %}
+        <form method="post" action="/summon_king/beast/{{ ub.id }}/set_battle" style="display:inline;">
+            <button type="submit" class="btn btn-small btn-success" style="border:none; cursor:pointer;">设为出战</button>
+        </form>
+        {% endif %}
+        <a href="/summon_king/bones" class="btn btn-small">战骨</a>
+        <a href="/summon_king/souls" class="btn btn-small">魔魂</a>
+        <br><br>
+        {% if ub.status != 'battle' %}
+        <form method="post" action="/summon_king/beast/{{ ub.id }}/release" onsubmit="return confirm('确定放生这只幻兽吗？将获得{{ ub.level * 10 }}铜币');">
+            <button type="submit" class="btn btn-small btn-danger" style="border:none; cursor:pointer;">放生</button>
+        </form>
+        {% endif %}
+    </div>
+</div>
+
+<div class="text-center mt-10">
+    <a href="/summon_king/beasts" class="btn btn-small">← 返回幻兽列表</a>
+</div>
+{% endblock %}

@@ -1,0 +1,35 @@
+{% extends "base_wap.html" %}
+{% block title %}背包 - 精武堂{% endblock %}
+{% block breadcrumb %}
+<div class="nav-bar">
+    <a href="/home/">首页</a><span class="sep">›</span><a href="/home/gamelobby">游戏大厅</a>
+    <span class="sep">›</span><a href="/jingwutang/">精武堂</a><span class="sep">›</span><span>背包</span>
+</div>
+{% endblock %}
+{% block content %}
+<div class="section">
+    <div class="section-title">🎒 背包 ({{ total_items }}/{{ max_items }})</div>
+    <div class="section-body">
+        <div class="tab-bar">
+            <a href="/jingwutang/inventory" class="{% if current_category=='all' %}active{% endif %}">全部</a>
+            {% for cat in categories %}
+            <a href="/jingwutang/inventory?category={{ cat }}" class="{% if current_category==cat %}active{% endif %}">{{ category_names[cat] }}</a>
+            {% endfor %}
+        </div>
+        {% if items %}
+        {% for item in items %}
+        <div style="display:flex; justify-content:space-between; align-items:center; padding:8px 0; border-bottom:1px dotted #eee;">
+            <div>
+                <b>{{ item.name }}</b> x{{ item.quantity or 1 }}
+                <div style="font-size:11px; color:#666;">{{ item.description or '' }}</div>
+            </div>
+            <a href="/jingwutang/item/use/{{ item.id }}" class="btn btn-small btn-success">使用</a>
+        </div>
+        {% endfor %}
+        {% else %}
+        <div class="text-center" style="color:#999; padding:20px;">该分类下暂无物品</div>
+        {% endif %}
+    </div>
+</div>
+<div class="text-center mt-10"><a href="/jingwutang/">« 返回精武堂</a></div>
+{% endblock %}

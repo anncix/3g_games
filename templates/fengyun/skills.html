@@ -1,0 +1,46 @@
+{% extends "base_wap.html" %}
+
+{% block title %}技能 · 风云三国{% endblock %}
+
+{% block breadcrumb %}
+<div class="nav-bar">
+    <a href="/home/">首页</a>
+    <span class="sep">›</span>
+    <a href="/games/fengyun">风云三国</a>
+    <span class="sep">›</span>
+    <span>技能</span>
+</div>
+{% endblock %}
+
+{% block content %}
+<div class="section">
+    <div class="section-title">📖 {{ class_name }}技能</div>
+    <div class="section-body" style="font-size:12px;color:#666;">
+        银两: {{ silver }} · 可学习技能随等级解锁
+    </div>
+</div>
+{% for sk in skill_list %}
+<div class="section">
+    <div class="section-title">
+        {{ sk.name }}
+        {% if sk.skill_type == "passive" %}<span class="badge">被动</span>{% else %}<span class="badge">主动</span>{% endif %}
+        {% if sk.level > 0 %}<span class="text-green" style="float:right;">Lv.{{ sk.level }}</span>{% endif %}
+    </div>
+    <div class="section-body">
+        <div style="font-size:12px;color:#666;">{{ sk.effect }}</div>
+        <div style="font-size:12px;color:#666;margin-top:4px;">
+            解锁: {{ sk.unlock_level }}级 · 银两: {{ sk.cost_silver }} · 经验: {{ sk.cost_exp }}
+        </div>
+        {% if sk.level > 0 %}
+        <div class="text-green" style="font-size:12px;margin-top:4px;">✅ 已学习</div>
+        {% elif sk.can_learn %}
+        <form method="post" action="/games/fengyun/skills/learn/{{ sk.key }}" style="margin-top:6px;">
+            <button type="submit" class="btn btn-small">学习</button>
+        </form>
+        {% else %}
+        <div style="font-size:12px;color:#999;margin-top:4px;">等级不足 (需 {{ sk.unlock_level }} 级)</div>
+        {% endif %}
+    </div>
+</div>
+{% endfor %}
+{% endblock %}

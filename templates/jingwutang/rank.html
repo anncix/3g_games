@@ -1,0 +1,36 @@
+{% extends "base_wap.html" %}
+{% block title %}排行榜 - 精武堂{% endblock %}
+{% block breadcrumb %}
+<div class="nav-bar">
+    <a href="/home/">首页</a><span class="sep">›</span><a href="/home/gamelobby">游戏大厅</a>
+    <span class="sep">›</span><a href="/jingwutang/">精武堂</a><span class="sep">›</span><span>排行榜</span>
+</div>
+{% endblock %}
+{% block content %}
+<div class="section">
+    <div class="section-title">🏆 战力排行榜</div>
+    <div class="section-body">
+        <div class="info-row"><span class="info-label">⚔️ 我的战力</span><span class="info-value text-red bold">{{ combat_power }}</span></div>
+        <div class="info-row"><span class="info-label">📊 我的排名</span><span class="info-value text-blue">第 {{ my_rank }} 名</span></div>
+    </div>
+</div>
+<div class="section">
+    <div class="section-title">🏅 武林豪杰榜</div>
+    <div class="section-body">
+        {% for r in rank_list %}
+        <div style="display:flex; align-items:center; padding:8px 0; border-bottom:1px dotted #eee; {% if r.is_me %}background:#fff8e0;{% endif %}">
+            <div style="width:30px; text-align:center; font-weight:bold;">
+                {% if r.rank == 1 %}🥇{% elif r.rank == 2 %}🥈{% elif r.rank == 3 %}🥉{% else %}{{ r.rank }}{% endif %}
+            </div>
+            <div style="flex:1; padding:0 8px;">
+                <b>{{ r.name }}</b>
+                {% if r.is_me %}<span style="color:#e8403a; font-size:11px;">(我)</span>{% endif %}
+                <div style="font-size:11px; color:#666;">Lv.{{ r.level }}</div>
+            </div>
+            <div class="text-red bold" style="font-size:13px;">{{ r.combat_power }}</div>
+        </div>
+        {% endfor %}
+    </div>
+</div>
+<div class="text-center mt-10"><a href="/jingwutang/">« 返回精武堂</a></div>
+{% endblock %}

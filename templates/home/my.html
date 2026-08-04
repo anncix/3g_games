@@ -1,0 +1,142 @@
+{% extends "base_wap.html" %}
+{% block title %}我的家园{% endblock %}
+
+{% block breadcrumb %}
+<div class="nav-bar">
+    <a href="/home/">首页</a>
+    <span class="sep">›</span>
+    <span>我的家园</span>
+</div>
+{% endblock %}
+
+{% block content %}
+<div class="tab-bar">
+    <a href="/home/my" class="active">主页</a>
+    <a href="/home/profile/{{ user.id }}">查看主页</a>
+    <a href="/home/settings">资料设置</a>
+</div>
+
+{# 个人信息 #}
+<div class="section">
+    <div class="section-title">👤 个人信息</div>
+    <div class="section-body">
+        <div style="display: flex; gap: 10px; margin-bottom: 10px;">
+            <div class="avatar">{{ user.avatar }}</div>
+            <div style="flex: 1;">
+                <div style="font-weight: bold; font-size: 16px;">{{ user.nickname or user.username }}</div>
+                <div style="font-size: 12px; color: #666;">Q号: {{ user.qq_number or '100001' }}</div>
+                <div style="font-size: 12px; color: #888;">签名: "{{ user.signature }}"</div>
+            </div>
+        </div>
+        <div class="info-row">
+            <span class="info-label">家园等级</span>
+            <span class="info-value text-blue">Lv.{{ user.home_level }}</span>
+        </div>
+        <div class="info-row">
+            <span class="info-label">G币余额</span>
+            <span class="info-value">💰 {{ user.g_coins }}</span>
+        </div>
+        <div class="info-row">
+            <span class="info-label">MB余额</span>
+            <span class="info-value">💎 {{ user.mb }}</span>
+        </div>
+        <div class="info-row">
+            <span class="info-label">人气值</span>
+            <span class="info-value">⭐ {{ user.popularity }}</span>
+        </div>
+        <div class="info-row">
+            <span class="info-label">访问量</span>
+            <span class="info-value">👀 {{ user.visitor_count }}</span>
+        </div>
+        <div class="info-row">
+            <span class="info-label">家族</span>
+            <span class="info-value">
+                {% if user.gang %}
+                <a href="/home/gang">{{ user.gang.name }}</a>
+                {% else %}
+                <a href="/home/gang">未加入</a>
+                {% endif %}
+            </span>
+        </div>
+    </div>
+</div>
+
+{# 发布心情 #}
+<div class="section">
+    <div class="section-title">✏️ 发布心情</div>
+    <div class="section-body">
+        <form method="post" action="/home/status/post">
+            <div class="form-group">
+                <textarea name="content" placeholder="说点什么吧..."></textarea>
+            </div>
+            <div class="text-right">
+                <button type="submit" class="btn">发布</button>
+            </div>
+        </form>
+    </div>
+</div>
+
+{# 我的动态 #}
+<div class="section">
+    <div class="section-title">📢 我的动态</div>
+    <div class="section-body">
+        {% if statuses %}
+            {% for s in statuses %}
+            <div class="status-item">
+                <div class="status-content">{{ s.content }}</div>
+                <div class="status-meta">{{ s.created_at.strftime('%Y-%m-%d %H:%M') }} · 👍{{ s.likes }} 💬{{ s.comments }}</div>
+            </div>
+            {% endfor %}
+        {% else %}
+            <div class="text-gray text-center" style="padding: 10px;">还没有发布过动态~</div>
+        {% endif %}
+    </div>
+</div>
+
+{# 留言板 #}
+<div class="section">
+    <div class="section-title">📝 我的留言板 ({{ guestbook|length }})</div>
+    <div class="section-body">
+        {% if guestbook %}
+            {% for entry in guestbook %}
+            <div class="guestbook-item">
+                <div>
+                    <span class="guestbook-author">
+                        <a href="/home/profile/{{ entry.author_id }}">{{ entry.author_nickname }}</a>
+                    </span>
+                    <span class="guestbook-time">{{ entry.created_at.strftime('%m-%d %H:%M') }}</span>
+                </div>
+                <div class="guestbook-content">{{ entry.content }}</div>
+                {% if entry.reply %}
+                <div style="background:#f5f5f5; padding:5px 8px; margin-top:4px; font-size:13px; border-left:3px solid #4a86e8;">
+                    <b>回复:</b> {{ entry.reply }}
+                </div>
+                {% endif %}
+            </div>
+            {% endfor %}
+        {% else %}
+            <div class="text-gray text-center" style="padding: 10px;">还没有人给你留言~</div>
+        {% endif %}
+    </div>
+</div>
+
+{# 最近访客 #}
+<div class="section">
+    <div class="section-title">👀 最近访客</div>
+    <div class="section-body">
+        {% if visitors %}
+            <div style="display: flex; flex-wrap: wrap; gap: 10px;">
+            {% for v in visitors %}
+                <a href="/home/profile/{{ v.visitor_id }}" style="text-align:center; text-decoration:none; color:inherit;">
+                    <div style="width:48px; height:48px; background:#e0e8f4; border:1px solid #b8ccea; border-radius:3px; display:flex; align-items:center; justify-content:center; font-size:24px;">👤</div>
+                    <div style="font-size:11px; margin-top:2px; max-width:48px; overflow:hidden; text-overflow:ellipsis; white-space:nowrap;">{{ v.visitor_nickname }}</div>
+                    <div style="font-size:10px; color:#999;">{{ v.visited_at.strftime('%m-%d') }}</div>
+                </a>
+            {% endfor %}
+            </div>
+        {% else %}
+            <div class="text-gray text-center" style="padding: 10px;">还没有访客~</div>
+        {% endif %}
+    </div>
+</div>
+{% endblock %}

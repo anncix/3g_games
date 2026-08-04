@@ -1,0 +1,385 @@
+<!DOCTYPE html>
+<html lang="{{ lang }}">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>{% block title %}QQ家园{% endblock %}</title>
+    <style>
+        * { margin: 0; padding: 0; box-sizing: border-box; }
+        body {
+            font-family: "Microsoft YaHei", "SimHei", sans-serif;
+            font-size: 14px;
+            background: #e8eef7;
+            color: #333;
+            line-height: 1.6;
+            max-width: 480px;
+            margin: 0 auto;
+            min-height: 100vh;
+        }
+        a { color: #1a5dc7; text-decoration: none; }
+        a:hover { text-decoration: underline; }
+        a:visited { color: #551a8b; }
+        
+        .wap-header {
+            background: linear-gradient(180deg, #4a86e8 0%, #2a5caa 100%);
+            color: white;
+            padding: 8px 10px;
+            border-bottom: 2px solid #1a3d7a;
+        }
+        .wap-header .title {
+            font-weight: bold;
+            font-size: 16px;
+        }
+        .wap-header .links {
+            font-size: 12px;
+            margin-top: 4px;
+        }
+        .wap-header .links a {
+            color: #c4d9ff;
+            margin-right: 8px;
+        }
+        
+        .nav-bar {
+            background: #d7e3f4;
+            padding: 6px 10px;
+            border-bottom: 1px solid #b8ccea;
+            font-size: 12px;
+            color: #666;
+        }
+        .nav-bar a { color: #1a5dc7; }
+        .nav-bar .sep { margin: 0 4px; color: #999; }
+        
+        .wap-content {
+            background: white;
+            padding: 10px;
+            min-height: calc(100vh - 100px);
+        }
+        
+        .section {
+            margin-bottom: 12px;
+            border: 1px solid #d0d0d0;
+            border-radius: 3px;
+        }
+        .section-title {
+            background: linear-gradient(180deg, #f0f4fa 0%, #e0e8f4 100%);
+            padding: 6px 10px;
+            font-weight: bold;
+            color: #1a5dc7;
+            border-bottom: 1px solid #d0d0d0;
+            font-size: 13px;
+        }
+        .section-body {
+            padding: 8px 10px;
+        }
+        
+        .link-list {
+            list-style: none;
+        }
+        .link-list li {
+            padding: 6px 0;
+            border-bottom: 1px dotted #e0e0e0;
+        }
+        .link-list li:last-child { border-bottom: none; }
+        .link-list li::before {
+            content: "›";
+            color: #999;
+            margin-right: 6px;
+        }
+        
+        .info-row {
+            display: flex;
+            justify-content: space-between;
+            padding: 4px 0;
+            border-bottom: 1px dotted #f0f0f0;
+        }
+        .info-row:last-child { border-bottom: none; }
+        .info-label { color: #666; }
+        .info-value { font-weight: bold; color: #333; }
+        
+        .btn {
+            display: inline-block;
+            background: linear-gradient(180deg, #5a96e8 0%, #3a76c8 100%);
+            color: white !important;
+            padding: 5px 12px;
+            border-radius: 3px;
+            border: 1px solid #2a5caa;
+            font-size: 13px;
+            cursor: pointer;
+            text-decoration: none !important;
+        }
+        .btn:hover { background: linear-gradient(180deg, #4a86d8 0%, #2a66b8 100%); }
+        .btn-danger {
+            background: linear-gradient(180deg, #e8605a 0%, #c8403a 100%);
+            border-color: #a8302a;
+        }
+        .btn-success {
+            background: linear-gradient(180deg, #5ae860 0%, #3ac840 100%);
+            border-color: #2aa830;
+        }
+        .btn-small { padding: 3px 8px; font-size: 12px; }
+        
+        .form-group {
+            margin-bottom: 10px;
+        }
+        .form-group label {
+            display: block;
+            margin-bottom: 4px;
+            color: #333;
+        }
+        .form-group input, .form-group textarea, .form-group select {
+            width: 100%;
+            padding: 6px 8px;
+            border: 1px solid #b8ccea;
+            border-radius: 3px;
+            font-size: 14px;
+            font-family: inherit;
+        }
+        .form-group textarea { min-height: 80px; resize: vertical; }
+        
+        .wap-footer {
+            background: #d7e3f4;
+            padding: 8px 10px;
+            text-align: center;
+            font-size: 12px;
+            color: #666;
+            border-top: 1px solid #b8ccea;
+        }
+        .wap-footer a { color: #1a5dc7; margin: 0 4px; }
+        
+        .post-item {
+            padding: 8px 0;
+            border-bottom: 1px solid #f0f0f0;
+        }
+        .post-item:last-child { border-bottom: none; }
+        .post-title {
+            font-weight: bold;
+            margin-bottom: 4px;
+        }
+        .post-meta {
+            font-size: 12px;
+            color: #999;
+        }
+        
+        .guestbook-item {
+            padding: 8px 0;
+            border-bottom: 1px solid #f0f0f0;
+        }
+        .guestbook-item:last-child { border-bottom: none; }
+        .guestbook-author { font-weight: bold; color: #1a5dc7; }
+        .guestbook-content { margin: 4px 0; }
+        .guestbook-time { font-size: 12px; color: #999; }
+        
+        .status-item {
+            padding: 8px 0;
+            border-bottom: 1px solid #f0f0f0;
+        }
+        .status-item:last-child { border-bottom: none; }
+        .status-author { font-weight: bold; color: #1a5dc7; }
+        .status-content { margin: 4px 0; }
+        .status-meta { font-size: 12px; color: #999; }
+        
+        .avatar {
+            width: 48px;
+            height: 48px;
+            border-radius: 3px;
+            background: #e0e8f4;
+            display: inline-flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 28px;
+            border: 1px solid #b8ccea;
+            vertical-align: top;
+        }
+        
+        .grid-2 {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 8px;
+        }
+        .grid-3 {
+            display: grid;
+            grid-template-columns: 1fr 1fr 1fr;
+            gap: 8px;
+        }
+        
+        .game-card {
+            border: 1px solid #d0d0d0;
+            border-radius: 3px;
+            padding: 10px;
+            text-align: center;
+            background: linear-gradient(180deg, #f8faff 0%, #eef3fa 100%);
+        }
+        .game-card .icon { font-size: 32px; margin-bottom: 4px; }
+        .game-card .name { font-weight: bold; color: #1a5dc7; }
+        .game-card .desc { font-size: 12px; color: #666; margin-top: 2px; }
+        
+        .progress-bar {
+            height: 8px;
+            background: #e0e0e0;
+            border-radius: 4px;
+            overflow: hidden;
+        }
+        .progress-fill {
+            height: 100%;
+            background: linear-gradient(90deg, #4a86e8 0%, #6aa6f8 100%);
+        }
+        
+        .msg-item {
+            padding: 8px 0;
+            border-bottom: 1px solid #f0f0f0;
+        }
+        .msg-item.unread { background: #fff8e8; margin: -8px -10px; padding: 8px 10px; }
+        .msg-title { font-weight: bold; }
+        .msg-content { color: #666; font-size: 13px; margin: 4px 0; }
+        .msg-time { font-size: 12px; color: #999; }
+        
+        .badge {
+            display: inline-block;
+            background: #e8403a;
+            color: white;
+            font-size: 11px;
+            padding: 1px 5px;
+            border-radius: 8px;
+            min-width: 16px;
+            text-align: center;
+        }
+        
+        .vip-badge {
+            display: inline-block;
+            background: linear-gradient(180deg, #ffd700 0%, #ffb700 100%);
+            color: #8b4513;
+            font-size: 10px;
+            padding: 1px 4px;
+            border-radius: 2px;
+            font-weight: bold;
+        }
+        
+        .top-nav {
+            display: flex;
+            background: #2a5caa;
+        }
+        .top-nav a {
+            flex: 1;
+            text-align: center;
+            padding: 8px 4px;
+            color: white;
+            font-size: 12px;
+            border-right: 1px solid #1a3d7a;
+        }
+        .top-nav a:last-child { border-right: none; }
+        .top-nav a.active {
+            background: #1a3d7a;
+            font-weight: bold;
+        }
+        
+        .tab-bar {
+            display: flex;
+            border-bottom: 2px solid #2a5caa;
+            margin-bottom: 10px;
+        }
+        .tab-bar a {
+            flex: 1;
+            text-align: center;
+            padding: 8px;
+            font-size: 13px;
+            border: 1px solid #d0d0d0;
+            border-bottom: none;
+            background: #f0f4fa;
+            margin-right: -1px;
+        }
+        .tab-bar a.active {
+            background: white;
+            border-top: 2px solid #2a5caa;
+            color: #1a5dc7;
+            font-weight: bold;
+        }
+        
+        .notice {
+            background: #fff8e8;
+            border: 1px solid #ffd700;
+            padding: 8px;
+            margin-bottom: 10px;
+            font-size: 13px;
+            color: #8b6914;
+        }
+        
+        .tip {
+            color: #999;
+            font-size: 12px;
+            margin-top: 4px;
+        }
+        
+        hr { border: none; border-top: 1px solid #e0e0e0; margin: 8px 0; }
+        
+        .text-center { text-align: center; }
+        .text-right { text-align: right; }
+        .text-red { color: #e8403a; }
+        .text-green { color: #3ac840; }
+        .text-blue { color: #1a5dc7; }
+        .text-gray { color: #999; }
+        .bold { font-weight: bold; }
+        .mt-5 { margin-top: 5px; }
+        .mt-10 { margin-top: 10px; }
+        .mb-5 { margin-bottom: 5px; }
+        .mb-10 { margin-bottom: 10px; }
+    </style>
+    {% block extra_css %}{% endblock %}
+</head>
+<body>
+    <div class="wap-header">
+        <div style="display: flex; justify-content: space-between; align-items: center;">
+            <span class="title">🏠 QQ家园</span>
+            <span style="font-size:12px;">
+                {% if user %}
+                <a href="/home/messages" style="color:#c4d9ff;">
+                    消息{% if unread_count %}<span class="badge">{{ unread_count }}</span>{% endif %}
+                </a> | 
+                <a href="/auth/logout" style="color:#c4d9ff;">退出</a>
+                {% endif %}
+            </span>
+        </div>
+        {% if user %}
+        <div class="links">
+            <a href="/home/">首页</a>
+            <a href="/home/my">我的家园</a>
+            <a href="/home/friends">好友</a>
+            <a href="/home/gang">家族</a>
+            <a href="/home/forum">论坛</a>
+            <a href="/home/gamelobby">游戏</a>
+        </div>
+        {% endif %}
+    </div>
+    
+    {% if user %}
+    <div class="top-nav">
+        <a href="/home/" {% if request.url.path == '/home/' %}class="active"{% endif %}>🏠 家园</a>
+        <a href="/home/my" {% if '/home/my' in request.url.path %}class="active"{% endif %}>👤 我的</a>
+        <a href="/home/friends" {% if '/home/friends' in request.url.path %}class="active"{% endif %}>👥 好友</a>
+        <a href="/home/gamelobby" {% if '/home/gamelobby' in request.url.path %}class="active"{% endif %}>🎮 游戏</a>
+        <a href="/home/messages" {% if '/home/messages' in request.url.path %}class="active"{% endif %}>💬 {% if unread_count %}<span class="badge">{{ unread_count }}</span>{% else %}消息{% endif %}</a>
+    </div>
+    {% endif %}
+    
+    {% block breadcrumb %}{% endblock %}
+    
+    <div class="wap-content">
+        {% if request.query_params.get('msg') %}
+        <div class="notice">{{ request.query_params.get('msg') }}</div>
+        {% endif %}
+        {% block content %}{% endblock %}
+    </div>
+    
+    <div class="wap-footer">
+        {% if user %}
+        <a href="/home/">家园首页</a> | 
+        <a href="/home/settings">设置</a> | 
+        <a href="/home/forum">论坛</a> | 
+        <a href="/home/gamelobby">游戏大厅</a>
+        <br>
+        <span style="color:#999;">QQ家园复刻版 · 怀念那些年的时光</span>
+        {% else %}
+        <span>QQ家园复刻版</span>
+        {% endif %}
+    </div>
+</body>
+</html>

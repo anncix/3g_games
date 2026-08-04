@@ -1,0 +1,117 @@
+{% extends "base_wap.html" %}
+{% block title %}商城 - QQ家园{% endblock %}
+
+{% block content %}
+<div class="section">
+    <div class="section-title">🛒 QQ商城</div>
+    <div class="section-body">
+        <div class="tab-bar">
+            {% for m in modules %}
+            <a href="/home/shop?module_key={{ m.key }}" class="tab-item {% if current_module == m.key %}active{% endif %}">
+                {{ m.icon }} {{ m.name }}
+            </a>
+            {% endfor %}
+        </div>
+        
+        <div class="mt-10" style="background: #fff8e8; padding: 8px; border-radius: 4px; font-size: 12px;">
+            💰 当前G币: <b style="color:#c00;">{{ user.wallet.g_coin if user.wallet else 0 }}</b>
+            &nbsp;&nbsp;
+            💎 元宝: <b style="color:#9c27b0;">{{ user.wallet.premium_coin if user.wallet else 0 }}</b>
+        </div>
+        
+        {% if request.query_params.get('error') == '1' %}
+        <div class="error-msg mt-10">余额不足，无法购买！</div>
+        {% endif %}
+        
+        <div class="mt-10">
+            {% if shop_items %}
+            {% for item in shop_items %}
+            <div class="shop-item">
+                <div class="shop-item-icon">📦</div>
+                <div class="shop-item-info">
+                    <div class="shop-item-name">{{ item.item_name }}</div>
+                    <div class="shop-item-price">
+                        {% if item.price_currency == 'g_coin' %}💰 {{ item.price_amount }}G币
+                        {% elif item.price_currency == 'premium_coin' %}💎 {{ item.price_amount }}元宝
+                        {% elif item.price_currency == 'silver_coin' %}🪙 {{ item.price_amount }}银两
+                        {% else %}{{ item.price_amount }}{% endif %}
+                    </div>
+                </div>
+                <form method="post" action="/home/shop/buy/{{ item.id }}" style="margin: 0;">
+                    <div style="display: flex; align-items: center; gap: 5px;">
+                        <input type="number" name="quantity" value="1" min="1" style="width: 40px; padding: 4px; border: 1px solid #ddd; border-radius: 3px; text-align: center;">
+                        <button type="submit" class="btn btn-small">购买</button>
+                    </div>
+                </form>
+            </div>
+            {% endfor %}
+            {% else %}
+            <div class="text-gray text-center" style="padding: 30px;">
+                该分类暂无商品
+            </div>
+            {% endif %}
+        </div>
+        
+        <div class="mt-10" style="text-align: center;">
+            <a href="/home/" class="btn">返回首页</a>
+            <a href="/home/inventory" class="btn">我的背包</a>
+        </div>
+    </div>
+</div>
+
+<style>
+.tab-bar {
+    display: flex;
+    overflow-x: auto;
+    gap: 5px;
+    padding-bottom: 5px;
+    border-bottom: 1px solid #e0e8f4;
+}
+.tab-item {
+    flex-shrink: 0;
+    padding: 6px 12px;
+    background: #f0f4fa;
+    border-radius: 3px;
+    font-size: 12px;
+    text-decoration: none;
+    color: #666;
+}
+.tab-item.active {
+    background: #2a5caa;
+    color: white;
+}
+.shop-item {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    padding: 10px;
+    border-bottom: 1px solid #f0f4fa;
+}
+.shop-item-icon {
+    font-size: 28px;
+    width: 40px;
+    text-align: center;
+}
+.shop-item-info {
+    flex: 1;
+}
+.shop-item-name {
+    font-size: 14px;
+    font-weight: bold;
+    color: #333;
+}
+.shop-item-price {
+    font-size: 12px;
+    color: #c00;
+    margin-top: 3px;
+}
+.error-msg {
+    background: #ffe5e5;
+    color: #c00;
+    padding: 8px;
+    border-radius: 4px;
+    font-size: 12px;
+    text-align: center;
+}
+</style>
+{% endblock %}

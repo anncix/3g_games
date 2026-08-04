@@ -1,0 +1,32 @@
+{% extends "base_wap.html" %}
+
+{% block title %}城市 · 风云三国{% endblock %}
+
+{% block breadcrumb %}
+<div class="nav-bar">
+    <a href="/home/">首页</a>
+    <span class="sep">›</span>
+    <a href="/games/fengyun">风云三国</a>
+    <span class="sep">›</span>
+    <span>城市</span>
+</div>
+{% endblock %}
+
+{% block content %}
+<div class="section">
+    <div class="section-title">🏙️ 三国城市</div>
+    <div class="section-body">
+        {% for c in cities %}
+        <div style="border:1px solid #e0e8f4;border-radius:3px;padding:8px;margin-bottom:8px;">
+            <div style="font-weight:bold;color:#1a5dc7;">
+                {{ c.name }}
+                {% if c.key == st.current_city %}<span class="badge">当前</span>{% endif %}
+            </div>
+            <div style="font-size:12px;color:#666;margin-top:2px;">
+                <span class="text-blue">{{ faction_names.get(c.faction, c.faction) }}</span> · {{ c.intro }}
+            </div>
+        </div>
+        {% endfor %}
+    </div>
+</div>
+{% endblock %}

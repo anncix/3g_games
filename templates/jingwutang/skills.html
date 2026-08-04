@@ -1,0 +1,111 @@
+{% extends "base_wap.html" %}
+
+{% block title %}技能 - 精武堂{% endblock %}
+
+{% block breadcrumb %}
+<div class="nav-bar">
+    <a href="/home/">首页</a>
+    <span class="sep">›</span>
+    <a href="/home/gamelobby">游戏大厅</a>
+    <span class="sep">›</span>
+    <a href="/jingwutang/">精武堂</a>
+    <span class="sep">›</span>
+    <span>技能</span>
+</div>
+{% endblock %}
+
+{% block content %}
+
+{# 技能池状态 #}
+<div class="section">
+    <div class="section-title">📖 技能系统</div>
+    <div class="section-body">
+        <div class="info-row"><span class="info-label">🔮 技能点</span><span class="info-value text-blue bold">{{ role.skill_points or 0 }}</span></div>
+        <div class="info-row"><span class="info-label">💰 G币</span><span class="info-value text-blue">{{ role.gcoin or 0 }}</span></div>
+        <div class="info-row"><span class="info-label">📚 已学技能</span><span class="info-value">{{ learned_count }} 个</span></div>
+        <div class="info-row"><span class="info-label">⚔️ 技能池</span><span class="info-value text-red">{{ equipped_count }}/{{ max_pool }} <span style="font-size:11px; color:#666;">(建议9-10个)</span></span></div>
+    </div>
+</div>
+
+{# 已装配技能 #}
+{% if equipped_skills %}
+<div class="section">
+    <div class="section-title">⚔️ 当前技能池（战斗中随机释放）</div>
+    <div class="section-body">
+        {% for us in equipped_skills %}
+        <div style="display:flex; justify-content:space-between; align-items:center; padding:8px 0; border-bottom:1px dotted #eee;">
+            <div>
+                <span style="font-size:18px;">{{ us.skill.icon }}</span>
+                <b style="margin-left:4px;">{{ us.skill.name }}</b>
+                <span style="font-size:11px; color:#9b59b6;">({{ us.skill.mp_cost }}MP)</span>
+                <div style="font-size:11px; color:#666; margin-top:2px;">{{ us.skill.description }}</div>
+            </div>
+            <a href="/jingwutang/skills/toggle/{{ us.id }}" class="btn btn-small btn-danger">卸下</a>
+        </div>
+        {% endfor %}
+    </div>
+</div>
+{% endif %}
+
+{# 技能商店（按类型分类）#}
+{% for type_key, type_label in type_names.items() %}
+{% if skills_by_type[type_key] %}
+<div class="section">
+    <div class="section-title">{{ type_label }}</div>
+    <div class="section-body">
+        {% for item in skills_by_type[type_key] %}
+        {% set s = item.skill %}
+        <div style="padding:10px 0; border-bottom:1px dotted #eee;">
+            <div style="display:flex; justify-content:space-between; align-items:flex-start;">
+                <div style="flex:1;">
+                    <div>
+                        <span style="font-size:20px;">{{ s.icon }}</span>
+                        <b style="margin-left:4px;">{{ s.name }}</b>
+                        {% if s.is_default %}<span class="vip-badge">默认</span>{% endif %}
+                        {% if s.quality == 'legendary' %}<span style="background:#f39c12;color:white;font-size:10px;padding:1px 4px;border-radius:2px;margin-left:4px;">传说</span>{% endif %}
+                        {% if s.quality == 'epic' %}<span style="background:#9b59b6;color:white;font-size:10px;padding:1px 4px;border-radius:2px;margin-left:4px;">史诗</span>{% endif %}
+                        {% if s.quality == 'excellent' %}<span style="background:#3498db;color:white;font-size:10px;padding:1px 4px;border-radius:2px;margin-left:4px;">优秀</span>{% endif %}
+                    </div>
+                    <div style="font-size:12px; color:#666; margin-top:3px;">{{ s.description }}</div>
+                    <div style="font-size:11px; color:#999; margin-top:2px;">
+                        Lv.{{ s.req_level }}可学 | 消耗{{ s.mp_cost }}精气
+                        {% if s.damage_mult != 1.0 %} | 伤害{{ (s.damage_mult*100)|int }}%{% endif %}
+                        {% if s.heal_pct > 0 %} | 回血{{ (s.heal_pct*100)|int }}%{% endif %}
+                        {% if s.control_turns > 0 %} | 封印{{ s.control_turns }}回合{% endif %}
+                        {% if s.counter_pct > 0 %} | 反弹{{ (s.counter_pct*100)|int }}%{% endif %}
+                    </div>
+                    <div style="font-size:11px; color:#e8403a; margin-top:2px;">
+                        费用: {{ s.price_gcoin }}G币 + {{ s.price_sp }}技能点
+                    </div>
+                </div>
+                <div style="margin-left:8px;">
+                    {% if item.learned %}
+                        {% if item.equipped %}
+                        <span class="text-green" style="font-size:12px;">✓ 已装配</span>
+                        {% else %}
+                        <a href="/jingwutang/skills/toggle/{% for us in role.user_skills %}{% if us.skill_id == s.id %}{{ us.id }}{% endif %}{% endfor %}" class="btn btn-small btn-success">装配</a>
+                        {% endif %}
+                    {% elif item.can_learn %}
+                    <a href="/jingwutang/skills/learn/{{ s.id }}" class="btn btn-small" onclick="return confirm('花费{{ s.price_gcoin }}G币+{{ s.price_sp }}技能点学习【{{ s.name }}】？')">学习</a>
+                    {% else %}
+                    <span style="font-size:11px; color:#999;">
+                        {% if role.level < s.req_level %}需Lv.{{ s.req_level }}{% else %}资源不足{% endif %}
+                    </span>
+                    {% endif %}
+                </div>
+            </div>
+        </div>
+        {% endfor %}
+    </div>
+</div>
+{% endif %}
+{% endfor %}
+
+<div class="tip text-center">
+    💡 技能池贵精不贵多，建议装配9-10个适合自己的技能。战斗中每回合随机释放可用技能。
+</div>
+
+<div class="text-center mt-10">
+    <a href="/jingwutang/">« 返回精武堂</a>
+</div>
+{% endblock %}

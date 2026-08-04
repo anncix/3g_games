@@ -1,0 +1,44 @@
+{% extends "base_wap.html" %}
+{% block title %}副本 - 精武堂{% endblock %}
+{% block breadcrumb %}
+<div class="nav-bar">
+    <a href="/home/">首页</a><span class="sep">›</span><a href="/home/gamelobby">游戏大厅</a>
+    <span class="sep">›</span><a href="/jingwutang/">精武堂</a><span class="sep">›</span><span>副本</span>
+</div>
+{% endblock %}
+{% block content %}
+<div class="section">
+    <div class="section-title">🏔️ 勇闯副本</div>
+    <div class="section-body">
+        <div class="info-row"><span class="info-label">⚔️ 战力</span><span class="info-value text-red bold">{{ combat_power }}</span></div>
+        <div class="info-row"><span class="info-label">⚡ 体力</span><span class="info-value">{{ role.sp }}/{{ role.max_sp }}</span></div>
+        {% if dungeon %}
+        <div class="info-row"><span class="info-label">📍 当前进度</span><span class="info-value">第{{ dungeon.stage }}关</span></div>
+        <div class="info-row"><span class="info-label">🎯 今日次数</span><span class="info-value">{{ dungeon.daily_attempts }}/{{ dungeon.max_attempts }}</span></div>
+        {% endif %}
+    </div>
+</div>
+<div class="section">
+    <div class="section-title">⚔️ 关卡列表</div>
+    <div class="section-body">
+        {% if stages %}
+        {% for s in stages %}
+        <div style="display:flex; justify-content:space-between; align-items:center; padding:10px 0; border-bottom:1px dotted #eee;">
+            <div>
+                <b>第{{ s.id }}关: {{ s.name }}</b>
+                <div style="font-size:11px; color:#666;">Boss: {{ s.boss }} | 推荐Lv.{{ s.level_req }}+</div>
+            </div>
+            {% if role.level >= s.level_req and (not dungeon or dungeon.daily_attempts > 0) %}
+            <a href="/jingwutang/dungeon/fight/{{ s.id }}" class="btn btn-small btn-danger" onclick="return confirm('挑战{{ s.name }}？')">挑战</a>
+            {% else %}
+            <span style="font-size:11px; color:#999;">{% if dungeon and dungeon.daily_attempts <= 0 %}次数用完{% else %}等级不足{% endif %}</span>
+            {% endif %}
+        </div>
+        {% endfor %}
+        {% else %}
+        <div class="text-center" style="color:#999; padding:20px;">副本系统正在建设中...</div>
+        {% endif %}
+    </div>
+</div>
+<div class="text-center mt-10"><a href="/jingwutang/">« 返回精武堂</a></div>
+{% endblock %}

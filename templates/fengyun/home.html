@@ -1,0 +1,145 @@
+{% extends "base_wap.html" %}
+
+{% block title %}风云三国{% endblock %}
+
+{% block breadcrumb %}
+<div class="nav-bar">
+    <a href="/home/">首页</a>
+    <span class="sep">›</span>
+    <a href="/home/gamelobby">游戏大厅</a>
+    <span class="sep">›</span>
+    <span>风云三国</span>
+</div>
+{% endblock %}
+
+{% block extra_css %}
+<style>
+    .fy-header{background:linear-gradient(180deg,#5a2a0a 0%,#8a4a1a 100%);color:#ffd;padding:12px 10px;position:relative;overflow:hidden;}
+    .fy-header::after{content:"";position:absolute;right:-20px;top:-20px;width:100px;height:100px;background:rgba(255,255,255,0.08);border-radius:50%;}
+    .fy-char-info{display:flex;align-items:center;}
+    .fy-avatar{width:60px;height:60px;border-radius:50%;background:#ffe9b0;color:#8a4a1a;font-size:30px;display:flex;align-items:center;justify-content:center;border:3px solid rgba(255,255,255,0.3);margin-right:10px;flex-shrink:0;}
+    .fy-name{font-size:16px;font-weight:bold;}
+    .fy-badge{display:inline-block;background:rgba(255,255,255,0.2);padding:1px 6px;border-radius:2px;font-size:11px;margin-left:4px;}
+    .fy-stats-bar{display:flex;justify-content:space-around;background:rgba(0,0,0,0.15);border-radius:5px;padding:8px 5px;margin-top:10px;font-size:11px;}
+    .fy-stat-item{text-align:center;flex:1;}
+    .fy-stat-val{font-size:14px;font-weight:bold;color:#fff;}
+    .fy-stat-label{opacity:0.85;margin-top:1px;}
+    .fy-menu{display:grid;grid-template-columns:repeat(4,1fr);gap:8px;padding:10px;}
+    .fy-menu-item{background:#fff;border:1px solid #e0e8f4;border-radius:5px;padding:10px 4px;text-align:center;text-decoration:none;color:#333;transition:all 0.15s;}
+    .fy-menu-item:active{background:#f0f4fa;transform:scale(0.95);}
+    .fy-menu-icon{font-size:28px;margin-bottom:3px;}
+    .fy-menu-name{font-size:12px;color:#333;}
+</style>
+{% endblock %}
+
+{% block content %}
+{% if need_create %}
+<div class="section">
+    <div class="section-title">⚔️ 创建角色</div>
+    <div class="section-body">
+        <div class="text-center" style="margin-bottom:15px;">
+            <div style="font-size:48px;">🏯</div>
+            <div style="font-weight:bold; color:#8a4a1a; margin-top:5px;">欢迎来到风云三国</div>
+            <div style="font-size:12px; color:#666; margin-top:4px;">选择你的职业与阵营，开始三国征伐</div>
+        </div>
+        <div class="text-center">
+            <a href="/games/fengyun/create" class="btn" style="padding:8px 30px;">⚔️ 创建角色</a>
+        </div>
+    </div>
+</div>
+{% else %}
+<div class="fy-header">
+    <div class="fy-char-info">
+        <div class="fy-avatar">🏯</div>
+        <div>
+            <div class="fy-name">{{ class_name }}<span class="fy-badge">{{ faction_name }}</span></div>
+            <div style="font-size:12px;opacity:0.9;margin-top:2px;">Lv.{{ st.level }} · 当前 {{ city_name }}</div>
+            <div style="font-size:12px;margin-top:2px;color:#ffd700;font-weight:bold;">⚔️ 战力 {{ power }}</div>
+        </div>
+    </div>
+    <div class="fy-stats-bar">
+        <div class="fy-stat-item">
+            <div class="fy-stat-val">{{ st.hp }}</div>
+            <div class="fy-stat-label">❤️ 气血</div>
+        </div>
+        <div class="fy-stat-item">
+            <div class="fy-stat-val">{{ st.mp }}</div>
+            <div class="fy-stat-label">💧 精气</div>
+        </div>
+        <div class="fy-stat-item">
+            <div class="fy-stat-val">{{ st.atk }}</div>
+            <div class="fy-stat-label">⚔️ 攻击</div>
+        </div>
+        <div class="fy-stat-item">
+            <div class="fy-stat-val">{{ st.defense }}</div>
+            <div class="fy-stat-label">🛡️ 防御</div>
+        </div>
+    </div>
+    <div style="margin-top:8px; font-size:11px; text-align:center; opacity:0.85;">
+        EXP: {{ st.exp }}/{{ exp_need }} · 银两: {{ silver }}
+    </div>
+</div>
+
+{# 待办提示 #}
+{% if todo %}
+<div class="notice">
+    {% for text, btntext, href in todo %}
+    <div style="margin-bottom:4px;">💡 {{ text }} <a href="{{ href }}" class="btn btn-small">{{ btntext }}</a></div>
+    {% endfor %}
+</div>
+{% endif %}
+
+{# 主功能菜单 #}
+<div class="section" style="margin-top:8px;">
+    <div class="fy-menu">
+        <a href="/games/fengyun/cities" class="fy-menu-item">
+            <div class="fy-menu-icon">🏙️</div>
+            <div class="fy-menu-name">城市</div>
+        </a>
+        <a href="/games/fengyun/skills" class="fy-menu-item">
+            <div class="fy-menu-icon">📖</div>
+            <div class="fy-menu-name">技能</div>
+        </a>
+        <a href="/games/fengyun/equip" class="fy-menu-item">
+            <div class="fy-menu-icon">🗡️</div>
+            <div class="fy-menu-name">装备</div>
+        </a>
+        <a href="/games/fengyun/dungeons" class="fy-menu-item">
+            <div class="fy-menu-icon">🏰</div>
+            <div class="fy-menu-name">副本</div>
+        </a>
+        <a href="/games/fengyun/training" class="fy-menu-item">
+            <div class="fy-menu-icon">🧘</div>
+            <div class="fy-menu-name">演武</div>
+        </a>
+        <a href="/games/fengyun/legion" class="fy-menu-item">
+            <div class="fy-menu-icon">🏯</div>
+            <div class="fy-menu-name">军团</div>
+        </a>
+        <a href="/games/fengyun/titles" class="fy-menu-item">
+            <div class="fy-menu-icon">🏅</div>
+            <div class="fy-menu-name">称号</div>
+        </a>
+        <a href="/games/fengyun/achievements" class="fy-menu-item">
+            <div class="fy-menu-icon">🏆</div>
+            <div class="fy-menu-name">成就</div>
+        </a>
+    </div>
+</div>
+
+{# 属性详情 #}
+<div class="section">
+    <div class="section-title">📊 角色属性</div>
+    <div class="section-body">
+        <div class="info-row"><span class="info-label">❤️ 气血</span><span class="info-value">{{ st.hp }}</span></div>
+        <div class="info-row"><span class="info-label">💧 精气</span><span class="info-value">{{ st.mp }}</span></div>
+        <div class="info-row"><span class="info-label">⚔️ 攻击</span><span class="info-value text-red">{{ st.atk }}</span></div>
+        <div class="info-row"><span class="info-label">🛡️ 防御</span><span class="info-value text-blue">{{ st.defense }}</span></div>
+        <div class="info-row"><span class="info-label">💨 闪避</span><span class="info-value text-green">{{ st.dodge }}%</span></div>
+        <div class="info-row"><span class="info-label">🎯 暴击</span><span class="info-value text-red">{{ st.crit }}%</span></div>
+        <div class="info-row"><span class="info-label">💵 银两</span><span class="info-value text-blue">{{ silver }}</span></div>
+        <div class="info-row"><span class="info-label">🏅 荣誉</span><span class="info-value text-blue">{{ st.honor }}</span></div>
+    </div>
+</div>
+{% endif %}
+{% endblock %}

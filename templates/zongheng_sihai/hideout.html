@@ -1,0 +1,193 @@
+{% extends "base_wap.html" %}
+
+{% block title %}山寨 - 纵横四海{% endblock %}
+
+{% block extra_css %}
+<style>
+    .plot-grid {
+        display: grid;
+        grid-template-columns: 1fr 1fr;
+        gap: 8px;
+        margin-bottom: 10px;
+    }
+    .plot-box {
+        border: 2px solid #8B4513;
+        border-radius: 5px;
+        padding: 10px;
+        text-align: center;
+        background: linear-gradient(180deg, #8BC34A 0%, #689F38 100%);
+        color: white;
+        min-height: 100px;
+        display: flex;
+        flex-direction: column;
+        justify-content: center;
+    }
+    .plot-box.idle {
+        background: linear-gradient(180deg, #d4a574 0%, #a0754a 100%);
+        border-color: #8B4513;
+    }
+    .plot-box.ready {
+        background: linear-gradient(180deg, #FFD700 0%, #FFA500 100%);
+        border-color: #FF8C00;
+        animation: glow 1s infinite alternate;
+    }
+    @keyframes glow {
+        from { box-shadow: 0 0 5px #FFD700; }
+        to { box-shadow: 0 0 15px #FFA500; }
+    }
+    .plot-emoji { font-size: 32px; }
+    .plot-status { font-size: 11px; margin-top: 4px; }
+    .crop-select {
+        display: grid;
+        grid-template-columns: 1fr 1fr;
+        gap: 6px;
+        margin-top: 8px;
+    }
+    .crop-btn {
+        border: 1px solid #b8ccea;
+        border-radius: 4px;
+        padding: 8px;
+        text-align: center;
+        background: #f8faff;
+        font-size: 12px;
+        text-decoration: none;
+        color: inherit;
+    }
+    .crop-btn:hover { border-color: #4a86e8; background: #e8f0ff; }
+    .training-box {
+        border: 2px solid #4a86e8;
+        border-radius: 5px;
+        padding: 15px;
+        text-align: center;
+        background: linear-gradient(180deg, #e8f0ff 0%, #d0e0ff 100%);
+    }
+</style>
+{% endblock %}
+
+{% block breadcrumb %}
+<div class="nav-bar">
+    <a href="/home/">首页</a>
+    <span class="sep">›</span>
+    <a href="/home/gamelobby">游戏大厅</a>
+    <span class="sep">›</span>
+    <a href="/zongheng_sihai">纵横四海</a>
+    <span class="sep">›</span>
+    <span>山寨</span>
+</div>
+{% endblock %}
+
+{% block content %}
+
+{% if message %}
+<div class="notice">{{ message }}</div>
+{% endif %}
+
+{# 山寨总览 #}
+<div class="section">
+    <div class="section-title">🏡 我的山寨</div>
+    <div class="section-body">
+        <div style="text-align:center; padding:10px;">
+            <div style="font-size:48px;">🏡</div>
+            <div style="font-weight:bold; color:#1a5dc7; margin-top:5px;">海上山寨</div>
+        </div>
+        <div class="grid-2" style="text-align:center; font-size:12px;">
+            <div style="background:#f0f4fa; padding:8px; border-radius:3px;">
+                🌾 农场等级<br><b>Lv.{{ hideout.farm_level }}</b>
+            </div>
+            <div style="background:#f0f4fa; padding:8px; border-radius:3px;">
+                🥋 练功房等级<br><b>Lv.{{ hideout.training_room_level }}</b>
+            </div>
+        </div>
+    </div>
+</div>
+
+{# 农场 #}
+<div class="section">
+    <div class="section-title">🌾 农场（{{ plot_info|length }}块地）</div>
+    <div class="section-body">
+        <div class="plot-grid">
+            {% for pi in plot_info %}
+            <div class="plot-box {% if pi.plot.status == 'idle' %}idle{% elif pi.ready %}ready{% endif %}">
+                <div class="plot-emoji">
+                    {% if pi.plot.status == 'idle' %}🟫
+                    {% elif pi.ready %}🌾
+                    {% else %}🌱
+                    {% endif %}
+                </div>
+                <div class="plot-status">
+                    {% if pi.plot.status == 'idle' %}
+                        空地 #{{ pi.plot.plot_no }}
+                    {% elif pi.ready %}
+                        {{ pi.plot.crop_name }}（可收获！）
+                    {% else %}
+                        {{ pi.plot.crop_name }}（生长中）
+                    {% endif %}
+                </div>
+                <div style="margin-top:5px;">
+                    {% if pi.plot.status == 'idle' %}
+                        <div style="font-size:10px;">选择种子:</div>
+                        <div class="crop-select" style="grid-template-columns:1fr 1fr;">
+                            {% for code, crop in crops.items() %}
+                            <a href="/zongheng_sihai/hideout/plant/{{ pi.plot.plot_no }}/{{ code }}" class="crop-btn"
+                               onclick="return confirm('种植{{ crop.name }}需要{{ crop.reward // 5 }}银两，确定吗？')">
+                                {% if code == 'rice' %}🌾{% elif code == 'wheat' %}🌾{% elif code == 'herb' %}🌿{% else %}🥕{% endif %}
+                                {{ crop.name }}<br><span style="color:#d0a020;">{{ crop.reward }}银</span>
+                            </a>
+                            {% endfor %}
+                        </div>
+                    {% elif pi.ready %}
+                        <a href="/zongheng_sihai/hideout/harvest/{{ pi.plot.plot_no }}" class="btn btn-small btn-success">🌾 收获</a>
+                    {% else %}
+                        <span style="font-size:10px;">成长中...</span>
+                    {% endif %}
+                </div>
+            </div>
+            {% endfor %}
+        </div>
+
+        <div style="font-size:11px; color:#666; margin-top:8px; text-align:center;">
+            💡 种植作物可以获得银两奖励，不同作物生长时间和收益不同。
+        </div>
+    </div>
+</div>
+
+{# 练功房 #}
+<div class="section">
+    <div class="section-title">🥋 练功房</div>
+    <div class="section-body">
+        <div class="training-box">
+            <div style="font-size:40px;">
+                {% if training_room.is_training %}🧘‍♂️{% else %}⚔️{% endif %}
+            </div>
+            <div style="font-weight:bold; margin-top:5px;">
+                {% if training_room.is_training %}
+                    <span style="color:#3ac840;">练功中...</span>
+                {% else %}
+                    空闲中
+                {% endif %}
+            </div>
+            <div style="font-size:12px; color:#666; margin-top:5px;">
+                每小时获得 {{ training_room.exp_per_hour }} 经验
+                {% if training_room.doll_count > 1 %}
+                    · {{ training_room.doll_count }}个木人
+                {% endif %}
+            </div>
+            <div style="margin-top:10px;">
+                {% if training_room.is_training %}
+                    <a href="/zongheng_sihai/hideout/training/stop" class="btn btn-small btn-danger"
+                       onclick="return confirm('确定要结束练功并领取经验吗？');">⏹️ 结束练功（领取经验）</a>
+                {% else %}
+                    <a href="/zongheng_sihai/hideout/training/start" class="btn btn-small">▶️ 开始练功</a>
+                {% endif %}
+            </div>
+        </div>
+        <div style="font-size:11px; color:#666; margin-top:8px; text-align:center;">
+            💡 练功可以离线获得经验，练功时间越长获得经验越多（上限5000经验）。
+        </div>
+    </div>
+</div>
+
+<div class="text-center mt-10">
+    <a href="/zongheng_sihai">« 返回首页</a>
+</div>
+{% endblock %}
