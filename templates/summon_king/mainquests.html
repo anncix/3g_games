@@ -1,0 +1,33 @@
+{% extends "base_wap.html" %}
+{% block title %}主线任务 - 召唤之王{% endblock %}
+{% block breadcrumb %}
+<div class="nav-bar">
+    <a href="/home/gamelobby">游戏大厅</a>
+    <span class="sep">›</span>
+    <a href="/summon_king">召唤之王</a>
+    <span class="sep">›</span> 主线任务
+</div>
+{% endblock %}
+{% block content %}
+<div class="section">
+    <div class="section-title">🗺️ 主线任务链</div>
+    <div class="section-body">
+        <ul class="link-list">
+            {% for q in main_quests %}
+            <li>
+                <b>{{ q[0] }}. {{ q[1] }}</b>
+                <span class="text-gray" style="font-size:12px;">（Lv.{{ q[2] }} 解锁）</span>
+                <br>
+                <span class="text-gray">{{ q[3] }}</span>
+                <br>
+                <span class="text-green">奖励：{{ q[4] }}</span>
+            </li>
+            {% endfor %}
+        </ul>
+    </div>
+</div>
+
+<div class="text-center mt-10">
+    <a href="/summon_king" class="btn btn-small">返回首页</a>
+</div>
+{% endblock %}

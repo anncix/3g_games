@@ -1,0 +1,101 @@
+{% extends "base_wap.html" %}
+
+{% block title %}角色信息 · 小轩西游{% endblock %}
+
+{% block breadcrumb %}
+<div class="nav-bar">
+    <a href="/home/">首页</a>
+    <span class="sep">›</span>
+    <a href="/games/xyou">小轩西游</a>
+    <span class="sep">›</span>
+    <span>角色信息</span>
+</div>
+{% endblock %}
+
+{% block extra_css %}
+<link rel="stylesheet" href="/static/css/xyou.css">
+{% endblock %}
+
+{% block content %}
+{% set active = 'char' %}
+{% include "xyou/_header.html" %}
+
+<div class="xy-card">
+    <h3>🛡️ {{ char.name }} <span class="xy-tag gold">Lv.{{ char.level }}</span>
+        <span class="xy-tag {% if char.race == '妖' %}red{% elif char.race == '仙' %}blue{% else %}gold{% endif %}">{{ char.race }}·{{ char.class_name }}</span>
+    </h3>
+    <div class="xy-stat-grid">
+        <div class="xy-stat"><div class="v">{{ stats.total_attack }}</div><div class="k">攻击</div></div>
+        <div class="xy-stat"><div class="v">{{ stats.total_defense }}</div><div class="k">防御</div></div>
+        <div class="xy-stat"><div class="v">{{ char.speed }}</div><div class="k">速度</div></div>
+        <div class="xy-stat"><div class="v">{{ char.hp }}/{{ stats.total_hp_max }}</div><div class="k">气血</div></div>
+        <div class="xy-stat"><div class="v">{{ char.mp }}/{{ stats.total_mp_max }}</div><div class="k">法力</div></div>
+        <div class="xy-stat"><div class="v">{{ char.exp }}</div><div class="k">经验</div></div>
+    </div>
+    <div style="margin-top:10px;font-size:12px;color:#999;">
+        装备加成：攻击 +{{ stats.equip_atk }} · 防御 +{{ stats.equip_def }}
+    </div>
+</div>
+
+<div class="xy-card">
+    <h3>⚔️ 已装备</h3>
+    <ul class="xy-list">
+        {% for slot, slot_name in slot_names.items() %}
+        <li>
+            <div class="xy-item">
+                <div class="ic">{{ '🗡️' if slot == 'weapon' else ('🦺' if slot == 'armor' else ('⛑️' if slot == 'helmet' else '👢')) }}</div>
+                <div>
+                    <div class="l-name">{{ slot_name }}</div>
+                    <div class="l-sub">{{ equipment.get(slot).name if equipment.get(slot) else '未装备' }}</div>
+                </div>
+            </div>
+            {% if equipment.get(slot) %}
+            <form method="POST" action="/games/xyou/unequip">
+                <input type="hidden" name="eq_id" value="{{ equipment.get(slot).id }}">
+                <button class="btn red sm" type="submit">卸下</button>
+            </form>
+            {% endif %}
+        </li>
+        {% endfor %}
+    </ul>
+</div>
+
+<div class="xy-card">
+    <h3>📖 已学技能</h3>
+    {% if skills %}
+    <ul class="xy-list">
+        {% for s in skills %}
+        <li>
+            <div>
+                <div class="l-name">{{ s.name }}</div>
+                <div class="l-sub">{{ s.description }}</div>
+            </div>
+            <span class="xy-tag green">Lv.{{ s.level }}</span>
+        </li>
+        {% endfor %}
+    </ul>
+    {% else %}
+    <div class="xy-empty">尚未学会任何技能，去化生寺找高僧《学艺》</div>
+    {% endif %}
+</div>
+
+<div class="xy-card">
+    <h3>📜 进行中任务</h3>
+    {% if quests %}
+    <ul class="xy-list">
+        {% for q in quests %}
+        {% if q.status != '已完成' %}
+        <li>
+            <div>
+                <div class="l-name">{{ q.name }} <span class="xy-tag {% if q.status == '可完成' %}green{% else %}blue{% endif %}">{{ q.status }}</span></div>
+                <div class="l-sub">进度 {{ q.progress }}/{{ q.target }}</div>
+            </div>
+        </li>
+        {% endif %}
+        {% endfor %}
+    </ul>
+    {% else %}
+    <div class="xy-empty">暂无任务</div>
+    {% endif %}
+</div>
+{% endblock %}

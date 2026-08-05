@@ -1,0 +1,28 @@
+{% extends "base_wap.html" %}
+
+{% block title %}操作结果{% endblock %}
+
+{% block breadcrumb %}
+<div class="nav-bar">
+    <a href="/home/">首页</a>
+    <span class="sep">›</span>
+    <a href="/delicious_town/">美味小镇</a>
+</div>
+{% endblock %}
+
+{% block content %}
+<div class="section text-center" style="margin-top:20px;">
+    <div class="section-body">
+        <div style="font-size:56px; margin-bottom:10px;">
+            {% if ok %}🎉{% else %}😥{% endif %}
+        </div>
+        <div style="font-size:16px; font-weight:bold; {% if ok %}color:#2a8a2a;{% else %}color:#e8403a;{% endif %}">
+            {{ msg }}
+        </div>
+        <div class="mt-10">
+            <a href="{{ back_href }}" class="btn">{{ back_text }}</a>
+        </div>
+        <div class="tip mt-10"><a href="/delicious_town/" class="btn btn-small">返回小镇首页</a></div>
+    </div>
+</div>
+{% endblock %}

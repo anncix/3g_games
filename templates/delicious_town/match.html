@@ -1,0 +1,65 @@
+{% extends "base_wap.html" %}
+
+{% block title %}赛厨对战{% endblock %}
+
+{% block breadcrumb %}
+<div class="nav-bar">
+    <a href="/home/">首页</a>
+    <span class="sep">›</span>
+    <a href="/delicious_town/">美味小镇</a>
+    <span class="sep">›</span>
+    <span>赛厨对战</span>
+</div>
+{% endblock %}
+
+{% block content %}
+<div class="section">
+    <div class="section-title">👑 我的厨力</div>
+    <div class="section-body text-center">
+        <div style="font-size:36px; font-weight:bold; color:#d06020;">{{ power }}</div>
+        <div class="tip">每日可挑战 {{ match_limit }} 次</div>
+    </div>
+</div>
+
+<div class="section">
+    <div class="section-title">⚔️ 选择对手</div>
+    <div class="section-body">
+        {% if candidates %}
+        <ul class="link-list">
+            {% for c in candidates %}
+            <li style="display:flex; justify-content:space-between; align-items:center;">
+                <span>{{ c.user.nickname }} <span class="tip">(Lv.{{ c.level }} · 厨力{{ c.power }})</span></span>
+                <form method="post" action="/delicious_town/match/challenge/{{ c.user.id }}" style="margin:0;">
+                    <button class="btn btn-small">挑战</button>
+                </form>
+            </li>
+            {% endfor %}
+        </ul>
+        {% else %}
+        <div class="tip text-center">暂无对手，先去添加好友吧</div>
+        {% endif %}
+    </div>
+</div>
+
+{% if recent %}
+<div class="section">
+    <div class="section-title">📜 最近对战</div>
+    <div class="section-body">
+        {% for m in recent %}
+        <div class="info-row">
+            <span class="info-label">{{ m.attacker_score }} : {{ m.defender_score }}</span>
+            <span class="info-value {% if m.winner_id == user.id %}text-green{% else %}text-red{% endif %}">
+                {% if m.winner_id == user.id %}胜{% else %}负{% endif %}
+            </span>
+        </div>
+        {% endfor %}
+    </div>
+</div>
+{% endif %}
+
+<div class="notice">💡 由 3 位评委（火候/刀功/厨艺/调味中随机 3 项）打分，综合分高者胜。胜者金币+200经验+30，败者+50。</div>
+
+<div class="text-center mt-10">
+    <a href="/delicious_town/">« 返回小镇首页</a>
+</div>
+{% endblock %}

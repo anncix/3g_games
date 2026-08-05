@@ -25,8 +25,8 @@ from .models import (
     UserHomepage, HomepageModule, UserHomepageModule,
     ChatRoom, ChatMessage,
     City, CityFeed,
-    XyouState, XyouSkill, XyouUserSkill, XyouEquip, XyouUserEquip,
-    XyouDungeon, XyouPet, XyouUserPet, XyouScene, XyouMaterial, XyouCoord, ItemXyou,
+    XyouCharacter, XyouInventory, XyouEquipment, XyouSkill, XyouQuest,
+    XyouGuild, XyouGuildMember, XyouWorldMsg, XyouRanking,
     friendship
 )
 
@@ -57,7 +57,7 @@ __all__ = [
     "UserHomepage", "HomepageModule", "UserHomepageModule",
     "ChatRoom", "ChatMessage",
     "City", "CityFeed",
-    "XyouState", "XyouSkill", "XyouUserSkill", "XyouEquip", "XyouUserEquip",
-    "XyouDungeon", "XyouPet", "XyouUserPet", "XyouScene", "XyouMaterial", "XyouCoord", "ItemXyou",
+    "XyouCharacter", "XyouInventory", "XyouEquipment", "XyouSkill", "XyouQuest",
+    "XyouGuild", "XyouGuildMember", "XyouWorldMsg", "XyouRanking",
     "friendship"
 ]

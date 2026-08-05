@@ -112,9 +112,9 @@
             {% if match.attacker_id == user.id %}
             <span>你 VS {{ match.defender_nickname }}</span>
             {% if match.result == 'win' %}
-            <span class="text-green">胜利</span> <span class="text-blue">声望{{ match.prestige_change:+d }}</span>
+            <span class="text-green">胜利</span> <span class="text-blue">声望{{ "%+d"|format(match.prestige_change) }}</span>
             {% else %}
-            <span class="text-red">失败</span> <span class="text-red">声望{{ match.prestige_change:+d }}</span>
+            <span class="text-red">失败</span> <span class="text-red">声望{{ "%+d"|format(match.prestige_change) }}</span>
             {% endif %}
             {% else %}
             <span>{{ match.attacker_nickname }} VS 你</span>

@@ -1,0 +1,36 @@
+{% extends "base_wap.html" %}
+
+{% block title %}纵横四海 - 宝石图鉴{% endblock %}
+
+{% block breadcrumb %}
+<div class="nav-bar">
+    <a href="/home/">首页</a><span class="sep">›</span>
+    <a href="/home/gamelobby">游戏大厅</a><span class="sep">›</span>
+    <a href="/zongheng_sihai">纵横四海</a><span class="sep">›</span>
+    <span>宝石图鉴</span>
+</div>
+{% endblock %}
+
+{% block content %}
+
+<div class="notice">💎 宝石共 5 阶（碎片/小/中/大/完美），可镶嵌于对应部位。</div>
+
+{% for row in gem_list %}
+{% set g = row.g %}
+<div class="section">
+    <div class="section-title">{{ g.name }} <span class="tag">{{ row.tier_name }}</span></div>
+    <div class="section-body">
+        {% if g.effect %}<div>效果：<b>{{ g.effect }}</b></div>{% endif %}
+        {% if row.slots %}
+        <div class="text-gray" style="font-size:12px;">可镶嵌：{% for s in row.slots %}{{ s }}{% if not loop.last %} · {% endif %}{% endfor %}</div>
+        {% endif %}
+    </div>
+</div>
+{% else %}
+<div class="notice">暂无宝石</div>
+{% endfor %}
+
+<div class="text-center mt-10">
+    <a href="/zongheng_sihai">« 返回航海首页</a>
+</div>
+{% endblock %}

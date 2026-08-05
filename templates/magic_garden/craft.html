@@ -1,0 +1,86 @@
+{% extends "base_wap.html" %}
+
+{% block title %}合成工坊{% endblock %}
+
+{% block breadcrumb %}
+<div class="nav-bar">
+    <a href="/home/">首页</a><span class="sep">›</span>
+    <a href="/magic_garden">花园</a><span class="sep">›</span>
+    <span>合成工坊</span>
+</div>
+{% endblock %}
+
+{% block content %}
+<div class="section">
+    <div class="section-title">🔧 合成工坊</div>
+    <div class="section-body">
+        <div class="info-row"><span class="info-label">称号</span><span class="info-value"><b>{{ title }}</b> Lv{{ st.level }}</span></div>
+        <div class="info-row"><span class="info-label">物品上限</span><span class="info-value">Lv{{ item_cap }}</span></div>
+        <div class="info-row"><span class="info-label">工坊槽位</span><span class="info-value"><b>{{ st.craft_slots - free_slots }}/{{ st.craft_slots }}</b> 占用 · 空闲 <b>{{ free_slots }}</b></span></div>
+        <div class="info-row"><span class="info-label">花园金币</span><span class="info-value"><b>{{ gold }}</b></span></div>
+        <div class="tip">合成需耗时（30 + 目标等级×60 秒），时间到回工坊领结果（成功率+保底）</div>
+    </div>
+</div>
+
+<div class="section">
+    <div class="section-title">⚙️ 工坊槽位</div>
+    <div class="section-body">
+        {% for s in slots %}
+        <div class="info-row">
+            <span class="info-label">槽位 #{{ s.slot+1 }}{% if s.busy %} · {{ s.item.recipe_name }}{% endif %}</span>
+        </div>
+        {% if s.busy %}
+        <div class="post-item">
+            目标：<b>{{ s.item.target_seed_name }}</b> 种子<br>
+            {% if s.item.done %}
+            <span class="text-green">已完成，可领取</span>
+            <form method="post" action="/magic_garden/craft/collect/{{ s.slot }}" style="margin-top:6px;">
+                <button class="btn btn-success" type="submit">领取结果</button>
+            </form>
+            {% else %}
+            进度 <b>{{ s.item.progress }}%</b> · 剩余 <b>{{ s.item.remain }}</b> 秒<br>
+            <div class="progress-bar"><div class="progress-fill" style="width:{{ s.item.progress }}%"></div></div>
+            <span class="tip">完成后回来领取（届时按成功率+保底结算）</span>
+            {% endif %}
+        </div>
+        {% else %}
+        <div class="tip">空闲 — 可在下方配方列表"开始合成"</div>
+        {% endif %}
+        {% endfor %}
+    </div>
+</div>
+
+<div class="section">
+    <div class="section-title">📜 配方列表</div>
+    <div class="section-body">
+        {% for item in info %}
+        <div class="post-item">
+            <b>{{ item.recipe.name }}</b> → {{ item.seed.name }}种子×{{ item.recipe.result_qty }}<br>
+            目标：<b>{{ item.seed.name }}</b> <span class="badge">{{ item.seed.rarity }}</span> Lv{{ item.seed.item_level }}
+            {% if item.recipe.require_lock_check %}<span class="text-red">高阶锁</span>{% endif %}<br>
+            成功率 <b>{{ item.recipe.success_rate }}%</b> · 保底 <b>{{ item.credits }}/{{ item.recipe.fail_credit_threshold }}</b> · 耗时 <b>{{ item.craft_seconds }}秒</b>
+            <div class="progress-bar"><div class="progress-fill" style="width:{{ (item.credits/item.recipe.fail_credit_threshold*100)|int }}%"></div></div>
+            材料：
+            {% for m in item.mats %}{{ m.name }}×{{ m.need }}(<b>{{ m.have }}</b>) {% endfor %}<br>
+            {% if item.level_locked %}
+            <span class="tip">物品等级超限（需提升等级至可使用Lv{{ item.seed.item_level }}）</span>
+            {% elif free_slots <= 0 %}
+            <span class="tip">工坊槽位已满，请先领取完成的合成</span>
+            {% elif item.can %}
+            <form method="post" action="/magic_garden/craft/start/{{ item.recipe.id }}" style="margin-top:6px;">
+                <button class="btn btn-success" type="submit">开始合成</button>
+            </form>
+            {% else %}
+            <span class="tip">材料不足</span>
+            {% endif %}
+        </div>
+        {% else %}
+        <div class="tip">暂无配方</div>
+        {% endfor %}
+    </div>
+</div>
+
+<div class="text-center mt-10">
+    <a class="btn" href="/magic_garden">« 返回花园</a>
+</div>
+{% endblock %}

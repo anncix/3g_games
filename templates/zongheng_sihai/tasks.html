@@ -72,8 +72,8 @@
                     🏆 奖励：
                     {% if item.reward.silver %}{{ item.reward.silver }}银两{% endif %}
                     {% if item.reward.exp %} · {{ item.reward.exp }}经验{% endif %}
-                    {% if item.reward.items %}
-                        {% for it in item.reward.items %} · {{ it.name }}x{{ it.qty }}{% endfor %}
+                    {% if item.reward.get('items') %}
+                        {% for it in item.reward['items'] %} · {{ it.name }}x{{ it.qty }}{% endfor %}
                     {% endif %}
                 </div>
                 {% endif %}

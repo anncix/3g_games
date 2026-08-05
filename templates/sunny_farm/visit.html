@@ -1,0 +1,44 @@
+{% extends "base_wap.html" %}
+
+{% block title %}{{ host.nickname }}的农场{% endblock %}
+
+{% block breadcrumb %}
+<div class="nav-bar">
+    <a href="/home/">首页</a><span class="sep">›</span>
+    <a href="/home/friends">好友</a><span class="sep">›</span>
+    <span>{{ host.nickname }}的农场</span>
+</div>
+{% endblock %}
+
+{% block content %}
+<div class="section">
+    <div class="section-title">👥 {{ host.nickname }}的农场（Lv.{{ host.farm.farm_level if host.farm else 1 }}）</div>
+    <div class="section-body">
+        {% for info in plot_info %}
+        <div class="info-row">
+            <span class="info-label">
+                第{{ info.plot.plot_no }}块
+                {% if info.crop %} · {{ info.crop.name }}
+                    {% if info.mature %}<span class="text-green">[成熟]</span>{% endif %}
+                {% else %}<span class="text-gray">空地</span>{% endif %}
+                {% if info.locked %}<span class="text-gray">[锁]</span>{% endif %}
+            </span>
+            <span class="info-value">
+                {% if info.mature and not info.locked and not info.already %}
+                <form method="post" action="/sunny_farm/steal/{{ info.plot.id }}" style="display:inline;">
+                    <button class="btn btn-danger btn-small" type="submit">偷！</button>
+                </form>
+                {% elif info.already %}<span class="text-gray">已偷过</span>
+                {% elif info.locked %}<span class="text-gray">已上锁</span>
+                {% else %}<span class="text-gray">未熟</span>{% endif %}
+            </span>
+        </div>
+        {% else %}
+        <div class="tip">好友还没种地</div>
+        {% endfor %}
+    </div>
+</div>
+<div class="text-center mt-10">
+    <a class="btn" href="/home/friends">« 返回好友</a>
+</div>
+{% endblock %}

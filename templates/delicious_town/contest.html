@@ -1,0 +1,77 @@
+{% extends "base_wap.html" %}
+
+{% block title %}厨艺大赛{% endblock %}
+
+{% block breadcrumb %}
+<div class="nav-bar">
+    <a href="/home/">首页</a>
+    <span class="sep">›</span>
+    <a href="/delicious_town/">美味小镇</a>
+    <span class="sep">›</span>
+    <span>厨艺大赛</span>
+</div>
+{% endblock %}
+
+{% block content %}
+<div class="section">
+    <div class="section-title">🏆 厨艺大赛</div>
+    <div class="section-body text-center">
+        <div style="font-size:40px;">🏆</div>
+        <div style="font-size:14px; font-weight:bold;">我的赛区：{{ contest_zones[zone][0] if zone else '未达报名等级' }}</div>
+        <div class="tip mt-5">报名费 {{ signup_cost }} 体力（折合 {{ signup_cost * 10 }} 金币）</div>
+        <div class="info-row mt-10">
+            <span class="info-label">今日报名</span>
+            <span class="info-value">{% if entry %}已报名{% else %}未报名{% endif %}</span>
+        </div>
+        {% if entry and not entry.matched %}
+        <form method="post" action="/delicious_town/contest/settle" class="mt-10">
+            <button class="btn">⚙️ 今日结算</button>
+        </form>
+        {% elif entry and entry.matched %}
+        <div class="text-center mt-10" style="font-size:16px;">
+            {% if entry.result == 'win' %}🎉 胜利！奖励金币+{{ entry.reward_coin }}{% else %}😥 失利，安慰金币+{{ entry.reward_coin }}{% endif %}
+        </div>
+        {% elif signup_open %}
+        <form method="post" action="/delicious_town/contest/signup" class="mt-10">
+            <button class="btn" style="background:#c8a020;border-color:#a08010;">📝 报名参赛</button>
+        </form>
+        {% else %}
+        <div class="tip mt-10">报名时段为每日 8-23 时</div>
+        {% endif %}
+    </div>
+</div>
+
+<div class="section">
+    <div class="section-title">🗺️ 赛区说明</div>
+    <div class="section-body">
+        {% for key, (name, lo, hi) in contest_zones.items() %}
+        <div class="info-row">
+            <span class="info-label">{{ name }}</span>
+            <span class="info-value">Lv.{{ lo }}-{% if hi > 100 %}以上{% else %}{{ hi }}{% endif %}</span>
+        </div>
+        {% endfor %}
+    </div>
+</div>
+
+{% if history %}
+<div class="section">
+    <div class="section-title">📜 参赛历史</div>
+    <div class="section-body">
+        {% for h in history %}
+        <div class="info-row">
+            <span class="info-label">{{ h.signup_date }} · {{ contest_zones[h.zone][0] if h.zone in contest_zones else h.zone }}</span>
+            <span class="info-value {% if h.result == 'win' %}text-green{% else %}text-red{% endif %}">
+                {% if h.matched %}{% if h.result == 'win' %}胜+{{ h.reward_coin }}{% else %}负+{{ h.reward_coin }}{% endif %}{% else %}已报名{% endif %}
+            </span>
+        </div>
+        {% endfor %}
+    </div>
+</div>
+{% endif %}
+
+<div class="notice">💡 23 时后系统匹配，次日 8 时前公布。胜者奖励金币+500，败者金币+100。</div>
+
+<div class="text-center mt-10">
+    <a href="/delicious_town/">« 返回小镇首页</a>
+</div>
+{% endblock %}

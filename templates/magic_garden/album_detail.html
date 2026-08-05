@@ -1,0 +1,48 @@
+{% extends "base_wap.html" %}
+
+{% block title %}花谱-{{ entry.name }}{% endblock %}
+
+{% block breadcrumb %}
+<div class="nav-bar">
+    <a href="/home/">首页</a><span class="sep">›</span>
+    <a href="/magic_garden/album">花谱</a><span class="sep">›</span>
+    <span>{{ entry.name }}</span>
+</div>
+{% endblock %}
+
+{% block content %}
+<div class="section">
+    <div class="section-title">🌸 {{ entry.name }}</div>
+    <div class="section-body">
+        <div class="info-row"><span class="info-label">系列</span><span class="info-value">{{ entry.series }}</span></div>
+        <div class="info-row"><span class="info-label">描述</span><span class="info-value">{{ entry.description }}</span></div>
+        {% if bloom %}
+        <div class="info-row"><span class="info-label">花朵</span><span class="info-value">{{ bloom.name }}（{{ bloom.color }}色/{{ bloom.rarity }}）</span></div>
+        <div class="info-row"><span class="info-label">售价</span><span class="info-value">{{ bloom.sell_price }}金{% if bloom.special_tag %} · {{ bloom.special_tag }}{% endif %}</span></div>
+        {% endif %}
+    </div>
+</div>
+
+<div class="section">
+    <div class="section-title">💡 点亮状态</div>
+    <div class="section-body">
+        {% if is_lit %}
+        <div class="info-row"><span class="info-label">状态</span><span class="info-value text-green">已点亮</span></div>
+        {% else %}
+        <div class="info-row"><span class="info-label">状态</span><span class="info-value">未点亮</span></div>
+        <div class="info-row"><span class="info-label">持有花朵</span><span class="info-value"><b>{{ hold }}</b> 朵</span></div>
+        {% if hold > 0 %}
+        <form method="post" action="/magic_garden/album/light/{{ entry.key }}" style="margin-top:8px;">
+            <button class="btn btn-success" type="submit">点亮花谱（金币+20 经验+15）</button>
+        </form>
+        {% else %}
+        <div class="tip">需先获得该花朵（种植或好友赠送）</div>
+        {% endif %}
+        {% endif %}
+    </div>
+</div>
+
+<div class="text-center mt-10">
+    <a class="btn" href="/magic_garden/album">« 返回花谱</a>
+</div>
+{% endblock %}

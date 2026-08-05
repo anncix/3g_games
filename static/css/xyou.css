@@ -1,0 +1,149 @@
+/* ============================================================
+   小轩西游 模块样式（配合 base_wap.html 使用）
+   移植自 anncix/xiyou 仓库 app/static/css/style.css，并适配 3g_games
+   ============================================================ */
+
+/* ---------- 角色头 / 导航 ---------- */
+.xy-brand {
+    background: linear-gradient(180deg, #3a1a5a 0%, #6a2a8a 100%);
+    color: #ffe;
+    padding: 12px 10px;
+    position: relative;
+    overflow: hidden;
+    border-radius: 3px;
+    margin-bottom: 8px;
+}
+.xy-brand::after {
+    content: "";
+    position: absolute; right: -20px; top: -20px;
+    width: 100px; height: 100px;
+    background: rgba(255,255,255,0.08);
+    border-radius: 50%;
+}
+.xy-char-info { display: flex; align-items: center; }
+.xy-avatar {
+    width: 52px; height: 52px; border-radius: 50%;
+    background: #ffd9b0; color: #6a2a8a; font-size: 26px;
+    display: flex; align-items: center; justify-content: center;
+    border: 2px solid rgba(255,255,255,0.3); margin-right: 10px; flex-shrink: 0;
+}
+.xy-name { font-size: 16px; font-weight: bold; }
+.xy-badge {
+    display: inline-block; background: rgba(255,255,255,0.2);
+    padding: 1px 6px; border-radius: 2px; font-size: 11px; margin-left: 4px;
+}
+.xy-stats-bar {
+    display: flex; justify-content: space-around;
+    background: rgba(0,0,0,0.15); border-radius: 5px;
+    padding: 8px 5px; margin-top: 10px; font-size: 11px;
+}
+.xy-stat-item { text-align: center; flex: 1; }
+.xy-stat-val { font-size: 14px; font-weight: bold; color: #fff; }
+.xy-stat-label { opacity: 0.85; margin-top: 1px; }
+
+.xy-menu { display: grid; grid-template-columns: repeat(4, 1fr); gap: 8px; margin-bottom: 10px; }
+.xy-menu-item {
+    background: #fff; border: 1px solid #e0e8f4; border-radius: 5px;
+    padding: 10px 4px; text-align: center; text-decoration: none; color: #333;
+    transition: all 0.15s;
+}
+.xy-menu-item.active { background: #efe9f7; border-color: #6a2a8a; }
+.xy-menu-item:active { background: #f0f4fa; transform: scale(0.95); }
+.xy-menu-icon { font-size: 26px; margin-bottom: 3px; }
+.xy-menu-name { font-size: 12px; color: #333; }
+
+/* ---------- 页面容器 ---------- */
+.xy-content { padding: 4px 0; }
+.xy-page-title {
+    font-size: 15px; font-weight: bold; color: #6a2a8a;
+    margin-bottom: 8px; display: flex; align-items: center; justify-content: space-between;
+}
+
+/* ---------- 卡片 / 列表 ---------- */
+.xy-card {
+    background: #fff; border: 1px solid #e0e8f4; border-radius: 5px;
+    padding: 10px; margin-bottom: 10px;
+}
+.xy-card h3 {
+    font-size: 14px; color: #6a2a8a; margin-bottom: 8px;
+    display: flex; align-items: center;
+}
+.xy-desc { font-size: 13px; color: #666; margin-bottom: 6px; }
+
+.xy-list { list-style: none; }
+.xy-list li {
+    display: flex; align-items: center; justify-content: space-between;
+    padding: 8px 0; border-bottom: 1px dotted #e0e0e0; gap: 8px;
+}
+.xy-list li:last-child { border-bottom: none; }
+.xy-list .l-name { font-weight: bold; }
+.xy-list .l-sub { font-size: 12px; color: #999; margin-top: 2px; }
+.xy-list .l-right { white-space: nowrap; }
+
+/* 物品行（图标 + 信息） */
+.xy-item { display: flex; align-items: center; gap: 8px; }
+.xy-item .ic {
+    width: 34px; height: 34px; border-radius: 4px; flex-shrink: 0;
+    display: flex; align-items: center; justify-content: center;
+    font-size: 18px; background: #f6f8fc; border: 1px solid #e0e8f4;
+}
+.xy-item .ic.药品 { background: #eef7ee; }
+.xy-item .ic.装备 { background: #fdf3e0; }
+
+/* ---------- 标签 ---------- */
+.xy-tag {
+    display: inline-block; padding: 1px 6px; border-radius: 3px;
+    font-size: 11px; margin-left: 4px; vertical-align: middle;
+}
+.xy-tag.gold { background: #fff3d6; color: #8b6914; }
+.xy-tag.green { background: #e6f7e6; color: #2a7a30; }
+.xy-tag.red { background: #fbe6e6; color: #c8403a; }
+.xy-tag.blue { background: #e8f0ff; color: #1a5dc7; }
+.xy-tag.dim { background: #f0f0f0; color: #999; }
+
+/* ---------- 属性格子 ---------- */
+.xy-stat-grid { display: grid; grid-template-columns: repeat(3, 1fr); gap: 8px; margin-top: 8px; }
+.xy-stat { background: #f6f8fc; border-radius: 4px; text-align: center; padding: 6px 2px; }
+.xy-stat .v { font-weight: bold; color: #6a2a8a; }
+.xy-stat .k { font-size: 11px; color: #999; }
+
+/* ---------- 战斗日志 ---------- */
+.xy-dialog {
+    border: 1px solid #d0d0d0; border-radius: 4px;
+    background: #fff; padding: 10px; margin-bottom: 10px;
+}
+.xy-dialog .dl-title { font-weight: bold; margin-bottom: 6px; }
+.xy-dialog p { margin: 2px 0; font-size: 13px; }
+.xy-dialog p.win { color: #3ac840; font-weight: bold; }
+.xy-dialog p.lose { color: #e8403a; font-weight: bold; }
+
+.xy-alert.err { background: #fbe6e6; color: #c8403a; border: 1px solid #f0b0a8; border-radius: 4px; padding: 8px; margin-bottom: 10px; font-size: 13px; }
+.xy-empty { text-align: center; color: #999; padding: 14px 0; font-size: 13px; }
+
+/* ---------- 进度条 ---------- */
+.xy-progress { height: 8px; background: #e0e0e0; border-radius: 4px; overflow: hidden; margin-top: 4px; }
+.xy-progress i { display: block; height: 100%; background: linear-gradient(90deg, #6a2a8a 0%, #9a4ac0 100%); }
+
+/* ---------- 表单 ---------- */
+.xy-field { margin-bottom: 8px; }
+.xy-input {
+    width: 100%; padding: 6px 8px; border: 1px solid #b8ccea;
+    border-radius: 3px; font-size: 14px; font-family: inherit; box-sizing: border-box;
+}
+
+/* ---------- 按钮变体（base_wap 已有 .btn/.btn-small） ---------- */
+.btn.gold { background: linear-gradient(180deg, #f0c040 0%, #d8a020 100%); border-color: #b8901a; }
+.btn.green { background: linear-gradient(180deg, #5ae860 0%, #3ac840 100%); border-color: #2aa830; }
+.btn.red { background: linear-gradient(180deg, #e8605a 0%, #c8403a 100%); border-color: #a8302a; }
+.btn.blue { background: linear-gradient(180deg, #5a96e8 0%, #3a76c8 100%); border-color: #2a5caa; }
+.btn.sm { padding: 3px 8px; font-size: 12px; }
+.btn.block { display: block; width: 100%; text-align: center; margin-top: 6px; }
+
+/* ---------- 聊天 ---------- */
+.xy-chat-box { background: #faf8f4; border: 1px solid #e0e0e0; border-radius: 4px; padding: 8px; margin-bottom: 8px; max-height: 320px; overflow-y: auto; }
+.xy-chat-msg { padding: 3px 0; font-size: 13px; border-bottom: 1px dotted #eee; }
+.xy-chat-msg:last-child { border-bottom: none; }
+.xy-chat-msg .who { font-weight: bold; color: #6a2a8a; }
+.xy-chat-msg .time { font-size: 11px; color: #bbb; margin-left: 4px; }
+.xy-chat-input { display: flex; gap: 6px; }
+.xy-chat-input .xy-input { flex: 1; }

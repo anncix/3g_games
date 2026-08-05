@@ -1,0 +1,61 @@
+{% extends "base_wap.html" %}
+
+{% block title %}收获结果{% endblock %}
+
+{% block breadcrumb %}
+<div class="nav-bar">
+    <a href="/home/">首页</a><span class="sep">›</span>
+    <a href="/magic_garden/pots">花圃</a><span class="sep">›</span>
+    <span>收获结果</span>
+</div>
+{% endblock %}
+
+{% block content %}
+<div class="section">
+    <div class="section-title">{{ '✅ 收获成功' if ok else '❌ 收获失败' }}</div>
+    <div class="section-body"><span class="tip">{{ msg }}</span></div>
+</div>
+
+{% if ok %}
+<div class="section">
+    <div class="section-title">🌺 收获明细</div>
+    <div class="section-body">
+        <div class="info-row"><span class="info-label">种植花种</span><span class="info-value">{{ seed.name }}（{{ seed.rarity }}）</span></div>
+        <div class="info-row"><span class="info-label">获得花朵</span>
+            <span class="info-value">{% for name, cnt in bloom_summary.items() %}{{ name }}×{{ cnt }} {% endfor %}</span>
+        </div>
+        <div class="info-row"><span class="info-label">金币</span><span class="info-value text-green">+{{ coins_gain }}</span></div>
+        <div class="info-row"><span class="info-label">经验</span><span class="info-value text-green">+{{ exp_gain }}</span></div>
+        <div class="info-row"><span class="info-label">当前</span><span class="info-value">Lv{{ st.level }}·经验{{ st.exp }}</span></div>
+    </div>
+</div>
+
+{% if lit_entries %}
+<div class="section">
+    <div class="section-title">✨ 花谱点亮</div>
+    <div class="section-body">
+        {% for e in lit_entries %}
+        <div class="info-row"><span class="info-label text-green">新点亮</span><span class="info-value">{{ e.name }}（{{ e.series }}）</span></div>
+        {% endfor %}
+        <div class="tip">已上报平台：图标/成就/排行</div>
+    </div>
+</div>
+{% endif %}
+
+<div class="section">
+    <div class="section-title">下一步</div>
+    <div class="section-body">
+        <div class="grid-2">
+            <a class="btn" href="/magic_garden/pots">继续种花</a>
+            <a class="btn" href="/magic_garden/album">查看花谱</a>
+            <a class="btn" href="/magic_garden/craft">去合成</a>
+            <a class="btn" href="/home/inventory?m=garden">查看背包</a>
+        </div>
+    </div>
+</div>
+{% endif %}
+
+<div class="text-center mt-10">
+    <a class="btn" href="{{ back_href }}">« {{ back_text }}</a>
+</div>
+{% endblock %}

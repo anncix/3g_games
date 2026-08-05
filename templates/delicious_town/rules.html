@@ -1,0 +1,68 @@
+{% extends "base_wap.html" %}
+
+{% block title %}玩法规则{% endblock %}
+
+{% block breadcrumb %}
+<div class="nav-bar">
+    <a href="/home/">首页</a>
+    <span class="sep">›</span>
+    <a href="/delicious_town/">美味小镇</a>
+    <span class="sep">›</span>
+    <span>规则</span>
+</div>
+{% endblock %}
+
+{% block content %}
+<div class="section">
+    <div class="section-title">📜 核心玩法</div>
+    <div class="section-body">
+        <p>双主轴：餐厅星级(规模) + 菜谱等级(内容)。核心循环：拿食材 → 做菜 → 上桌营业 → 顾客消费 → 获得金币/经验/熟练度 → 升菜等/升餐厅星级 → 去好友家补缺口或互动 → 回店继续经营。</p>
+    </div>
+</div>
+
+<div class="section">
+    <div class="section-title">🛢️ 油量</div>
+    <div class="section-body">
+        <p>油壶初始 3000，可扩至 8000（档位 3000→4000→5000→5500→6000→7000→8000）。做菜和招待顾客都耗油，油量为 0 无法营业。</p>
+    </div>
+</div>
+
+<div class="section">
+    <div class="section-title">⭐ 星级</div>
+    <div class="section-body">
+        <p>1 星起出现 10% 挑剔客，每升 1 星 +10%（上限 5 星 40%）。星级越高，可管理菜谱/服务员/设施越多。</p>
+    </div>
+</div>
+
+<div class="section">
+    <div class="section-title">📖 菜谱</div>
+    <div class="section-body">
+        <p>菜谱 6 级 × 3 品质（普通/极品/金牌），品质只升售价不升经验。需先学会再上架，才能招待顾客。</p>
+    </div>
+</div>
+
+<div class="section">
+    <div class="section-title">👥 好友互动</div>
+    <div class="section-body">
+        <p>翻柜：日限 15 次，同好友日限 3 次 + 10 分钟冷却 + 收益衰减(100/70/40/0%)。丢蟑螂：日限 2 次，封 1 桌 15 分钟，单餐厅上限 3 只。帮好友清理可得经验。</p>
+    </div>
+</div>
+
+<div class="section">
+    <div class="section-title">👑 赛厨 & 厨艺大赛</div>
+    <div class="section-body">
+        <p>厨具 5 类 + 技能点 40 + 3 评委 + 厨力综合分。厨艺大赛分 4 赛区，报名后系统匹配，次日公布结果。</p>
+    </div>
+</div>
+
+<div class="section">
+    <div class="section-title">🛵 外卖</div>
+    <div class="section-body">
+        <p>每日 3 单大额奖励外卖，需先做出对应成品菜才能送餐。</p>
+    </div>
+</div>
+
+<div class="text-center mt-10">
+    <a href="/delicious_town/">« 返回小镇首页</a>
+</div>
+{% endblock %}

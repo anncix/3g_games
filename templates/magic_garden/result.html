@@ -1,0 +1,22 @@
+{% extends "base_wap.html" %}
+
+{% block title %}操作结果{% endblock %}
+
+{% block breadcrumb %}
+<div class="nav-bar">
+    <a href="/home/">首页</a><span class="sep">›</span>
+    <a href="/magic_garden">魔法花园</a><span class="sep">›</span>
+    <span>操作结果</span>
+</div>
+{% endblock %}
+
+{% block content %}
+<div class="section">
+    <div class="section-title">{{ '✅ 操作成功' if ok else '❌ 操作失败' }}</div>
+    <div class="section-body"><span class="tip">{{ msg }}</span></div>
+</div>
+
+<div class="text-center mt-10">
+    <a class="btn" href="{{ back_href }}">« {{ back_text }}</a>
+</div>
+{% endblock %}

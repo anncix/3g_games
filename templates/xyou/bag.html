@@ -1,0 +1,72 @@
+{% extends "base_wap.html" %}
+
+{% block title %}背包 · 小轩西游{% endblock %}
+
+{% block breadcrumb %}
+<div class="nav-bar">
+    <a href="/home/">首页</a>
+    <span class="sep">›</span>
+    <a href="/games/xyou">小轩西游</a>
+    <span class="sep">›</span>
+    <span>背包</span>
+</div>
+{% endblock %}
+
+{% block extra_css %}
+<link rel="stylesheet" href="/static/css/xyou.css">
+{% endblock %}
+
+{% block content %}
+{% set active = 'bag' %}
+{% include "xyou/_header.html" %}
+
+<div class="xy-page-title">背包 <span class="xy-tag gold">银两 {{ char.money }}</span></div>
+
+{% if items %}
+<div class="xy-card">
+    <ul class="xy-list">
+        {% for it in items %}
+        <li>
+            <div class="xy-item">
+                <div class="ic {{ it.item_type }}">{{ '💊' if it.item_type == '药品' else ('🗡️' if it.slot == 'weapon' else ('⛑️' if it.slot == 'helmet' else ('👢' if it.slot == 'boots' else '🦺'))) }}</div>
+                <div>
+                    <div class="l-name">{{ it.name }} × {{ it.count }}
+                        <span class="xy-tag {% if it.item_type == '药品' %}green{% elif it.item_type == '装备' %}gold{% else %}dim{% endif %}">{{ it.item_type }}</span>
+                    </div>
+                    <div class="l-sub">
+                        {% if it.item_type == '装备' %}
+                            {% set slot_name = {'weapon':'武器','armor':'防具','helmet':'头盔','boots':'靴子'}.get(it.slot,'') %}
+                            <span class="xy-tag dim">{{ slot_name }}</span> 攻+{{ it.attack }} 防+{{ it.defense }} 需Lv.{{ it.level_req }}
+                        {% elif it.item_type == '药品' %}
+                            气血+{{ it.hp_bonus }} 法力+{{ it.mp_bonus }}
+                        {% else %}
+                            {{ it.description }}
+                        {% endif %}
+                    </div>
+                </div>
+            </div>
+            <div class="l-right">
+                {% if it.item_type == '药品' %}
+                <form method="POST" action="/games/xyou/use" style="display:inline">
+                    <input type="hidden" name="inv_id" value="{{ it.id }}">
+                    <button class="btn green sm" type="submit">使用</button>
+                </form>
+                {% elif it.item_type == '装备' %}
+                <form method="POST" action="/games/xyou/equip" style="display:inline">
+                    <input type="hidden" name="inv_id" value="{{ it.id }}">
+                    <button class="btn gold sm" type="submit">装备</button>
+                </form>
+                {% endif %}
+                <form method="POST" action="/games/xyou/sell" style="display:inline">
+                    <input type="hidden" name="inv_id" value="{{ it.id }}">
+                    <button class="btn red sm" type="submit">出售</button>
+                </form>
+            </div>
+        </li>
+        {% endfor %}
+    </ul>
+</div>
+{% else %}
+<div class="xy-empty">背包空空如也，去商店逛逛吧</div>
+{% endif %}
+{% endblock %}

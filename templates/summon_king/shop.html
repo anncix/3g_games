@@ -1,0 +1,49 @@
+{% extends "base_wap.html" %}
+{% block title %}商店 - 召唤之王{% endblock %}
+{% block breadcrumb %}
+<div class="nav-bar">
+    <a href="/home/gamelobby">游戏大厅</a>
+    <span class="sep">›</span>
+    <a href="/summon_king">召唤之王</a>
+    <span class="sep">›</span> 商店
+</div>
+{% endblock %}
+{% block content %}
+<div class="section">
+    <div class="section-title">🛒 通用商店</div>
+    <div class="section-body">
+        <div class="info-row">
+            <span class="info-label">铜钱</span>
+            <span class="info-value" style="color:#daa520;">🪙 {{ profile.copper_coin }}</span>
+        </div>
+        <div class="info-row">
+            <span class="info-label">普球/强力球/超级球</span>
+            <span class="info-value">{{ profile.catch_ball_normal }} / {{ profile.catch_ball_strong }} / {{ profile.catch_ball_super }}</span>
+        </div>
+    </div>
+</div>
+
+{% for item in shop_items %}
+<div class="section">
+    <div class="section-title">{{ item.name }}</div>
+    <div class="section-body">
+        <div class="info-row"><span class="info-label">价格</span><span class="info-value">{{ item.price }} 铜钱</span></div>
+        {% if item.buyable %}
+        <form method="post" action="/summon_king/shop/buy/{{ item.item_id }}" class="mt-5">
+            <div class="form-group">
+                <label>数量</label>
+                <input type="number" name="count" value="1" min="1" max="99">
+            </div>
+            <button type="submit" class="btn">购买</button>
+        </form>
+        {% else %}
+        <div class="tip">参考商品（暂不支持购买）</div>
+        {% endif %}
+    </div>
+</div>
+{% endfor %}
+
+<div class="text-center mt-10">
+    <a href="/summon_king" class="btn btn-small">返回首页</a>
+</div>
+{% endblock %}

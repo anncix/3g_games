@@ -1,0 +1,48 @@
+{% extends "base_wap.html" %}
+
+{% block title %}外卖订单{% endblock %}
+
+{% block breadcrumb %}
+<div class="nav-bar">
+    <a href="/home/">首页</a>
+    <span class="sep">›</span>
+    <a href="/delicious_town/">美味小镇</a>
+    <span class="sep">›</span>
+    <span>外卖</span>
+</div>
+{% endblock %}
+
+{% block content %}
+<div class="section">
+    <div class="section-title">🛵 外卖订单（今日完成 {{ done_today }}/{{ delivery_limit }}）</div>
+    <div class="section-body">
+        {% if order_info %}
+        {% for o in order_info %}
+        <div style="border:1px solid #e0d0c0; border-radius:4px; padding:8px; margin-bottom:8px; {% if o.done %}opacity:0.6;{% endif %}">
+            <div style="display:flex; justify-content:space-between; align-items:center;">
+                <div><b>{{ o.dish_name }}</b> ×{{ o.qty }}
+                    {% if o.done %}<span class="badge" style="background:#2a8a2a;">已完成</span>
+                    {% elif o.expired %}<span class="badge" style="background:#999;">已过期</span>{% endif %}
+                </div>
+                <div style="font-size:12px; color:#666;">剩余 {{ o.remain }}</div>
+            </div>
+            <div style="font-size:12px; color:#666; margin:4px 0;">奖励：经验+{{ o.reward_exp }} 金币+{{ o.reward_gold }} · 我有 {{ o.have }} 份</div>
+            {% if o.can_complete %}
+            <form method="post" action="/delicious_town/delivery/complete/{{ o.idx }}" class="text-right">
+                <button class="btn btn-success btn-small">🛵 送餐</button>
+            </form>
+            {% endif %}
+        </div>
+        {% endfor %}
+        {% else %}
+        <div class="tip text-center">暂无外卖订单</div>
+        {% endif %}
+    </div>
+</div>
+
+<div class="notice">💡 每日生成 {{ delivery_limit }} 单外卖，需先做出对应成品菜才能送餐。送餐获得大额金币和经验奖励！</div>
+
+<div class="text-center mt-10">
+    <a href="/delicious_town/">« 返回小镇首页</a>
+</div>
+{% endblock %}

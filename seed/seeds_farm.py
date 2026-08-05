@@ -114,6 +114,16 @@ def seed_farm_full(db: Session, log=print):
         # 分批提交：每 BATCH 条 commit 一次，可断点续跑
         if (idx + 1) % BATCH == 0:
             db.commit()
+
+    # 化肥道具词典（阳光农场施肥玩法引用，幂等）
+    fertilizers = [
+        ("farm_fert_normal", "普通化肥", "prop", 200, "缩短成熟时间60秒"),
+        ("farm_fert_organic", "有机化肥", "prop", 800, "缩短成熟时间30秒，可用5次"),
+        ("farm_fert_premium", "高级化肥", "prop", 2000, "缩短成熟时间120秒，可用3次"),
+    ]
+    for fkey, fname, ftype, fprice, fdesc in fertilizers:
+        if _ensure_item(db, fkey, fname, ftype, fprice, fdesc):
+            stats["items"] += 1
     db.commit()
 
     log(f"[farm-full] 作物+{stats['crops']}（共{len(CROPS_SPEC)}种，含种子/收获物 Item 字典同步，ItemFarm+{stats['items']}）")

@@ -1,0 +1,33 @@
+{% extends "base_wap.html" %}
+
+{% block title %}纵横四海 - 主线任务{% endblock %}
+
+{% block breadcrumb %}
+<div class="nav-bar">
+    <a href="/home/">首页</a><span class="sep">›</span>
+    <a href="/home/gamelobby">游戏大厅</a><span class="sep">›</span>
+    <a href="/zongheng_sihai">纵横四海</a><span class="sep">›</span>
+    <span>主线任务</span>
+</div>
+{% endblock %}
+
+{% block content %}
+
+<div class="notice">📜 共 {{ quests|length }} 条主线任务链，按章节顺序解锁。</div>
+
+{% for q in quests %}
+<div class="section">
+    <div class="section-title">第{{ q.sort }}章 · {{ q.name }}</div>
+    <div class="section-body">
+        <div>环数：<b>{{ q.rounds }}</b></div>
+        {% if q.reward_desc %}<div class="text-gray" style="font-size:12px;">奖励：{{ q.reward_desc }}</div>{% endif %}
+    </div>
+</div>
+{% else %}
+<div class="notice">暂无主线</div>
+{% endfor %}
+
+<div class="text-center mt-10">
+    <a href="/zongheng_sihai">« 返回航海首页</a>
+</div>
+{% endblock %}

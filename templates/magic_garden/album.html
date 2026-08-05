@@ -1,0 +1,41 @@
+{% extends "base_wap.html" %}
+
+{% block title %}我的花谱{% endblock %}
+
+{% block breadcrumb %}
+<div class="nav-bar">
+    <a href="/home/">首页</a><span class="sep">›</span>
+    <a href="/magic_garden">花园</a><span class="sep">›</span>
+    <span>花谱</span>
+</div>
+{% endblock %}
+
+{% block content %}
+<div class="section">
+    <div class="section-title">📖 花谱（{{ lit_count }}/{{ total }}）</div>
+    <div class="section-body">
+        <div class="progress-bar"><div class="progress-fill" style="width:{{ (lit_count/total*100)|int if total else 0 }}%"></div></div>
+    </div>
+</div>
+
+{% for series, entries in groups.items() %}
+<div class="section">
+    <div class="section-title">{{ series }}
+        {% set ns = namespace(c=0) %}{% for e in entries %}{% if e.key in lit_keys %}{% set ns.c = ns.c + 1 %}{% endif %}{% endfor %}
+        （{{ ns.c }}/{{ entries|length }}）
+    </div>
+    <div class="section-body">
+        {% for e in entries %}
+        <a class="info-row" href="/magic_garden/album/{{ e.key }}" style="text-decoration:none; color:inherit;">
+            <span class="info-label">{% if e.key in lit_keys %}<span class="text-green">[已亮]</span>{% else %}<span class="text-gray">[未亮]</span>{% endif %} {{ e.name }}</span>
+            <span class="info-value">{{ e.description[:8] }} ›</span>
+        </a>
+        {% endfor %}
+    </div>
+</div>
+{% endfor %}
+
+<div class="text-center mt-10">
+    <a class="btn" href="/magic_garden">« 返回花园</a>
+</div>
+{% endblock %}

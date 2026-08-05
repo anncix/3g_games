@@ -1,24 +1,33 @@
 {% extends "base_wap.html" %}
 
-{% block title %}操作结果 · 幻想西游{% endblock %}
+{% block title %}战斗结果 · 小轩西游{% endblock %}
 
 {% block breadcrumb %}
 <div class="nav-bar">
     <a href="/home/">首页</a>
     <span class="sep">›</span>
-    <a href="/games/xyou">幻想西游</a>
+    <a href="/games/xyou">小轩西游</a>
     <span class="sep">›</span>
-    <span>操作结果</span>
+    <span>战斗结果</span>
 </div>
 {% endblock %}
 
+{% block extra_css %}
+<link rel="stylesheet" href="/static/css/xyou.css">
+{% endblock %}
+
 {% block content %}
-<div class="section">
-    <div class="section-title">{% if ok %}✅ 成功{% else %}❌ 失败{% endif %}</div>
-    <div class="section-body text-center">
-        <div style="font-size:40px;margin-bottom:10px;">{% if ok %}🎉{% else %}😔{% endif %}</div>
-        <div style="font-size:15px;margin-bottom:15px;">{{ msg }}</div>
-        <a href="{{ back_href }}" class="btn">{{ back_text }}</a>
-    </div>
+{% if err %}
+<div class="xy-alert err">{{ err }}</div>
+{% elif result %}
+<div class="xy-dialog">
+    <div class="dl-title">{{ '🎉 战斗胜利' if result.win else '💀 战斗失败' }}</div>
+    {% for line in result.log %}
+    <p class="{{ 'win' if loop.last and result.win else ('lose' if loop.last and not result.win else '') }}">{{ line }}</p>
+    {% endfor %}
+</div>
+{% endif %}
+<div class="text-center">
+    <a href="{{ back_href }}" class="btn">{{ back_text }}</a>
 </div>
 {% endblock %}

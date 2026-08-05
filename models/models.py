@@ -1059,6 +1059,10 @@ class FarmPlot(Base):
     fertilizer_count = Column(Integer, default=0)
     insect_state = Column(Boolean, default=False)
     weed_state = Column(Boolean, default=False)
+    # 阳光农场延伸玩法字段（移植自 v0.3.1 farm.py）
+    soil_type = Column(String(20), default="普通")   # 普通/红/金/黑土地
+    variation = Column(String(20), default="")       # 作物变异：爱心/湿润/暗化/冰冻
+    locked = Column(Boolean, default=False)          # 地块上锁（防偷）
 
 
 class FarmAnimal(Base):
@@ -1166,10 +1170,20 @@ class TownProfile(Base):
     restaurant_name = Column(String(50), default="我的餐厅")
     star_level = Column(Integer, default=1)
     street_code = Column(String(30), default="chinese")
-    oil_amount = Column(Integer, default=100)
-    gold = Column(Integer, default=5000)
-    seats = Column(Integer, default=4)
+    oil_amount = Column(Integer, default=3000)
+    oil_cap = Column(Integer, default=3000)
+    gold = Column(Integer, default=10000)
+    seats = Column(Integer, default=3)
+    total_revenue = Column(Integer, default=0)
+    total_service = Column(Integer, default=0)
+    fame = Column(Integer, default=0)
+    dishes_served = Column(Integer, default=0)
+    cooking_recipe = Column(String(32), default="")
+    cooking_started_at = Column(DateTime)
+    last_service_at = Column(DateTime, default=datetime.utcnow)
+    last_oil_drain = Column(DateTime, default=datetime.utcnow)
     created_at = Column(DateTime, default=datetime.utcnow)
+    extra_json = Column(Text)
 
     tables = relationship("TownTable", back_populates="town", cascade="all, delete-orphan")
     recipes = relationship("TownUserRecipe", back_populates="town", cascade="all, delete-orphan")
@@ -1195,12 +1209,15 @@ class TownRecipe(Base):
     recipe_code = Column(String(50), unique=True)
     name = Column(String(100), nullable=False)
     street_code = Column(String(30))
+    recipe_level = Column(Integer, default=1)  # 1-6 级菜
     level_required = Column(Integer, default=1)
     quality_type = Column(String(20), default="normal")
     ingredient_json = Column(Text)
     oil_cost = Column(Integer, default=1)
     gold_income = Column(Integer, default=10)
     exp_income = Column(Integer, default=5)
+    cook_seconds = Column(Integer, default=30)
+    output_item_key = Column(String(64))
 
 
 class TownUserRecipe(Base):
@@ -1212,6 +1229,8 @@ class TownUserRecipe(Base):
     user_id = Column(Integer, ForeignKey("users.id"))
     recipe_id = Column(Integer, ForeignKey("town_recipes.id"))
     quality_level = Column(String(20), default="normal")
+    proficiency = Column(Integer, default=0)
+    on_shelf = Column(Boolean, default=False)
     learned_at = Column(DateTime, default=datetime.utcnow)
 
 
@@ -1250,6 +1269,8 @@ class TownWaiter(Base):
     status = Column(String(20), default="on")
     bound_table_count = Column(Integer, default=0)
     salary = Column(Integer, default=100)
+    bonus_type = Column(String(16), default="coins")
+    expire_at = Column(DateTime)
     hired_at = Column(DateTime, default=datetime.utcnow)
 
 
@@ -1281,6 +1302,105 @@ class ItemTown(Base):
     module_key = Column(String(32), default="town")
     sell_price = Column(Integer, default=0)
     description = Column(String(128), default="")
+
+
+class TownDailyLog(Base):
+    """小镇日限计数（翻柜/丢蟑螂）按 (user_id, date) 唯一"""
+    __tablename__ = "town_daily_logs"
+
+    id = Column(Integer, primary_key=True, index=True, autoincrement=True)
+    user_id = Column(Integer, ForeignKey("users.id"), index=True)
+    date = Column(String(10))
+    flip_total = Column(Integer, default=0)
+    roach_throw = Column(Integer, default=0)
+    __table_args__ = (UniqueConstraint("user_id", "date", name="uq_town_daily"),)
+
+
+class TownFlipLog(Base):
+    """翻柜互动记录（同好友每日上限 + 冷却 + 衰减）"""
+    __tablename__ = "town_flip_logs"
+
+    id = Column(Integer, primary_key=True, index=True, autoincrement=True)
+    thief_id = Column(Integer, index=True)
+    host_id = Column(Integer, index=True)
+    item_key = Column(String(64))
+    times_today = Column(Integer, default=1)
+    created_at = Column(DateTime, default=datetime.utcnow)
+
+
+class TownCockroach(Base):
+    """蟑螂（封 1 桌，15 分钟自动消失，单餐厅上限 3 只）"""
+    __tablename__ = "town_cockroaches"
+
+    id = Column(Integer, primary_key=True, index=True, autoincrement=True)
+    user_id = Column(Integer, index=True)
+    thrower_id = Column(Integer)
+    created_at = Column(DateTime, default=datetime.utcnow)
+    expire_at = Column(DateTime)
+
+
+class TownFacility(Base):
+    """设施（24 小时生效）：奖杯/海报/保鲜柜/省油灶/卫生香氛"""
+    __tablename__ = "town_facilities"
+
+    id = Column(Integer, primary_key=True, index=True, autoincrement=True)
+    user_id = Column(Integer, index=True)
+    facility_key = Column(String(32))
+    expire_at = Column(DateTime)
+
+
+class TownChefTool(Base):
+    """玩家厨具（5 类：铲/刀/锅/味/意）"""
+    __tablename__ = "town_chef_tools"
+
+    id = Column(Integer, primary_key=True, index=True, autoincrement=True)
+    user_id = Column(Integer, index=True)
+    tool_key = Column(String(16))
+    level = Column(Integer, default=1)
+    equipped = Column(Boolean, default=True)
+    created_at = Column(DateTime, default=datetime.utcnow)
+    __table_args__ = (UniqueConstraint("user_id", "tool_key", name="uq_town_chef_tool"),)
+
+
+class TownChefSkill(Base):
+    """玩家技能点分配（火候/刀功/厨艺/调味，共 40 点）"""
+    __tablename__ = "town_chef_skills"
+
+    user_id = Column(Integer, primary_key=True)
+    huohou = Column(Integer, default=0)
+    daogong = Column(Integer, default=0)
+    chuyi = Column(Integer, default=0)
+    tiaowei = Column(Integer, default=0)
+
+
+class TownMatchLog(Base):
+    """赛厨对战记录（3 评委打分）"""
+    __tablename__ = "town_match_logs"
+
+    id = Column(Integer, primary_key=True, index=True, autoincrement=True)
+    attacker_id = Column(Integer, index=True)
+    defender_id = Column(Integer, index=True)
+    attacker_score = Column(Integer, default=0)
+    defender_score = Column(Integer, default=0)
+    winner_id = Column(Integer, default=0)
+    detail = Column(Text, default="")
+    created_at = Column(DateTime, default=datetime.utcnow)
+
+
+class TownContestEntry(Base):
+    """厨艺大赛报名记录"""
+    __tablename__ = "town_contest_entries"
+
+    id = Column(Integer, primary_key=True, index=True, autoincrement=True)
+    user_id = Column(Integer, index=True)
+    zone = Column(String(16))
+    signup_date = Column(String(10))
+    matched = Column(Boolean, default=False)
+    opponent_id = Column(Integer, default=0)
+    result = Column(String(16), default="pending")
+    reward_coin = Column(Integer, default=0)
+    created_at = Column(DateTime, default=datetime.utcnow)
+    __table_args__ = (UniqueConstraint("user_id", "signup_date", name="uq_town_contest_daily"),)
 
 
 # ==================== 十三、魔法花园模块 ====================
@@ -1486,6 +1606,111 @@ class GardenOrderTemplate(Base):
     level_max = Column(Integer, default=99)
     weight = Column(Integer, default=100)
     created_at = Column(DateTime, default=datetime.utcnow)
+
+
+# ==================== 魔法花园玩家玩法状态（完整玩法移植自 v0.3.1） ====================
+
+class GardenState(Base):
+    """玩家花园状态（等级/经验/花盆数/工坊槽/合成队列/装饰/环境值）"""
+    __tablename__ = "garden_states"
+
+    id = Column(Integer, primary_key=True, index=True, autoincrement=True)
+    user_id = Column(Integer, ForeignKey("users.id"), unique=True, nullable=False)
+    level = Column(Integer, default=1)
+    exp = Column(Integer, default=0)
+    pot_count = Column(Integer, default=4)
+    craft_slots = Column(Integer, default=2)
+    # 合成队列 + 魔法任务链状态（JSON：{queue, charm, quest_step, quest_flowers, quest_materials}）
+    craft_queue = Column(Text, default="")
+    decorations = Column(Text, default="[]")
+    env_score = Column(Integer, default=0)
+    created_at = Column(DateTime, default=datetime.utcnow)
+
+
+class GardenPot(Base):
+    """玩家花盆（种植状态）"""
+    __tablename__ = "garden_pots"
+
+    id = Column(Integer, primary_key=True, index=True, autoincrement=True)
+    user_id = Column(Integer, ForeignKey("users.id"), nullable=False)
+    slot = Column(Integer, nullable=False)
+    seed_key = Column(String(50))
+    planted_at = Column(DateTime)
+    watered = Column(Boolean, default=False)
+    weeded = Column(Boolean, default=False)
+    debugged = Column(Boolean, default=False)
+
+
+class GardenCollection(Base):
+    """玩家花谱点亮记录"""
+    __tablename__ = "garden_collections"
+
+    id = Column(Integer, primary_key=True, index=True, autoincrement=True)
+    user_id = Column(Integer, ForeignKey("users.id"), nullable=False)
+    entry_key = Column(String(50), nullable=False)
+    lit = Column(Boolean, default=True)
+    lit_at = Column(DateTime, default=datetime.utcnow)
+
+
+class GardenCraftCredit(Base):
+    """合成保底进度（失败累计）"""
+    __tablename__ = "garden_craft_credits"
+
+    id = Column(Integer, primary_key=True, index=True, autoincrement=True)
+    user_id = Column(Integer, ForeignKey("users.id"), nullable=False)
+    recipe_id = Column(Integer, nullable=False)
+    credits = Column(Integer, default=0)
+
+
+class GardenOrder(Base):
+    """玩家订单（普通/加价/限时）"""
+    __tablename__ = "garden_orders"
+
+    id = Column(Integer, primary_key=True, index=True, autoincrement=True)
+    user_id = Column(Integer, ForeignKey("users.id"), nullable=False)
+    order_type = Column(String(16), default="normal")
+    requirements = Column(Text)
+    reward_coin = Column(Integer, default=0)
+    reward_exp = Column(Integer, default=0)
+    reward_token = Column(Integer, default=0)
+    expire_at = Column(DateTime)
+    delivered = Column(Boolean, default=False)
+    created_at = Column(DateTime, default=datetime.utcnow)
+
+
+class GardenOrderLog(Base):
+    """订单交付历史"""
+    __tablename__ = "garden_order_logs"
+
+    id = Column(Integer, primary_key=True, index=True, autoincrement=True)
+    user_id = Column(Integer, ForeignKey("users.id"), nullable=False)
+    order_type = Column(String(16), default="normal")
+    coin_gain = Column(Integer, default=0)
+    exp_gain = Column(Integer, default=0)
+    token_gain = Column(Integer, default=0)
+    delivered_at = Column(DateTime, default=datetime.utcnow)
+
+
+class GardenExchange(Base):
+    """兑换中心：活动材料 -> 花种"""
+    __tablename__ = "garden_exchanges"
+
+    id = Column(Integer, primary_key=True, index=True, autoincrement=True)
+    result_seed_key = Column(String(50))
+    result_qty = Column(Integer, default=1)
+    materials = Column(Text)
+
+
+class GardenDailyLog(Base):
+    """每日互动审计（偷花/帮忙/订单刷新计数）"""
+    __tablename__ = "garden_daily_logs"
+
+    id = Column(Integer, primary_key=True, index=True, autoincrement=True)
+    user_id = Column(Integer, ForeignKey("users.id"), nullable=False)
+    date = Column(String(10), nullable=False)
+    steal_count = Column(Integer, default=0)
+    help_count = Column(Integer, default=0)
+    order_reroll_paid = Column(Integer, default=0)
 
 
 # ==================== 十四、纵横四海模块 ====================
@@ -2016,6 +2241,25 @@ class JingwuForgeLog(Base):
     material_json = Column(Text)
     result_json = Column(Text)
     created_at = Column(DateTime, default=datetime.utcnow)
+
+
+class JingwuDailyState(Base):
+    """精武堂每日状态（日常任务进度/活跃度/战神宫，跨天自动重置）"""
+    __tablename__ = "jingwu_daily_states"
+
+    id = Column(Integer, primary_key=True, index=True, autoincrement=True)
+    role_id = Column(Integer, ForeignKey("jingwu_roles.id"), unique=True, index=True, nullable=False)
+    role = relationship("JingwuRole", foreign_keys=[role_id])
+    date = Column(String(10), default=lambda: datetime.utcnow().strftime("%Y-%m-%d"))  # 归属日期 YYYY-MM-DD
+    # 任务进度计数：target_type -> 次数
+    counters = Column(JSON, default=dict)
+    claimed_tasks = Column(JSON, default=list)   # 已领取任务ID列表
+    activity_point = Column(Integer, default=0)  # 活跃度
+    claimed_activity = Column(JSON, default=list)  # 已领取活跃档位
+    # 战神宫
+    warshrine_floor = Column(Integer, default=1)
+    warshrine_started_at = Column(Float)         # 修炼开始时间戳
+    updated_at = Column(DateTime, default=datetime.utcnow, onupdate=datetime.utcnow)
 
 
 # ==================== 二十三、纵横四海扩展系统 ====================
@@ -2886,167 +3130,133 @@ class ItemFengyun(Base):
     description = Column(String(128), default="")
 
 
-# ==================== 幻想西游（v0.2.3 新增模块）====================
-class XyouState(Base):
-    """幻想西游玩家状态（spec：五门派/转职/200级/气血法力）"""
-    __tablename__ = "xyou_state"
+# ==================== 小轩西游（重构模块，移植自 xiyou 仓库）====================
+class XyouCharacter(Base):
+    """西游角色（一个用户可多角色，银两/元宝与钱包同步）"""
+    __tablename__ = "xyou_characters"
 
-    user_id = Column(Integer, ForeignKey("users.id", ondelete="CASCADE"), primary_key=True)
-    sect_key = Column(String(16), default="")  # jiangjun/fangcun/longgong/yuegong/putuo 空=未转职
+    id = Column(Integer, primary_key=True, autoincrement=True)
+    user_id = Column(Integer, ForeignKey("users.id", ondelete="CASCADE"), index=True)
+    name = Column(String(32), unique=True, nullable=False, index=True)
+    race = Column(String(16), default="人")           # 人/仙/妖
+    class_name = Column(String(16), default="散仙")    # 职业
+    sex = Column(Integer, default=1)                   # 1男 2女
     level = Column(Integer, default=1)
     exp = Column(Integer, default=0)
-    silver = Column(Integer, default=1000)  # 银两
-    gold_bean = Column(Integer, default=0)  # 金豆（充值货币）
-    hp = Column(Integer, default=150)
-    mp = Column(Integer, default=80)
-    atk = Column(Integer, default=15)
-    defense = Column(Integer, default=10)
-    speed = Column(Integer, default=8)
-    lingli = Column(Integer, default=10)  # 灵力
-    shengwang = Column(Integer, default=0)  # 声望
-    current_scene = Column(String(32), default="xinshoucun")  # 当前场景
-    cultivate_end_at = Column(DateTime, nullable=True)  # 修炼结束时间
-    daily_counters = Column(Text, default="{}")  # JSON: 日常计数
-    auto_settings = Column(Text, default="{}")  # v0.2.3 JSON: 自动战斗/挂机设置
+    money = Column(Integer, default=100)               # 银两
+    gold = Column(Integer, default=0)                  # 元宝
+    hp = Column(Integer, default=100)
+    hp_max = Column(Integer, default=100)
+    mp = Column(Integer, default=50)
+    mp_max = Column(Integer, default=50)
+    attack = Column(Integer, default=10)
+    defense = Column(Integer, default=5)
+    speed = Column(Integer, default=5)
+    map_id = Column(Integer, default=1)                # 当前地图
+    vip = Column(Integer, default=0)
+    guild_id = Column(Integer, default=0)
+    created_at = Column(DateTime, default=datetime.now)
+
+
+class XyouInventory(Base):
+    """背包物品"""
+    __tablename__ = "xyou_inventory"
+
+    id = Column(Integer, primary_key=True, autoincrement=True)
+    character_id = Column(Integer, ForeignKey("xyou_characters.id", ondelete="CASCADE"), index=True)
+    item_id = Column(Integer, nullable=False)          # 物品模板ID
+    name = Column(String(64), nullable=False)
+    item_type = Column(String(16), default="普通")      # 普通/药品/装备/材料/技能书
+    count = Column(Integer, default=1)
+    attack = Column(Integer, default=0)
+    defense = Column(Integer, default=0)
+    hp_bonus = Column(Integer, default=0)
+    mp_bonus = Column(Integer, default=0)
+    level_req = Column(Integer, default=0)
+    description = Column(Text, default="")
+
+
+class XyouEquipment(Base):
+    """已装备的装备"""
+    __tablename__ = "xyou_equipment"
+
+    id = Column(Integer, primary_key=True, autoincrement=True)
+    character_id = Column(Integer, ForeignKey("xyou_characters.id", ondelete="CASCADE"), index=True)
+    slot = Column(String(16), nullable=False)          # weapon/armor/helmet/boots
+    name = Column(String(64), nullable=False)
+    attack = Column(Integer, default=0)
+    defense = Column(Integer, default=0)
+    hp_bonus = Column(Integer, default=0)
+    mp_bonus = Column(Integer, default=0)
 
 
 class XyouSkill(Base):
-    """技能字典（spec：五门派技能系统）"""
+    """已学技能"""
     __tablename__ = "xyou_skills"
 
-    key = Column(String(32), primary_key=True)
-    name = Column(String(32))
-    sect_key = Column(String(16))  # jiangjun/fangcun/longgong/yuegong/putuo
-    skill_type = Column(String(16))  # active/passive/auxiliary/seal
-    unlock_level = Column(Integer, default=1)
-    cost_silver = Column(Integer, default=0)
-    cost_mp = Column(Integer, default=0)  # 法力消耗
-    effect = Column(String(255), default="")
-
-
-class XyouUserSkill(Base):
-    """玩家已学技能"""
-    __tablename__ = "xyou_user_skills"
-
-    id = Column(Integer, primary_key=True, index=True, autoincrement=True)
-    user_id = Column(Integer, ForeignKey("users.id", ondelete="CASCADE"), index=True)
-    skill_key = Column(String(32))
-    level = Column(Integer, default=1)  # 技能熟练度等级
-    __table_args__ = (UniqueConstraint("user_id", "skill_key", name="uq_xyou_user_skill"),)
-
-
-class XyouEquip(Base):
-    """装备字典（spec：武器/头盔/盔甲/靴子/戒指/手镯）"""
-    __tablename__ = "xyou_equips"
-
-    key = Column(String(32), primary_key=True)
-    name = Column(String(32))
-    quality = Column(String(16))  # 白/蓝/紫/金/神/圣
-    slot = Column(String(16))  # 武器/头盔/盔甲/靴子/戒指/手镯
-    sect_req = Column(String(16), default="")  # 限定门派，空=通用
-    level_req = Column(Integer, default=1)
-    atk_bonus = Column(Integer, default=0)
-    def_bonus = Column(Integer, default=0)
-    hp_bonus = Column(Integer, default=0)
-    mp_bonus = Column(Integer, default=0)
-    price = Column(Integer, default=100)
-
-
-class XyouUserEquip(Base):
-    """玩家装备实例"""
-    __tablename__ = "xyou_user_equips"
-
-    id = Column(Integer, primary_key=True, index=True, autoincrement=True)
-    user_id = Column(Integer, ForeignKey("users.id", ondelete="CASCADE"), index=True)
-    equip_key = Column(String(32))
-    slot = Column(String(16))
-    worn = Column(Boolean, default=False)
-
-
-class XyouDungeon(Base):
-    """副本字典（spec：15-90级+ 副本，含普通/困难双难度）"""
-    __tablename__ = "xyou_dungeons"
-
-    key = Column(String(32), primary_key=True)
-    name = Column(String(32))
-    level_min = Column(Integer, default=1)
-    level_max = Column(Integer, default=200)
-    scene = Column(String(32))  # 入口场景
-    difficulty = Column(String(16), default="普通")  # 普通/困难
-    reward_exp = Column(Integer, default=0)
-    reward_silver = Column(Integer, default=0)
-    drop_quality = Column(String(16), default="白")
-
-
-class XyouPet(Base):
-    """宠物字典（spec：捕捉/8只/出战/经验20%）"""
-    __tablename__ = "xyou_pets"
-
-    key = Column(String(32), primary_key=True)
-    name = Column(String(32))
-    level_req = Column(Integer, default=1)  # 携带等级
-    base_hp = Column(Integer, default=100)
-    base_atk = Column(Integer, default=10)
-    base_def = Column(Integer, default=5)
-    skill = Column(String(64), default="")  # 天赋技能
-    capture_rate = Column(Float, default=0.3)  # 捕捉概率
-
-
-class XyouUserPet(Base):
-    """玩家宠物实例"""
-    __tablename__ = "xyou_user_pets"
-
-    id = Column(Integer, primary_key=True, index=True, autoincrement=True)
-    user_id = Column(Integer, ForeignKey("users.id", ondelete="CASCADE"), index=True)
-    pet_key = Column(String(32))
-    nickname = Column(String(32), default="")
+    id = Column(Integer, primary_key=True, autoincrement=True)
+    character_id = Column(Integer, ForeignKey("xyou_characters.id", ondelete="CASCADE"), index=True)
+    skill_id = Column(Integer, nullable=False)
+    name = Column(String(32), nullable=False)
     level = Column(Integer, default=1)
-    exp = Column(Integer, default=0)
-    loyalty = Column(Integer, default=80)  # 忠诚度
-    in_battle = Column(Boolean, default=False)  # 是否出战
+    description = Column(Text, default="")
 
 
-class XyouScene(Base):
-    """场景字典（spec：世界地图区域）"""
-    __tablename__ = "xyou_scenes"
+class XyouQuest(Base):
+    """任务进度"""
+    __tablename__ = "xyou_quests"
 
-    key = Column(String(32), primary_key=True)
-    name = Column(String(32))
-    region = Column(String(16))  # 新手/长安/宝象/乌鸡/傲来/天宫/地府/蓬莱/灵山
-    level_min = Column(Integer, default=1)
-    intro = Column(String(128), default="")
-    exits = Column(Text, default="[]")  # JSON: 出口场景key列表
-
-
-class XyouMaterial(Base):
-    """高级升级材料字典（v0.2.3 全网检索补全）"""
-    __tablename__ = "xyou_materials"
-
-    key = Column(String(48), primary_key=True)
-    name = Column(String(32))
-    purpose = Column(String(128), default="")  # 用途
-    source = Column(String(128), default="")  # 获取方式
+    id = Column(Integer, primary_key=True, autoincrement=True)
+    character_id = Column(Integer, ForeignKey("xyou_characters.id", ondelete="CASCADE"), index=True)
+    quest_id = Column(Integer, nullable=False)
+    name = Column(String(64), nullable=False)
+    status = Column(String(16), default="进行中")       # 进行中/可完成/已完成/未开始
+    progress = Column(Integer, default=0)
+    target = Column(Integer, default=1)
 
 
-class XyouCoord(Base):
-    """长安城/区域坐标字典（v0.2.3 spec 参数补全）"""
-    __tablename__ = "xyou_coords"
+class XyouGuild(Base):
+    """帮派"""
+    __tablename__ = "xyou_guilds"
 
-    id = Column(Integer, primary_key=True, index=True, autoincrement=True)
-    scene_key = Column(String(32), default="changan")  # 所属场景
-    place = Column(String(32))  # 地点名
-    coord = Column(String(64), default="")  # 坐标/位置
-    npc_or_func = Column(String(128), default="")  # NPC/功能
+    id = Column(Integer, primary_key=True, autoincrement=True)
+    name = Column(String(32), unique=True, nullable=False)
+    leader_id = Column(Integer, nullable=False)
+    leader_name = Column(String(32), nullable=False)
+    level = Column(Integer, default=1)
+    description = Column(Text, default="")
+    created_at = Column(DateTime, default=datetime.now)
 
 
-class ItemXyou(Base):
-    """幻想西游物品字典（装备/药品/材料等，module_key=xyou）"""
-    __tablename__ = "xyou_items"
+class XyouGuildMember(Base):
+    """帮派成员"""
+    __tablename__ = "xyou_guild_members"
 
-    id = Column(Integer, primary_key=True, index=True, autoincrement=True)
-    key = Column(String(64), unique=True, index=True)
-    name = Column(String(32))
-    type = Column(String(16))
-    module_key = Column(String(32), default="xyou")
-    sell_price = Column(Integer, default=0)
-    description = Column(String(128), default="")
+    id = Column(Integer, primary_key=True, autoincrement=True)
+    guild_id = Column(Integer, nullable=False, index=True)
+    character_id = Column(Integer, nullable=False)
+    character_name = Column(String(32), nullable=False)
+    rank = Column(String(16), default="成员")           # 帮主/成员
+    joined_at = Column(DateTime, default=datetime.now)
+
+
+class XyouWorldMsg(Base):
+    """世界消息（聊天）"""
+    __tablename__ = "xyou_world_messages"
+
+    id = Column(Integer, primary_key=True, autoincrement=True)
+    character_name = Column(String(32), nullable=False)
+    content = Column(Text, nullable=False)
+    created_at = Column(DateTime, default=datetime.now)
+
+
+class XyouRanking(Base):
+    """排行榜快照"""
+    __tablename__ = "xyou_rankings"
+
+    id = Column(Integer, primary_key=True, autoincrement=True)
+    character_id = Column(Integer, nullable=False)
+    character_name = Column(String(32), nullable=False)
+    level = Column(Integer, default=1)
+    money = Column(Integer, default=0)
+    updated_at = Column(DateTime, default=datetime.now)

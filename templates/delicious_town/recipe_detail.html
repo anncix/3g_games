@@ -1,0 +1,87 @@
+{% extends "base_wap.html" %}
+
+{% block title %}{{ r.name }}{% endblock %}
+
+{% block breadcrumb %}
+<div class="nav-bar">
+    <a href="/home/">首页</a>
+    <span class="sep">›</span>
+    <a href="/delicious_town/">美味小镇</a>
+    <span class="sep">›</span>
+    <a href="/delicious_town/recipes">菜谱</a>
+    <span class="sep">›</span>
+    <span>{{ r.name }}</span>
+</div>
+{% endblock %}
+
+{% block content %}
+<div class="section">
+    <div class="section-title">🍲 {{ r.name }}</div>
+    <div class="section-body">
+        <div class="badge" style="background:#d06020;">Lv{{ r.recipe_level }}菜</div>
+        {% if p.quality_level %}<span class="badge" style="background:#3a76c8;">{{ p.quality_level }}</span>{% endif %}
+        {% if p.on_shelf %}<span class="badge" style="background:#2a8a2a;">上架中</span>{% else %}<span class="badge" style="background:#999;">未上架</span>{% endif %}
+        <div class="info-row mt-10"><span class="info-label">解锁等级</span><span class="info-value">Lv.{{ r.level_required }}</span></div>
+        <div class="info-row"><span class="info-label">基础售价</span><span class="info-value">{{ r.gold_income }} 金币</span></div>
+        <div class="info-row"><span class="info-label">基础经验</span><span class="info-value">{{ r.exp_income }}</span></div>
+        <div class="info-row"><span class="info-label">耗油</span><span class="info-value">{{ r.oil_cost }}</span></div>
+        <div class="info-row"><span class="info-label">制作时间</span><span class="info-value">{{ r.cook_seconds }} 秒</span></div>
+        <div class="info-row"><span class="info-label">熟练度</span><span class="info-value">{{ p.proficiency }}</span></div>
+    </div>
+</div>
+
+<div class="section">
+    <div class="section-title">🥬 所需食材</div>
+    <div class="section-body">
+        {% for ing in ings %}
+        <div class="info-row">
+            <span class="info-label">{{ ing.name }}</span>
+            <span class="info-value {% if ing.have < ing.need %}text-red{% endif %}">{{ ing.have }} / {{ ing.need }}</span>
+        </div>
+        {% endfor %}
+    </div>
+</div>
+
+<div class="section">
+    <div class="section-title">⚙️ 操作</div>
+    <div class="section-body text-center">
+        {% if not p.quality_level or p.quality_level == '未学' %}
+        <form method="post" action="/delicious_town/learn/{{ r.id }}" style="display:inline;">
+            <button class="btn">📖 学习此菜谱</button>
+        </form>
+        {% else %}
+        <form method="post" action="/delicious_town/cook/{{ r.id }}" style="display:inline;">
+            <button class="btn">🍳 开始制作</button>
+        </form>
+        <form method="post" action="/delicious_town/shelf/{{ r.id }}" style="display:inline;">
+            <button class="btn {% if p.on_shelf %}btn-danger{% else %}btn-success{% endif %}">
+                {% if p.on_shelf %}下架{% else %}上架{% endif %}
+            </button>
+        </form>
+        {% if p.quality_level != '金牌' and upgrade %}
+        <form method="post" action="/delicious_town/upgrade/{{ r.id }}" style="display:inline;">
+            <button class="btn" style="background:#c8a020;border-color:#a08010;">⬆️ 升级为{{ upgrade.target }}</button>
+        </form>
+        {% endif %}
+        {% endif %}
+    </div>
+</div>
+
+{% if upgrade %}
+<div class="section">
+    <div class="section-title">⬆️ 升级到 {{ upgrade.target }} 所需</div>
+    <div class="section-body">
+        <div class="info-row"><span class="info-label">熟练度</span><span class="info-value {{ 'text-red' if upgrade.proficiency_have < upgrade.proficiency_need }}">{{ upgrade.proficiency_have }}/{{ upgrade.proficiency_need }}</span></div>
+        <div class="info-row"><span class="info-label">金币</span><span class="info-value">{{ upgrade.gold_need }}</span></div>
+        <div class="info-row"><span class="info-label">菜谱碎片</span><span class="info-value">{{ upgrade.mat_need }}</span></div>
+        {% if upgrade.special_need %}
+        <div class="info-row"><span class="info-label">特殊调料</span><span class="info-value">{{ upgrade.special_need }}</span></div>
+        {% endif %}
+    </div>
+</div>
+{% endif %}
+
+<div class="text-center mt-10">
+    <a href="/delicious_town/recipes" class="btn">« 返回菜谱</a>
+</div>
+{% endblock %}

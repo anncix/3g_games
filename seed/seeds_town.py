@@ -14,14 +14,62 @@
 """
 from sqlalchemy.orm import Session
 
-from models.models import ItemTown
+from models.models import ItemTown, TownRecipe
 
 BATCH = 100
 
+# 菜谱 6 级配置（recipe_level, unlock_level, base_price, base_exp, cook_seconds, base_oil）
+RECIPE_LEVEL_TABLE = {
+    1: (1, 18, 2, 30, 8),
+    2: (10, 36, 4, 45, 12),
+    3: (20, 68, 7, 60, 18),
+    4: (35, 118, 11, 90, 26),
+    5: (50, 198, 16, 120, 36),
+    6: (65, 320, 24, 180, 50),
+}
+
+# 成品菜物品字典（key -> (name, sell_price)）
+DISH_ITEMS = {
+    "town_dish_lv1": ("家常小菜", 18),
+    "town_dish_lv2": ("美味佳肴", 36),
+    "town_dish_lv3": ("精致名菜", 68),
+    "town_dish_lv4": ("珍馐大菜", 118),
+    "town_dish_lv5": ("首席名菜", 198),
+    "town_dish_lv6": ("传世盛宴", 320),
+    "town_dish_fragment": ("菜谱碎片", 15),
+    "town_special_condiment": ("特殊调料", 40),
+}
+
+# 菜谱表 (recipe_code, name, recipe_level, ingredients_json, output_item_key)
+# 数值对齐 RECIPE_LEVEL_TABLE
+RECIPES = [
+    # 1 级菜（Lv1 解锁，1 级食材）
+    ("fried_rice", "蛋炒饭", 1, {"town_ing_lv1_006": 2, "town_ing_lv1_007": 1}, "town_dish_lv1"),
+    ("veg_noodle", "青菜面", 1, {"town_ing_lv1_005": 2, "town_ing_lv1_020": 1}, "town_dish_lv1"),
+    ("scrambled_egg", "葱香炒蛋", 1, {"town_ing_lv1_006": 2, "town_ing_lv1_014": 1}, "town_dish_lv1"),
+    # 2 级菜（Lv10 解锁，1-2 级食材）
+    ("red_cook", "红烧肉", 2, {"town_ing_lv2_001": 1, "town_ing_lv2_006": 1}, "town_dish_lv2"),
+    ("egg_noodle", "鸡蛋面", 2, {"town_ing_lv2_001": 1, "town_ing_lv1_006": 1}, "town_dish_lv2"),
+    ("mapo_tofu", "麻婆豆腐", 2, {"town_ing_lv2_006": 1, "town_ing_lv1_012": 1}, "town_dish_lv2"),
+    # 3 级菜（Lv20 解锁，2-3 级食材）
+    ("mushroom_chicken", "香菇鸡", 3, {"town_ing_lv3_001": 1, "town_ing_lv3_009": 1}, "town_dish_lv3"),
+    ("fish_tofu", "鱼香豆腐", 3, {"town_ing_lv3_002": 1, "town_ing_lv2_006": 1}, "town_dish_lv3"),
+    ("spring_roll", "黄金春卷", 3, {"town_ing_lv3_006": 1, "town_ing_lv2_001": 1}, "town_dish_lv3"),
+    # 4 级菜（Lv35 解锁，3-4 级食材）
+    ("beef_burst", "葱爆牛肉", 4, {"town_ing_lv4_008": 1, "town_ing_lv3_009": 1}, "town_dish_lv4"),
+    ("shrimp_noodle", "大虾面", 4, {"town_ing_lv4_001": 1, "town_ing_lv2_001": 1}, "town_dish_lv4"),
+    # 5 级菜（Lv50 解锁，4-5 级食材）
+    ("truffle_crab", "松露膏蟹", 5, {"town_ing_lv5_002": 1, "town_ing_lv5_015": 1}, "town_dish_lv5"),
+    ("sea_scallop", "珍珠扇贝", 5, {"town_ing_lv5_001": 1, "town_ing_lv4_002": 1}, "town_dish_lv5"),
+    # 6 级菜（Lv65 解锁，5-6 级/神秘食材）
+    ("abalone_feast", "鲍鱼盛宴", 6, {"town_ing_lv6_002": 1, "town_ing_lv6_001": 1}, "town_dish_lv6"),
+    ("dragon_soup", "龙涎靓汤", 6, {"town_ing_lv6_005": 1, "town_ing_lv6_009": 1}, "town_dish_lv6"),
+]
+
 
 def seed_town_full(db: Session, log=print):
-    """幂等生成美味小镇 222 食材；返回新增计数"""
-    stats = {"items": 0}
+    """幂等生成美味小镇 222 食材 + 菜谱字典 + 成品菜物品；返回新增计数"""
+    stats = {"items": 0, "recipes": 0}
 
     # spec 各级具名食材（key 用拼音/英文，避免冲突）
     # 一级 22 种（spec 明确列出）
@@ -88,9 +136,9 @@ def seed_town_full(db: Session, log=print):
     for i, name in enumerate(lv6_other, 1):
         _add_ing(name, 6, i + 100, "西式")
 
-    # 万能食材 1-5 级（v0.1.1 已有 6 级 town_wild_ing_6，此处补 1-5 级确保完整）
-    wild_price = [30, 50, 80, 120, 180]
-    for lvl in range(1, 6):
+    # 万能食材 1-6 级（备用替代位，确保 router 的 WILD_INGREDIENTS 全都有落库）
+    wild_price = [30, 50, 80, 120, 180, 300]
+    for lvl in range(1, 7):
         key = f"town_wild_ing_{lvl}"
         if db.query(ItemTown).filter(ItemTown.key == key).first():
             continue
@@ -98,6 +146,31 @@ def seed_town_full(db: Session, log=print):
                         sell_price=wild_price[lvl - 1], description=f"合菜替代位·{lvl}级"))
         stats["items"] += 1
 
+    # 成品菜 + 升级材料物品字典
+    for key, (name, price) in DISH_ITEMS.items():
+        if db.query(ItemTown).filter(ItemTown.key == key).first():
+            continue
+        itype = "material" if key in ("town_dish_fragment", "town_special_condiment") else "dish"
+        db.add(ItemTown(key=key, name=name, type=itype, module_key="town",
+                        sell_price=price, description="美味小镇成品/材料"))
+        stats["items"] += 1
+
+    # 菜谱字典（幂等）
+    import json as _json
+    for code, name, rlev, ing, output_key in RECIPES:
+        if db.query(TownRecipe).filter(TownRecipe.recipe_code == code).first():
+            continue
+        unlock, gold, exp, cook_sec, oil_cost = RECIPE_LEVEL_TABLE[rlev]
+        db.add(TownRecipe(
+            recipe_code=code, name=name, street_code="chinese", recipe_level=rlev,
+            level_required=unlock, quality_type="normal",
+            ingredient_json=_json.dumps(ing, ensure_ascii=False),
+            oil_cost=oil_cost, gold_income=gold, exp_income=exp,
+            cook_seconds=cook_sec, output_item_key=output_key,
+        ))
+        stats["recipes"] += 1
+
     db.commit()
-    log(f"[town-large] 食材物品字典+{stats['items']}（1级22/2级65/3级50/4级30/5级30/6级20/万能5）")
+    log(f"[town-large] 食材物品字典+{stats['items']}（1级22/2级65/3级50/4级30/5级30/6级20/万能5/成品8）"
+        f"，菜谱+{stats['recipes']}")
     return stats

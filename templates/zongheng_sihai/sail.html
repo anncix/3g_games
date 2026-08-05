@@ -233,7 +233,7 @@
                         <b>🧭 {{ ri.to_city.name if ri.to_city else ri.route.to_city_code }}</b>
                     </div>
                     <div>
-                        <span class="{% if ri.route.danger_level == 1 %}danger-safe{% elif ri.route.danger_level == 2 %}danger-low{% elif ri.route.danger_level == 3 %}danger-mid{% elif ri.route.danger_level == 4 %}danger-high{% else %}danger-deadly%}">
+                        <span class="{% if ri.route.danger_level == 1 %}danger-safe{% elif ri.route.danger_level == 2 %}danger-low{% elif ri.route.danger_level == 3 %}danger-mid{% elif ri.route.danger_level == 4 %}danger-high{% else %}danger-deadly{% endif %}">
                             {{ ri.danger_name }}
                         </span>
                     </div>

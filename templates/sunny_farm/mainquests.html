@@ -1,0 +1,35 @@
+{% extends "base_wap.html" %}
+
+{% block title %}主线任务 · 阳光农场{% endblock %}
+
+{% block breadcrumb %}
+<div class="nav-bar">
+    <a href="/home/">首页</a><span class="sep">›</span>
+    <a href="/sunny_farm">阳光农场</a><span class="sep">›</span>
+    <span>主线任务</span>
+</div>
+{% endblock %}
+
+{% block content %}
+<div class="section">
+    <div class="section-title">📜 主线任务链</div>
+    <div class="notice">8 条主线任务链，新手引导 + 成长里程碑，按等级顺序解锁。</div>
+    <div class="section-body">
+        {% for q in quests %}
+        {% set q_sort, q_name, q_level, q_desc, q_reward = q %}
+        <div class="info-row">
+            <span class="info-label">
+                <b>第{{ q_sort }}章 · {{ q_name }}</b> <span class="text-gray">Lv{{ q_level }}解锁</span><br>
+                <span class="tip">{{ q_desc }}</span>
+            </span>
+            <span class="info-value">🎁 {{ q_reward }}</span>
+        </div>
+        {% else %}
+        <div class="tip">暂无主线</div>
+        {% endfor %}
+    </div>
+</div>
+<div class="text-center mt-10">
+    <a class="btn" href="/sunny_farm">« 返回农场</a>
+</div>
+{% endblock %}

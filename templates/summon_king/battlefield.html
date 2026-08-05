@@ -1,0 +1,63 @@
+{% extends "base_wap.html" %}
+{% block title %}战场 - 召唤之王{% endblock %}
+{% block breadcrumb %}
+<div class="nav-bar">
+    <a href="/home/gamelobby">游戏大厅</a>
+    <span class="sep">›</span>
+    <a href="/summon_king">召唤之王</a>
+    <span class="sep">›</span> 战场
+</div>
+{% endblock %}
+{% block content %}
+<div class="section">
+    <div class="section-title">⚔️ 战场出征</div>
+    <div class="section-body">
+        <div class="info-row"><span class="info-label">召唤师</span><span class="info-value">Lv.{{ profile.level }}</span></div>
+        <div class="info-row"><span class="info-label">声望</span><span class="info-value text-blue">🏆 {{ profile.prestige }}</span></div>
+        <div class="info-row"><span class="info-label">今日场次</span><span class="info-value">{{ done_today }} / {{ limit }}</span></div>
+        <div class="info-row"><span class="info-label">开放时间</span><span class="info-value">{{ bf.open_time }}</span></div>
+        <div class="tip">胜：声望+{{ bf.win_prestige }} 铜钱随机 · 负：声望-{{ bf.loss_prestige }}</div>
+    </div>
+</div>
+
+<div class="section">
+    <div class="section-title">🐉 出战幻兽</div>
+    <div class="section-body">
+        {% if beast %}
+        <div class="info-row"><span class="info-label">名称</span><span class="info-value">{{ beast.nickname or beast.beast.name }}</span></div>
+        <div class="info-row"><span class="info-label">等级</span><span class="info-value">Lv.{{ beast.level }}</span></div>
+        <div class="text-center mt-5">
+            {% if done_today < limit %}
+            <form method="post" action="/summon_king/battlefield/join">
+                <button type="submit" class="btn">加入战场</button>
+            </form>
+            {% else %}
+            <span class="text-red">今日战场次数已用完</span>
+            {% endif %}
+        </div>
+        {% else %}
+        <p class="text-gray text-center">请先设置出战幻兽</p>
+        {% endif %}
+    </div>
+</div>
+
+{% if recent %}
+<div class="section">
+    <div class="section-title">📜 最近战报</div>
+    <div class="section-body">
+        <ul class="link-list">
+            {% for r in recent %}
+            <li>
+                {% if r.result == 'win' %}<span class="text-green">✓ 胜利</span>{% else %}<span class="text-red">✗ 失利</span>{% endif %}
+                声望{{ r.prestige_reward }} 铜钱+{{ r.copper_reward }} 经验+{{ r.exp_reward }}
+            </li>
+            {% endfor %}
+        </ul>
+    </div>
+</div>
+{% endif %}
+
+<div class="text-center mt-10">
+    <a href="/summon_king" class="btn btn-small">返回首页</a>
+</div>
+{% endblock %}

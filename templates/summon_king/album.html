@@ -1,0 +1,49 @@
+{% extends "base_wap.html" %}
+{% block title %}幻兽图鉴 - 召唤之王{% endblock %}
+{% block breadcrumb %}
+<div class="nav-bar">
+    <a href="/home/gamelobby">游戏大厅</a>
+    <span class="sep">›</span>
+    <a href="/summon_king">召唤之王</a>
+    <span class="sep">›</span> 幻兽图鉴
+</div>
+{% endblock %}
+{% block content %}
+<div class="section">
+    <div class="section-title">📖 幻兽图鉴</div>
+    <div class="section-body">
+        <div class="info-row">
+            <span class="info-label">已收集</span>
+            <span class="info-value text-green">{{ owned_count }} / {{ total_count }}</span>
+        </div>
+    </div>
+</div>
+
+{% for tier, pets in album.items() %}
+{% set tier_owned = pets|selectattr('owned')|list|length %}
+<div class="section">
+    <div class="section-title">{{ tier }}（{{ tier_owned }}/{{ pets|length }}）</div>
+    <div class="section-body">
+        <ul class="link-list">
+            {% for entry in pets %}
+            <li>
+                {% if entry.owned %}
+                <span class="text-green">✓</span>
+                <b>{{ entry.beast.name }}</b>
+                <span style="color:{{ rarity_colors.get(entry.beast.rarity, '#333') }};font-size:12px;">[{{ rarity_names.get(entry.beast.rarity, entry.beast.rarity) }}]</span>
+                <span class="text-gray" style="font-size:12px;">{{ entry.beast.icon }} {{ entry.beast.race_type }}</span>
+                {% else %}
+                <span class="text-gray">✗</span>
+                <span class="text-gray">？？？ (Lv{{ entry.beast.map_level_min }}+)</span>
+                {% endif %}
+            </li>
+            {% endfor %}
+        </ul>
+    </div>
+</div>
+{% endfor %}
+
+<div class="text-center mt-10">
+    <a href="/summon_king" class="btn btn-small">返回首页</a>
+</div>
+{% endblock %}

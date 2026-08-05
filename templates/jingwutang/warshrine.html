@@ -1,0 +1,70 @@
+{% extends "base_wap.html" %}
+{% block title %}战神宫 - 精武堂{% endblock %}
+{% block breadcrumb %}
+<div class="nav-bar">
+    <a href="/home/">首页</a><span class="sep">›</span><a href="/home/gamelobby">游戏大厅</a>
+    <span class="sep">›</span><a href="/jingwutang/">精武堂</a><span class="sep">›</span><span>战神宫</span>
+</div>
+{% endblock %}
+{% block content %}
+{% if locked %}
+<div class="section">
+    <div class="section-title">🏯 战神宫</div>
+    <div class="section-body text-center" style="color:#999; padding:20px;">
+        <div style="font-size:48px;">🏯</div>
+        <p>需 <b>{{ warshrine.min_level }}</b> 级才能进入战神宫</p>
+        <p style="font-size:12px;">（当前 Lv.{{ role.level }}）</p>
+    </div>
+</div>
+{% else %}
+<div class="section">
+    <div class="section-title">🏯 战神宫</div>
+    <div class="section-body">
+        <div class="info-row"><span class="info-label">📍 当前层数</span><span class="info-value text-red bold">第 {{ floor }} 层</span></div>
+        <div class="info-row"><span class="info-label">⚡ 修炼时长</span><span class="info-value">{{ warshrine.duration_hours }} 小时</span></div>
+        <div class="info-row"><span class="info-label">💡 经验倍率</span><span class="info-value">第{{ floor }}层 ×{{ warshrine.exp_mul.get(floor, 1.0) }}</span></div>
+        {% if cultivating %}
+        <div class="info-row"><span class="info-label">⏳ 剩余时间</span><span class="info-value text-blue">约 {{ remaining }} 分钟</span></div>
+        {% endif %}
+    </div>
+</div>
+
+<div class="section">
+    <div class="section-title">🗺️ 战神宫层级</div>
+    <div class="section-body">
+        {% for fi in floor_info %}
+        <div style="display:flex; justify-content:space-between; align-items:center; padding:8px 0; border-bottom:1px dotted #eee;">
+            <div>
+                <b>第{{ fi.floor }}层：{{ fi.name }}</b>
+                {% if fi.floor <= floor %}<span class="tag">已到达</span>{% endif %}
+            </div>
+        </div>
+        {% endfor %}
+    </div>
+</div>
+
+<div class="section">
+    <div class="section-title">🎮 操作</div>
+    <div class="section-body">
+        {% if cultivating %}
+        <form method="post" action="/jingwutang/warshrine/claim" style="margin-bottom:8px;">
+            <button type="submit" class="btn btn-primary" style="width:100%;">⏳ 领取修炼经验</button>
+        </form>
+        {% else %}
+        <form method="post" action="/jingwutang/warshrine/start" style="margin-bottom:8px;">
+            <button type="submit" class="btn btn-primary" style="width:100%;">🧘 开始修炼（第{{ floor }}层）</button>
+        </form>
+        {% endif %}
+        {% if floor < warshrine.max_floor %}
+        <form method="post" action="/jingwutang/warshrine/challenge">
+            <button type="submit" class="btn btn-danger" style="width:100%;">⚔️ 挑战第{{ floor + 1 }}层</button>
+        </form>
+        {% else %}
+        <div class="text-center" style="color:#f39c12; padding:8px;">🏆 已登顶最高层！</div>
+        {% endif %}
+        {% if status_msg %}<div class="text-center" style="color:#27ae60; margin-top:8px; font-size:13px;">{{ status_msg }}</div>{% endif %}
+    </div>
+</div>
+{% endif %}
+<div class="text-center mt-10"><a href="/jingwutang/">« 返回精武堂</a></div>
+{% endblock %}

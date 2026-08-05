@@ -1,0 +1,48 @@
+{# 小轩西游 共享头部 / 导航（需在引入前设置 active 变量） #}
+{% if char %}
+<div class="xy-brand">
+    <div class="xy-char-info">
+        <div class="xy-avatar">{{ char.name[0] if char.name else '侠' }}</div>
+        <div>
+            <div class="xy-name">{{ char.name }}
+                <span class="xy-badge {% if char.race == '妖' %}red{% elif char.race == '仙' %}blue{% else %}gold{% endif %}">{{ char.race }}·{{ char.class_name }}</span>
+            </div>
+            <div style="font-size:12px;opacity:0.9;">Lv.{{ char.level }} · 当前 {{ map.name }}</div>
+            <div style="font-size:12px;color:#ffd700;font-weight:bold;">🪙 {{ char.money }} 银 · 💎 {{ char.gold }} 元宝</div>
+        </div>
+    </div>
+    <div class="xy-stats-bar">
+        <div class="xy-stat-item"><div class="xy-stat-val">{{ char.hp }}/{{ stats.total_hp_max }}</div><div class="xy-stat-label">❤️ 气血</div></div>
+        <div class="xy-stat-item"><div class="xy-stat-val">{{ char.mp }}/{{ stats.total_mp_max }}</div><div class="xy-stat-label">💧 法力</div></div>
+        <div class="xy-stat-item"><div class="xy-stat-val">{{ stats.total_attack }}</div><div class="xy-stat-label">⚔️ 攻击</div></div>
+        <div class="xy-stat-item"><div class="xy-stat-val">{{ stats.total_defense }}</div><div class="xy-stat-label">🛡️ 防御</div></div>
+    </div>
+</div>
+
+<div class="xy-menu">
+    <a href="/games/xyou" class="xy-menu-item {{ 'active' if active == 'map' else '' }}">
+        <div class="xy-menu-icon">🗺️</div><div class="xy-menu-name">地图</div>
+    </a>
+    <a href="/games/xyou/character" class="xy-menu-item {{ 'active' if active == 'char' else '' }}">
+        <div class="xy-menu-icon">🛡️</div><div class="xy-menu-name">角色</div>
+    </a>
+    <a href="/games/xyou/bag" class="xy-menu-item {{ 'active' if active == 'bag' else '' }}">
+        <div class="xy-menu-icon">🎒</div><div class="xy-menu-name">背包</div>
+    </a>
+    <a href="/games/xyou/quest" class="xy-menu-item {{ 'active' if active == 'quest' else '' }}">
+        <div class="xy-menu-icon">📜</div><div class="xy-menu-name">任务</div>
+    </a>
+    <a href="/games/xyou/guild" class="xy-menu-item {{ 'active' if active == 'guild' else '' }}">
+        <div class="xy-menu-icon">🏯</div><div class="xy-menu-name">帮派</div>
+    </a>
+    <a href="/games/xyou/chat" class="xy-menu-item {{ 'active' if active == 'chat' else '' }}">
+        <div class="xy-menu-icon">💬</div><div class="xy-menu-name">聊天</div>
+    </a>
+    <a href="/games/xyou/ranking" class="xy-menu-item {{ 'active' if active == 'rank' else '' }}">
+        <div class="xy-menu-icon">🏆</div><div class="xy-menu-name">排行</div>
+    </a>
+    <a href="/games/xyou/map" class="xy-menu-item {{ 'active' if active == 'mapview' else '' }}">
+        <div class="xy-menu-icon">🧭</div><div class="xy-menu-name">地图全览</div>
+    </a>
+</div>
+{% endif %}

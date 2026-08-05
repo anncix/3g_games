@@ -1,52 +1,6 @@
 {% extends "base_wap.html" %}
 
-{% block title %}阳光牧场{% endblock %}
-
-{% block extra_css %}
-<style>
-    .farm-grid {
-        display: grid;
-        grid-template-columns: repeat(4, 1fr);
-        gap: 6px;
-        padding: 8px 0;
-    }
-    .farm-plot {
-        aspect-ratio: 1;
-        border: 2px solid #8B4513;
-        border-radius: 4px;
-        background: linear-gradient(180deg, #8B6914 0%, #6B4914 100%);
-        display: flex;
-        align-items: center;
-        justify-content: center;
-        font-size: 24px;
-        cursor: pointer;
-        text-decoration: none;
-        transition: transform 0.1s;
-    }
-    .farm-plot:active { transform: scale(0.95); }
-    .plot-empty {
-        background: linear-gradient(180deg, #A08040 0%, #806020 100%);
-    }
-    .plot-planted {
-        background: linear-gradient(180deg, #5a9a3a 0%, #3a7a1a 100%);
-    }
-    .plot-ready {
-        background: linear-gradient(180deg, #f0d040 0%, #d0b020 100%);
-        animation: glow 1s infinite alternate;
-    }
-    @keyframes glow {
-        from { box-shadow: 0 0 4px #f0d040; }
-        to { box-shadow: 0 0 10px #f0d040; }
-    }
-    .animal-pen {
-        background: linear-gradient(180deg, #c8a878 0%, #a88858 100%);
-        border: 2px solid #8B4513;
-        border-radius: 4px;
-        padding: 10px;
-        text-align: center;
-    }
-</style>
-{% endblock %}
+{% block title %}阳光农场{% endblock %}
 
 {% block breadcrumb %}
 <div class="nav-bar">
@@ -54,7 +8,7 @@
     <span class="sep">›</span>
     <a href="/home/gamelobby">游戏大厅</a>
     <span class="sep">›</span>
-    <span>阳光牧场</span>
+    <span>阳光农场</span>
 </div>
 {% endblock %}
 
@@ -62,18 +16,16 @@
 {# 农场信息卡 #}
 <div style="border:2px solid #4a8a2a; border-radius:5px; padding:12px; margin-bottom:10px; background:linear-gradient(135deg, #f0f8e8 0%, #e0f0d0 100%);">
     <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:8px;">
-        <div style="font-weight:bold; font-size:16px;">🌾 阳光牧场</div>
-        <div style="background:#4a8a2a; color:white; padding:2px 8px; border-radius:10px; font-size:12px;">
-            Lv.{{ farm.farm_level if farm else 1 }}
-        </div>
+        <div style="font-weight:bold; font-size:16px;">🌾 阳光农场</div>
+        <div style="background:#4a8a2a; color:white; padding:2px 8px; border-radius:10px; font-size:12px;">Lv.{{ farm.farm_level if farm else 1 }}</div>
     </div>
     <div style="display:grid; grid-template-columns:1fr 1fr; gap:5px; font-size:13px;">
-        <div>🪙 金币: <b class="text-blue">{{ farm.farm_gold if farm else 500 }}</b></div>
-        <div>🌱 经验: <b>{{ farm.farm_exp if farm else 0 }}/{{ (farm.farm_level if farm else 1) * 100 }}</b></div>
-        <div>🌾 已种: <b>{{ (farm.plots | selectattr('status','in',['growing','ready']) | list | length) if farm else 0 }}/16</b></div>
-        <div>🐄 动物: <b>{{ (farm.animals | length) if farm else 0 }}/6</b></div>
+        <div>🪙 金币: <b class="text-blue">{{ platform_gcoin }}</b></div>
+        <div>⭐ 经验: <b>{{ farm.farm_exp if farm else 0 }}/{{ (farm.farm_level if farm else 1) * 100 }}</b></div>
+        <div>🌾 农田: <b>{{ farm.land_count if farm else 6 }}块</b></div>
+        <div>🐄 动物: <b>{{ animals|length }}/8</b></div>
     </div>
-    {% if farm and farm.farm_exp is defined %}
+    {% if farm %}
     <div style="margin-top:8px;">
         <div class="progress-bar">
             <div class="progress-fill" style="width: {{ (farm.farm_exp / ((farm.farm_level if farm else 1) * 100)) * 100 if (farm.farm_level if farm else 1) > 0 else 0 }}%; background:linear-gradient(90deg, #4a8a2a 0%, #6aaa4a 100%);"></div>
@@ -82,50 +34,37 @@
     {% endif %}
 </div>
 
-{# 主要操作按钮 #}
+{# 今日待办 #}
 <div class="section">
-    <div class="section-title">🎮 快捷操作</div>
+    <div class="section-title">📌 今日待办 ({{ todo_count }})</div>
     <div class="section-body">
-        <div class="grid-3">
-            <a href="/sunny-farm/plant" style="text-decoration:none; color:inherit;">
-                <div style="border:1px solid #d0d0d0; padding:10px 5px; border-radius:3px; text-align:center;">
-                    <div style="font-size:28px;">🌱</div>
-                    <div style="font-size:12px; font-weight:bold;">种植</div>
-                </div>
-            </a>
-            <a href="/sunny-farm/water" style="text-decoration:none; color:inherit;">
-                <div style="border:1px solid #d0d0d0; padding:10px 5px; border-radius:3px; text-align:center;">
-                    <div style="font-size:28px;">💧</div>
-                    <div style="font-size:12px; font-weight:bold;">浇水</div>
-                </div>
-            </a>
-            <a href="/sunny-farm/harvest" style="text-decoration:none; color:inherit;">
-                <div style="border:1px solid #d0d0d0; padding:10px 5px; border-radius:3px; text-align:center;">
-                    <div style="font-size:28px;">🌾</div>
-                    <div style="font-size:12px; font-weight:bold;">收获</div>
-                </div>
-            </a>
-        </div>
+        {% for info in plot_info if info.mature %}
+        <a class="info-row" href="/sunny_farm/plot/{{ info.plot.plot_no }}" style="text-decoration:none; color:inherit;">
+            <span class="info-label"><span class="text-green">[成熟]</span> {{ info.crop.name if info.crop else '?' }}</span>
+            <span class="info-value">去收获 ›</span>
+        </a>
+        {% endfor %}
+        {% for info in plot_info if info.plot.insect_state %}
+        <a class="info-row" href="/sunny_farm/plot/{{ info.plot.plot_no }}" style="text-decoration:none; color:inherit;">
+            <span class="info-label"><span class="text-red">[虫害]</span> 第{{ info.plot.plot_no }}块地</span>
+            <span class="info-value">去除虫 ›</span>
+        </a>
+        {% endfor %}
+        {% if todo_count == 0 %}<div class="tip">暂无待办，去种点东西吧</div>{% endif %}
     </div>
 </div>
 
-{# 农场地块 #}
+{# 快捷入口 #}
 <div class="section">
-    <div class="section-title">🌿 我的农田</div>
+    <div class="section-title">🎮 快捷入口</div>
     <div class="section-body">
-        <div class="tip mb-5">点击空地种植作物，成熟后点击收获</div>
-        <div class="farm-grid">
-            {% for plot in plots %}
-            <a href="/sunny-farm/plot/{{ plot.plot_no }}" class="farm-plot plot-empty">
-                {% if plot.status == 'ready' %}
-                <span>🌾</span>
-                {% elif plot.status == 'growing' %}
-                <span>🌱</span>
-                {% else %}
-                <span style="opacity:0.4;">➕</span>
-                {% endif %}
-            </a>
-            {% endfor %}
+        <div class="grid-3">
+            <a href="/sunny_farm/plots" class="game-card" style="text-decoration:none; color:inherit;"><div style="font-size:26px;">🌱</div><div class="name">我的农田</div></a>
+            <a href="/sunny_farm/shop" class="game-card" style="text-decoration:none; color:inherit;"><div style="font-size:26px;">🏪</div><div class="name">种子商店</div></a>
+            <a href="/sunny_farm/soil" class="game-card" style="text-decoration:none; color:inherit;"><div style="font-size:26px;">🪨</div><div class="name">土地升级</div></a>
+            <a href="/sunny_farm/mainquests" class="game-card" style="text-decoration:none; color:inherit;"><div style="font-size:26px;">📜</div><div class="name">主线任务</div></a>
+            <a href="/sunny_farm/rules" class="game-card" style="text-decoration:none; color:inherit;"><div style="font-size:26px;">📖</div><div class="name">玩法规则</div></a>
+            <a href="/home/friends" class="game-card" style="text-decoration:none; color:inherit;"><div style="font-size:26px;">👥</div><div class="name">好友农场</div></a>
         </div>
     </div>
 </div>
@@ -134,50 +73,24 @@
 <div class="section">
     <div class="section-title">🐄 畜牧区</div>
     <div class="section-body">
-        <div class="grid-3">
-            <div class="animal-pen">
-                <div style="font-size:28px;">🐔</div>
-                <div style="font-size:12px; margin-top:4px;">母鸡</div>
-                <div style="font-size:11px; color:#666;">待收获</div>
-            </div>
-            <div class="animal-pen">
-                <div style="font-size:28px;">🐄</div>
-                <div style="font-size:12px; margin-top:4px;">奶牛</div>
-                <div style="font-size:11px; color:#666;">饲养中</div>
-            </div>
-            <a href="/sunny-farm/buy-animal" style="text-decoration:none; color:inherit;">
-                <div class="animal-pen" style="opacity:0.6;">
-                    <div style="font-size:28px;">➕</div>
-                    <div style="font-size:12px; margin-top:4px;">购买</div>
-                    <div style="font-size:11px; color:#666;">新动物</div>
-                </div>
-            </a>
+        {% for a in animals %}
+        <div class="info-row">
+            <span class="info-label">{{ ('🐔' if a.animal_code=='chicken' else '🦆' if a.animal_code=='duck' else '🐮') }} {{ a.animal_name }}
+                · 饱食{{ a.hunger }} 健康{{ a.health }}
+                {% if a.production_ready %}<span class="text-green">[可收产品]</span>{% endif %}
+            </span>
+            <span class="info-value">
+                <form method="post" action="/sunny_farm/feed/{{ a.id }}" style="display:inline;"><button class="btn btn-small" type="submit">喂</button></form>
+                {% if a.production_ready %}<a class="btn btn-success btn-small" href="/sunny_farm/collect_product/{{ a.id }}">收</a>{% endif %}
+            </span>
         </div>
+        {% else %}
+        <div class="tip">还没有动物，去商店下方购买吧</div>
+        {% endfor %}
         <div style="margin-top:8px; text-align:center;">
-            <a href="/sunny-farm/feed" class="btn btn-small">🍀 喂养动物</a>
-            <a href="/sunny-farm/collect-animal" class="btn btn-success btn-small">🥛 收取产品</a>
+            <span class="tip">小鸡¥100 · 小鸭¥150 · 奶牛¥500</span>
         </div>
     </div>
-</div>
-
-{# 功能菜单 #}
-<div class="section">
-    <div class="section-title">📋 功能菜单</div>
-    <div class="section-body">
-        <ul class="link-list">
-            <li><a href="/sunny-farm/shop">🏪 种子商店 - 购买各种作物种子</a></li>
-            <li><a href="/sunny-farm/barn">📦 仓库 - 查看已收获的农产品</a></li>
-            <li><a href="/sunny-farm/market">💰 农贸市场 - 出售农产品赚取金币</a></li>
-            <li><a href="/sunny-farm/friends">👥 好友农场 - 帮好友浇水/偷菜</a></li>
-            <li><a href="/sunny-farm/achievements">🏆 成就 - 查看牧场成就</a></li>
-            <li><a href="/sunny-farm/upgrade">⬆️ 升级农场 - 扩展地块和动物栏</a></li>
-        </ul>
-    </div>
-</div>
-
-{# 每日提示 #}
-<div class="notice">
-    💡 每日登录可领取免费种子和饲料，连续登录奖励更丰厚！
 </div>
 
 <div class="text-center mt-10">

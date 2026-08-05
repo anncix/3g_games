@@ -1,0 +1,49 @@
+{% extends "base_wap.html" %}
+
+{% block title %}纵横四海 - 装备套装{% endblock %}
+
+{% block breadcrumb %}
+<div class="nav-bar">
+    <a href="/home/">首页</a><span class="sep">›</span>
+    <a href="/home/gamelobby">游戏大厅</a><span class="sep">›</span>
+    <a href="/zongheng_sihai">纵横四海</a><span class="sep">›</span>
+    <span>装备套装</span>
+</div>
+{% endblock %}
+
+{% block content %}
+
+<div class="notice">🛡️ 装备套装共 {{ info|length }} 套，集齐成套部件可获得套装加成。</div>
+
+{% for row in info %}
+{% set s = row.s %}
+<div class="section">
+    <div class="section-title">{{ s.name }} <span class="tag">{{ s.pieces }}件</span></div>
+    <div class="section-body">
+        <div class="text-gray" style="font-size:12px;">等级 {{ s.level_req }} · 获取：{{ s.source }}</div>
+        {% if row.pieces %}
+        <div class="mt-5">
+            {% for p in row.pieces %}
+            <div class="info-row">
+                <div>
+                    {{ p.name }}
+                    <span class="tag">{{ p.slot }}</span>
+                    {% if p.confirmed %}<span class="text-green" style="font-size:12px;">[确认]</span>{% else %}<span class="text-gray" style="font-size:12px;">[推测]</span>{% endif %}
+                </div>
+                <div class="text-gray" style="font-size:12px;">{{ p.level_req }}级</div>
+            </div>
+            {% endfor %}
+        </div>
+        {% else %}
+        <div class="text-gray" style="font-size:12px;">暂无件名（散件或未录入）</div>
+        {% endif %}
+    </div>
+</div>
+{% else %}
+<div class="notice">暂无套装</div>
+{% endfor %}
+
+<div class="text-center mt-10">
+    <a href="/zongheng_sihai">« 返回航海首页</a>
+</div>
+{% endblock %}

@@ -1,0 +1,52 @@
+{% extends "base_wap.html" %}
+{% block title %}师徒系统 - 召唤之王{% endblock %}
+{% block breadcrumb %}
+<div class="nav-bar">
+    <a href="/home/gamelobby">游戏大厅</a>
+    <span class="sep">›</span>
+    <a href="/summon_king">召唤之王</a>
+    <span class="sep">›</span> 师徒系统
+</div>
+{% endblock %}
+{% block content %}
+<div class="section">
+    <div class="section-title">👨‍🏫 师徒系统</div>
+    <div class="section-body">
+        <div class="info-row"><span class="info-label">召唤师</span><span class="info-value">Lv.{{ profile.level }}</span></div>
+        <div class="info-row"><span class="info-label">桃李值</span><span class="info-value text-green">{{ profile.taoli_value }}</span></div>
+        <div class="info-row"><span class="info-label">已收徒</span><span class="info-value">{{ profile.apprentice_count }} 位</span></div>
+        <div class="tip">师傅需 Lv.{{ ma.master_min_level }}+ · 徒弟需 Lv≤{{ ma.apprentice_max_level }} · 出师 Lv{{ ma.graduate_level }}</div>
+    </div>
+</div>
+
+<div class="section">
+    <div class="section-title">🎓 收徒</div>
+    <div class="section-body">
+        {% if can_recruit %}
+        <form method="post" action="/summon_king/mentor/recruit">
+            <button type="submit" class="btn">招收弟子（桃李值+10）</button>
+        </form>
+        <div class="tip">招收一名 NPC 弟子，获得桃李值奖励。</div>
+        {% else %}
+        <span class="text-red">需 Lv.{{ ma.master_min_level }} 才能成为师傅收徒</span>
+        {% endif %}
+    </div>
+</div>
+
+{% if apprentices %}
+<div class="section">
+    <div class="section-title">📋 我的弟子</div>
+    <div class="section-body">
+        <ul class="link-list">
+            {% for a in apprentices %}
+            <li>{{ a.apprentice_nickname }} <span class="text-gray">（{{ a.status }}）</span></li>
+            {% endfor %}
+        </ul>
+    </div>
+</div>
+{% endif %}
+
+<div class="text-center mt-10">
+    <a href="/summon_king" class="btn btn-small">返回首页</a>
+</div>
+{% endblock %}

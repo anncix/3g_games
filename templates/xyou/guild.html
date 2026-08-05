@@ -1,0 +1,82 @@
+{% extends "base_wap.html" %}
+
+{% block title %}帮派 · 小轩西游{% endblock %}
+
+{% block breadcrumb %}
+<div class="nav-bar">
+    <a href="/home/">首页</a>
+    <span class="sep">›</span>
+    <a href="/games/xyou">小轩西游</a>
+    <span class="sep">›</span>
+    <span>帮派</span>
+</div>
+{% endblock %}
+
+{% block extra_css %}
+<link rel="stylesheet" href="/static/css/xyou.css">
+{% endblock %}
+
+{% block content %}
+{% set active = 'guild' %}
+{% include "xyou/_header.html" %}
+
+{% if my_guild %}
+<div class="xy-card">
+    <h3>🏯 {{ my_guild.name }} <span class="xy-tag gold">Lv.{{ my_guild.level }}</span></h3>
+    <div class="xy-desc">帮主：{{ my_guild.leader_name }}</div>
+    {% if my_guild.description %}<div class="xy-desc">{{ my_guild.description }}</div>{% endif %}
+    <ul class="xy-list">
+        {% for m in members %}
+        <li>
+            <div>
+                <div class="l-name">{{ m.character_name }} <span class="xy-tag {% if m.rank == '帮主' %}gold{% else %}dim{% endif %}">{{ m.rank }}</span></div>
+            </div>
+        </li>
+        {% endfor %}
+    </ul>
+    <form method="POST" action="/games/xyou/guild/leave" style="margin-top:8px">
+        <button class="btn red sm" type="submit">{{ '解散帮派' if my_guild.leader_id == char.id else '退出帮派' }}</button>
+    </form>
+</div>
+{% else %}
+<div class="xy-card">
+    <h3>🛠️ 创建帮派</h3>
+    <div class="xy-desc">创建帮派需 1000 银两</div>
+    <form method="POST" action="/games/xyou/guild/create">
+        <div class="xy-field">
+            <input class="xy-input" type="text" name="name" placeholder="帮派名称" required>
+        </div>
+        <div class="xy-field">
+            <input class="xy-input" type="text" name="description" placeholder="帮派宣言（可选）">
+        </div>
+        <button class="btn gold block" type="submit">创建</button>
+    </form>
+</div>
+
+<div class="xy-card">
+    <h3>🏘️ 现有帮派</h3>
+    {% if guilds %}
+    <ul class="xy-list">
+        {% for g in guilds %}
+        <li>
+            <div>
+                <div class="l-name">{{ g.name }} <span class="xy-tag gold">Lv.{{ g.level }}</span></div>
+                <div class="l-sub">帮主：{{ g.leader_name }}</div>
+            </div>
+            <div class="l-right">
+                {% if char.guild_id == 0 %}
+                <form method="POST" action="/games/xyou/guild/join" style="display:inline">
+                    <input type="hidden" name="guild_id" value="{{ g.id }}">
+                    <button class="btn blue sm" type="submit">加入</button>
+                </form>
+                {% endif %}
+            </div>
+        </li>
+        {% endfor %}
+    </ul>
+    {% else %}
+    <div class="xy-empty">暂无帮派，快来创建第一个吧</div>
+    {% endif %}
+</div>
+{% endif %}
+{% endblock %}

@@ -1,0 +1,68 @@
+{% extends "base_wap.html" %}
+{% block title %}玩法规则 - 召唤之王{% endblock %}
+{% block breadcrumb %}
+<div class="nav-bar">
+    <a href="/home/gamelobby">游戏大厅</a>
+    <span class="sep">›</span>
+    <a href="/summon_king">召唤之王</a>
+    <span class="sep">›</span> 玩法规则
+</div>
+{% endblock %}
+{% block content %}
+<div class="section">
+    <div class="section-title">📜 基础规则</div>
+    <div class="section-body">
+        <div class="info-row"><span class="info-label">等级上限</span><span class="info-value">Lv.{{ max_level }}</span></div>
+        <div class="info-row"><span class="info-label">活力上限</span><span class="info-value">{{ energy_cap }}</span></div>
+        <div class="info-row"><span class="info-label">种族</span><span class="info-value">{{ race_list|join(' / ') }}</span></div>
+    </div>
+</div>
+
+<div class="section">
+    <div class="section-title">🔄 种族克制</div>
+    <div class="section-body">
+        <ul class="link-list">
+            {% for k, v in race_counter.items() %}
+            <li><b>{{ k }}</b> 克制 <b>{{ v }}</b></li>
+            {% endfor %}
+        </ul>
+    </div>
+</div>
+
+<div class="section">
+    <div class="section-title">🗺️ 段位解锁（每10级一段）</div>
+    <div class="section-body">
+        <ul class="link-list">
+            {% for k, v in tier_unlock.items() %}
+            <li><b>{{ k }}</b>：Lv.{{ v }} 解锁</li>
+            {% endfor %}
+        </ul>
+    </div>
+</div>
+
+<div class="section">
+    <div class="section-title">🔓 系统解锁</div>
+    <div class="section-body">
+        <ul class="link-list">
+            {% for lv, desc in level_unlocks.items() %}
+            <li>Lv.{{ lv }}：{{ desc }}</li>
+            {% endfor %}
+        </ul>
+    </div>
+</div>
+
+<div class="section">
+    <div class="section-title">📆 每日上限</div>
+    <div class="section-body">
+        <ul class="link-list">
+            {% for k, v in daily_limits.items() %}
+            <li>{{ k }}：{{ v }} 次</li>
+            {% endfor %}
+        </ul>
+    </div>
+</div>
+
+<div class="text-center mt-10">
+    <a href="/summon_king" class="btn btn-small">返回首页</a>
+</div>
+{% endblock %}

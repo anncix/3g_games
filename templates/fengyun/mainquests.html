@@ -1,0 +1,29 @@
+{% extends "base_wap.html" %}
+
+{% block title %}主线任务 · 风云三国{% endblock %}
+
+{% block breadcrumb %}
+<div class="nav-bar">
+    <a href="/home/">首页</a>
+    <span class="sep">›</span>
+    <a href="/games/fengyun">风云三国</a>
+    <span class="sep">›</span>
+    <span>主线任务</span>
+</div>
+{% endblock %}
+
+{% block content %}
+<div class="notice">8 章三国剧情主线，从黄巾之乱到天下一统，按等级顺序解锁，进度保存于角色状态。</div>
+{% for q in quests %}
+{% set q_sort, q_name, q_level, q_desc, q_reward = q %}
+<div class="section">
+    <div class="section-title">第{{ q_sort }}章 · {{ q_name }}<span class="badge" style="float:right;background:#1a5dc7;">Lv{{ q_level }}解锁</span></div>
+    <div class="section-body">
+        <div style="font-size:12px;color:#666;">{{ q_desc }}</div>
+        <div style="font-size:12px;margin-top:4px;">奖励：<b>{{ q_reward }}</b></div>
+    </div>
+</div>
+{% endfor %}
+{% if not quests %}<div style="font-size:12px;color:#999;">暂无主线</div>{% endif %}
+<div style="margin-top:10px;"><a class="btn" href="/games/fengyun">返回三国首页</a></div>
+{% endblock %}

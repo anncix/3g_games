@@ -1,0 +1,25 @@
+{% extends "base_wap.html" %}
+{% block title %}主线任务 - 精武堂{% endblock %}
+{% block breadcrumb %}
+<div class="nav-bar">
+    <a href="/home/">首页</a><span class="sep">›</span><a href="/home/gamelobby">游戏大厅</a>
+    <span class="sep">›</span><a href="/jingwutang/">精武堂</a><span class="sep">›</span><span>主线任务</span>
+</div>
+{% endblock %}
+{% block content %}
+<div class="section">
+    <div class="section-title">🗺️ 主线任务·武学成长线</div>
+    <div class="section-body">
+        {% for sort, qname, unlock, target, reward in quests %}
+        <div style="padding:10px 0; border-bottom:1px dotted #eee;">
+            <div><b>第{{ sort }}章：{{ qname }}</b>
+                {% if role.level >= unlock %}<span class="tag">已解锁</span>{% else %}<span class="tag">Lv.{{ unlock }}</span>{% endif %}
+            </div>
+            <div style="font-size:12px; color:#666; margin-top:4px;">🎯 {{ target }}</div>
+            <div style="font-size:12px; color:#f39c12; margin-top:2px;">🎁 {{ reward }}</div>
+        </div>
+        {% endfor %}
+    </div>
+</div>
+<div class="text-center mt-10"><a href="/jingwutang/">« 返回精武堂</a></div>
+{% endblock %}

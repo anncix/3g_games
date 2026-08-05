@@ -1,0 +1,53 @@
+{% extends "base_wap.html" %}
+
+{% block title %}学艺 · 小轩西游{% endblock %}
+
+{% block breadcrumb %}
+<div class="nav-bar">
+    <a href="/home/">首页</a>
+    <span class="sep">›</span>
+    <a href="/games/xyou">小轩西游</a>
+    <span class="sep">›</span>
+    <span>学艺</span>
+</div>
+{% endblock %}
+
+{% block extra_css %}
+<link rel="stylesheet" href="/static/css/xyou.css">
+{% endblock %}
+
+{% block content %}
+{% set active = 'map' %}
+{% include "xyou/_header.html" %}
+
+<div class="xy-page-title">📖 {{ npc.name }} 传授武艺</div>
+<div class="xy-card">
+    <div class="xy-desc">{{ npc.dialogue }}</div>
+</div>
+
+{% if skills %}
+<div class="xy-card">
+    <ul class="xy-list">
+        {% for s in skills %}
+        <li>
+            <div>
+                <div class="l-name">{{ s.name }} <span class="xy-tag blue">耗法 {{ s.mp_cost }}</span></div>
+                <div class="l-sub">{{ s.desc }}</div>
+            </div>
+            <div class="l-right">
+                <form method="POST" action="/games/xyou/learn" style="display:inline">
+                    <input type="hidden" name="npc_id" value="{{ npc.id }}">
+                    <input type="hidden" name="skill_id" value="{{ s.id }}">
+                    <button class="btn green sm" type="submit">学习</button>
+                </form>
+            </div>
+        </li>
+        {% endfor %}
+    </ul>
+</div>
+{% else %}
+<div class="xy-empty">高僧已将所有武艺倾囊相授</div>
+{% endif %}
+
+<a href="/games/xyou" class="btn block">← 返回地图</a>
+{% endblock %}

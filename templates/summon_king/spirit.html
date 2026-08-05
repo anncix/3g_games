@@ -1,0 +1,65 @@
+{% extends "base_wap.html" %}
+{% block title %}战灵系统 - 召唤之王{% endblock %}
+{% block breadcrumb %}
+<div class="nav-bar">
+    <a href="/home/gamelobby">游戏大厅</a>
+    <span class="sep">›</span>
+    <a href="/summon_king">召唤之王</a>
+    <span class="sep">›</span> 战灵系统
+</div>
+{% endblock %}
+{% block content %}
+<div class="section">
+    <div class="section-title">✨ 战灵洗炼</div>
+    <div class="section-body">
+        <div class="info-row"><span class="info-label">召唤师</span><span class="info-value">Lv.{{ profile.level }}</span></div>
+        <div class="info-row"><span class="info-label">铜钱</span><span class="info-value" style="color:#daa520;">🪙 {{ profile.copper_coin }}</span></div>
+        <div class="info-row"><span class="info-label">出战幻兽</span>
+            <span class="info-value">{% if beast %}{{ beast.nickname or beast.beast.name }}{% else %}未设置{% endif %}</span>
+        </div>
+        <div class="tip">6 元素槽（水/土/火/木/金/神）· 每日前 {{ reroll_free }} 次免费，封顶 {{ reroll_cap }} 次</div>
+    </div>
+</div>
+
+<div class="section">
+    <div class="section-title">🔮 当前战灵（{{ spirits|length }} 槽）</div>
+    <div class="section-body">
+        {% if spirits %}
+            {% for entry in spirits %}
+            {% set s = entry.spirit %}
+            <div class="info-row">
+                <span class="info-label">{{ s.element_type }}元素</span>
+                <span class="info-value">
+                    {% for a in entry.attrs %}{{ a.name }}+{{ a.value }}{% if not loop.last %} / {% endif %}{% endfor %}
+                </span>
+            </div>
+            {% endfor %}
+        {% else %}
+        <p class="text-gray">空槽，洗炼后将填充</p>
+        {% endif %}
+    </div>
+</div>
+
+<div class="section">
+    <div class="section-title">🔄 开始洗炼</div>
+    <div class="section-body">
+        <form method="post" action="/summon_king/spirit/reroll">
+            <div class="form-group">
+                <label>锁词条数</label>
+                <select name="lock_count">
+                    <option value="0">不锁（0）</option>
+                    <option value="1">锁 1 条</option>
+                    <option value="2">锁 2 条</option>
+                    <option value="3">锁 3 条</option>
+                </select>
+            </div>
+            <button type="submit" class="btn">开始洗炼（{{ coin_cost }} 铜钱）</button>
+        </form>
+        <div class="tip">洗炼后随机元素与词条，词条池：生命/物攻/魔攻/物防/魔防/速度等</div>
+    </div>
+</div>
+
+<div class="text-center mt-10">
+    <a href="/summon_king" class="btn btn-small">返回首页</a>
+</div>
+{% endblock %}

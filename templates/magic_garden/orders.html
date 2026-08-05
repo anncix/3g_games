@@ -1,0 +1,65 @@
+{% extends "base_wap.html" %}
+
+{% block title %}订单板{% endblock %}
+
+{% block breadcrumb %}
+<div class="nav-bar">
+    <a href="/home/">首页</a><span class="sep">›</span>
+    <a href="/magic_garden">花园</a><span class="sep">›</span>
+    <span>订单板</span>
+</div>
+{% endblock %}
+
+{% block content %}
+<div class="section">
+    <div class="section-title">📋 订单交易中心</div>
+    <div class="section-body">
+        <div class="info-row"><span class="info-label">称号</span><span class="info-value"><b>{{ title }}</b></span></div>
+        <div class="info-row"><span class="info-label">花园金币</span><span class="info-value"><b>{{ gold }}</b></span></div>
+        <div class="tip">spec 经济主引擎：产出 → 订单交付 → 金币/经验回收</div>
+    </div>
+</div>
+
+<div class="section">
+    <div class="section-title">🔄 刷新订单板</div>
+    <div class="section-body">
+        <div class="info-row"><span class="info-label">今日免费剩余</span><span class="info-value"><b>{{ free_left }}</b> 次</span></div>
+        <div class="tip">免费用完后付费递增：cost = 50 × 1.5^n</div>
+        <form method="post" action="/magic_garden/orders/reroll" style="margin-top:8px;">
+            <button class="btn" type="submit">刷新订单</button>
+        </form>
+    </div>
+</div>
+
+<div class="section">
+    <div class="section-title">📦 进行中订单（{{ order_infos|length }}）</div>
+    <div class="section-body">
+        {% if not order_infos %}
+        <div class="tip">暂无订单，刷新试试</div>
+        {% endif %}
+        {% for info in order_infos %}
+        {% set o = info.order %}
+        <div class="post-item">
+            {% if o.order_type == 'limited' %}<span class="text-red">[限时单]</span>
+            {% elif o.order_type == 'premium' %}<span class="text-red">[加价单]</span>
+            {% else %}<span class="text-green">[普通单]</span>{% endif %}
+            {% if o.expire_at %}<span class="badge">{{ info.remain }}</span>{% endif %}
+            <div>需求：{% for r in info.reqs %}{{ r.name }} ×<b>{{ r.qty }}</b>（品质 <b>{{ r.quality }}</b>）{% if not loop.last %}, {% endif %}{% endfor %}</div>
+            <div>奖励：金币 <b>{{ o.reward_coin }}</b> · 经验 <b>{{ o.reward_exp }}</b>{% if o.reward_token %} · 代币 <b>{{ o.reward_token }}</b>{% endif %}</div>
+            {% if info.can_deliver %}
+            <form method="post" action="/magic_garden/orders/deliver/{{ o.id }}" style="margin-top:6px;">
+                <button class="btn btn-success" type="submit">交付订单</button>
+            </form>
+            {% else %}
+            <span class="text-red">材料不足</span> <a class="btn" href="/magic_garden/pots">去种花</a>
+            {% endif %}
+        </div>
+        {% endfor %}
+    </div>
+</div>
+
+<div class="text-center mt-10">
+    <a class="btn" href="/magic_garden/orders/history">交付历史</a>
+    <a class="btn" href="/magic_garden">返回花园</a>
+</div>
+{% endblock %}

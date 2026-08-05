@@ -21,7 +21,7 @@ from sqlalchemy.orm import Session
 
 from models.models import (
     ItemGarden, GardenSeed, GardenBloom, GardenAlbumEntryFull,
-    GardenRecipe, GardenOrderTemplate,
+    GardenRecipe, GardenOrderTemplate, GardenExchange,
 )
 
 # ---------- tier 配置 ----------
@@ -277,6 +277,25 @@ def seed_garden_large(db: Session, log=print):
         _bulk(db, add_tpls)
         stats["templates"] = len(add_tpls)
         log(f"[garden-large] 订单模板 +{len(add_tpls)}")
+
+    # ---------- 5. 兑换中心 GardenExchange（活动材料 -> 稀有花种，稳定路径）----------
+    ex_cnt = db.query(GardenExchange).filter(GardenExchange.result_seed_key.like("gseed_t%")).count()
+    if ex_cnt == 0:
+        add_ex = []
+        for tt in range(2, 9):
+            seeds_t = seed_by_tier.get(tt, [])
+            mats_t = mat_by_tier.get(tt, [])
+            if not seeds_t or not mats_t:
+                continue
+            seed = random.choice(seeds_t)
+            chosen = random.sample(mats_t, min(2, len(mats_t)))
+            mats = {m.key: random.randint(3, 8) for m in chosen}
+            add_ex.append(GardenExchange(
+                result_seed_key=seed.key, result_qty=1,
+                materials=json.dumps(mats, ensure_ascii=False)))
+        _bulk(db, add_ex)
+        stats["exchanges"] = len(add_ex)
+        log(f"[garden-large] 兑换 +{len(add_ex)}")
 
     return stats
 

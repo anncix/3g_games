@@ -1,0 +1,108 @@
+{% extends "base_wap.html" %}
+
+{% block title %}纵横四海 - 宠物坐骑{% endblock %}
+
+{% block breadcrumb %}
+<div class="nav-bar">
+    <a href="/home/">首页</a><span class="sep">›</span>
+    <a href="/home/gamelobby">游戏大厅</a><span class="sep">›</span>
+    <a href="/zongheng_sihai">纵横四海</a><span class="sep">›</span>
+    <span>宠物坐骑</span>
+</div>
+{% endblock %}
+
+{% block content %}
+
+<div class="notice">🐾 图鉴收录宠物、宠物技能、坐骑、羽翼与随从，供航海者查阅。</div>
+
+<div class="section">
+    <div class="section-title">🐾 宠物 ({{ pets|length }})</div>
+    <div class="section-body">
+        {% for p in pets %}
+        <div class="info-row">
+            <div>
+                <b>{{ p.name }}</b>
+                <span class="tag">{{ p.quality }}</span>
+                <br><span class="text-gray" style="font-size:12px;">攻{{ p.atk }} 防{{ p.defense }} 敏{{ p.agile }} 血{{ p.hp }}</span>
+                {% if p.skill_tag %}<br><span class="text-gray" style="font-size:12px;">技能：{{ p.skill_tag }}</span>{% endif %}
+                {% if p.source %}<br><span class="text-gray" style="font-size:12px;">来源：{{ p.source }}</span>{% endif %}
+            </div>
+        </div>
+        {% else %}
+        <div class="text-gray">暂无宠物</div>
+        {% endfor %}
+    </div>
+</div>
+
+<div class="section">
+    <div class="section-title">✨ 宠物技能 ({{ pet_skills|length }})</div>
+    <div class="section-body">
+        {% for s in pet_skills %}
+        <div class="info-row">
+            <div>
+                <b>{{ s.name }}</b>
+                <span class="tag">{{ s.tier }}</span>
+                <br><span class="text-gray" style="font-size:12px;">{{ s.effect }}</span>
+            </div>
+        </div>
+        {% else %}
+        <div class="text-gray">暂无技能</div>
+        {% endfor %}
+    </div>
+</div>
+
+<div class="section">
+    <div class="section-title">🐎 坐骑 ({{ mounts|length }})</div>
+    <div class="section-body">
+        {% for m in mounts %}
+        <div class="info-row">
+            <div>
+                <b>{{ m.name }}</b>
+                <span class="tag">{{ m.category }}</span>
+                <br><span class="text-gray" style="font-size:12px;">{{ m.level_required }}级解锁 · {{ m.stat_type }} {{ m.stat_value }}</span>
+            </div>
+        </div>
+        {% else %}
+        <div class="text-gray">暂无坐骑</div>
+        {% endfor %}
+    </div>
+</div>
+
+<div class="section">
+    <div class="section-title">🕊️ 羽翼 ({{ wings|length }})</div>
+    <div class="section-body">
+        {% for w in wings %}
+        <div class="info-row">
+            <div>
+                <b>{{ w.name }}</b>
+                <br><span class="text-gray" style="font-size:12px;">{{ w.level_required }}级解锁</span>
+                {% if w.effects %}<br><span class="text-gray" style="font-size:12px;">特效：{{ w.effects }}</span>{% endif %}
+            </div>
+        </div>
+        {% else %}
+        <div class="text-gray">暂无羽翼</div>
+        {% endfor %}
+    </div>
+</div>
+
+<div class="section">
+    <div class="section-title">🧝 随从 ({{ followers|length }})</div>
+    <div class="section-body">
+        {% for f in followers %}
+        <div class="info-row">
+            <div>
+                <b>{{ f.name }}</b>
+                <span class="tag">{{ f.quality }}</span>
+                {% if f.skill_name %}<br><span class="text-gray" style="font-size:12px;">天赋：{{ f.skill_name }}{% if f.skill_desc %} - {{ f.skill_desc }}{% endif %}</span>{% endif %}
+            </div>
+        </div>
+        {% else %}
+        <div class="text-gray">暂无随从</div>
+        {% endfor %}
+    </div>
+</div>
+
+<div class="text-center mt-10">
+    <a href="/zongheng_sihai">« 返回航海首页</a>
+</div>
+{% endblock %}

@@ -1,0 +1,47 @@
+{% extends "base_wap.html" %}
+
+{% block title %}纵横四海 - 副本{% endblock %}
+
+{% block breadcrumb %}
+<div class="nav-bar">
+    <a href="/home/">首页</a><span class="sep">›</span>
+    <a href="/home/gamelobby">游戏大厅</a><span class="sep">›</span>
+    <a href="/zongheng_sihai">纵横四海</a><span class="sep">›</span>
+    <span>副本</span>
+</div>
+{% endblock %}
+
+{% block content %}
+
+<div class="notice">
+    🏰 副本按星期开放，等级达标可挑战，胜利得经验与掉落。今日开放编号：{{ today }}
+</div>
+
+{% for row in info %}
+<div class="section">
+    <div class="section-title">
+        {{ row.d.name }}
+        {% if not row.is_open %}<span class="text-red">[未开放]</span>
+        {% elif row.can %}<span class="text-green">[可挑战]</span>
+        {% else %}<span class="text-gray">[条件不足]</span>{% endif %}
+    </div>
+    <div class="section-body">
+        <div class="text-gray" style="font-size:12px;">入口：{{ row.city.name if row.city else row.d.entry_city }} · 最低 {{ row.min_lvl }} 级</div>
+        <div style="font-size:12px;">难度档：
+            {% for diff in row.diffs %}{{ diff }}({{ row.level_reqs[loop.index0] }}级){% if not loop.last %} · {% endif %}{% endfor %}
+        </div>
+        {% if row.can %}
+        <div class="mt-5"><a class="btn btn-small" href="/zongheng_sihai/dungeon/{{ row.d.key }}">挑战副本</a></div>
+        {% elif row.is_open and row.tier < 0 %}
+        <div class="text-gray mt-5" style="font-size:12px;">等级不足，需{{ row.min_lvl }}级</div>
+        {% endif %}
+    </div>
+</div>
+{% else %}
+<div class="notice">暂无副本</div>
+{% endfor %}
+
+<div class="text-center mt-10">
+    <a href="/zongheng_sihai">« 返回航海首页</a>
+</div>
+{% endblock %}

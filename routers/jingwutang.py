@@ -12,10 +12,11 @@ from models.models import (
     User, JingwuRole, JingwuDungeon, JingwuEquipment, JingwuItem,
     JingwuSkill, JingwuUserSkill, JingwuPetTemplate, JingwuPet,
     JingwuTalisman, JingwuTitle, JingwuLevelExp,
-    Notification, BattleLog, Wallet
+    Notification, BattleLog, Wallet, JingwuDailyState
 )
 from utils.auth import get_current_user
 from utils.i18n import t
+from utils import jingwutang_data as JD
 from utils.jingwutang import (
     init_jingwu_data, create_jingwu_character, calculate_stats, calculate_combat_power,
     apply_stats_to_role, recover_stamina, use_xianglu,
@@ -28,6 +29,8 @@ from utils.jingwutang import (
     STAT_NAMES, TRAINING_TYPES, TITLE_CONFIGS, PET_TEMPLATES,
     PROFESSIONS, FABAO_LIST, DUNGEON_STAGES, TRANSFER_PATHS,
     EQUIPMENT_SLOTS, QUALITY_COLORS, POLARIS_STARS, DIVINE_EQUIPMENT_RECIPES,
+    get_daily_state, incr_daily, daily_counter, add_role_exp,
+    enhance_equipment, do_transfer, upgrade_polaris,
 )
 
 router = APIRouter(prefix="/jingwutang", tags=["jingwutang"])
@@ -564,6 +567,12 @@ async def battle(request: Request, opponent_id: int, db: Session = Depends(get_d
         return RedirectResponse(url="/jingwutang/arena", status_code=302)
 
     result = simulate_battle(attacker, defender, db)
+
+    # 日常任务计数：比武挑战/胜利
+    incr_daily(attacker, db, "pvp_arena_try", 1)
+    if result["winner"] == attacker:
+        incr_daily(attacker, db, "pvp_arena_win", 1)
+    db.commit()
 
     ctx.update({
         "role": attacker,
@@ -1114,6 +1123,14 @@ async def dungeon_fight(request: Request, stage_id: int, db: Session = Depends(g
 
     if result["winner"] == role and dungeon:
         dungeon.stage = min(dungeon.stage + 1, len(DUNGEON_STAGES))
+        # 日常任务计数：通关关卡（普通/精英/BOSS）
+        incr_daily(role, db, "pve_normal_win", 1)
+        if stage["level_req"] >= 10:
+            incr_daily(role, db, "pve_elite_win", 1)
+        if stage["level_req"] >= 25:
+            incr_daily(role, db, "boss_try", 1)
+    else:
+        incr_daily(role, db, "pve_normal_win", 1)
     db.commit()
 
     ctx.update({
@@ -1192,3 +1209,276 @@ async def rank_page(request: Request, db: Session = Depends(get_db)):
 @router.get("/create-role")
 async def create_role_redirect(request: Request, db: Session = Depends(get_db)):
     return RedirectResponse(url="/jingwutang/create", status_code=302)
+
+
+# ============================================================
+# 11. 规则 / 资料 / 主线 / 日常任务 / 战神宫（移植自 v0.3.1）
+# ============================================================
+
+@router.get("/rules", response_class=HTMLResponse)
+async def jw_rules(request: Request, db: Session = Depends(get_db)):
+    ctx = get_common_context(request, db)
+    if not ctx:
+        return RedirectResponse(url="/auth/login", status_code=302)
+    ctx.update({"exp_need": JD.exp_needed(ctx["user"].jw_role.level) if ctx["user"].jw_role else 120})
+    return templates.TemplateResponse("jingwutang/rules.html", ctx)
+
+
+@router.get("/archive", response_class=HTMLResponse)
+async def jw_archive(request: Request, db: Session = Depends(get_db)):
+    """WAP 原版资料图鉴（纯展示）"""
+    ctx = get_common_context(request, db)
+    if not ctx:
+        return RedirectResponse(url="/auth/login", status_code=302)
+    ctx.update({
+        "level_titles": JD.LEVEL_TITLES,
+        "add_point_schools": JD.ADD_POINT_SCHOOLS,
+        "exp_table_wap": JD.EXP_TABLE_WAP,
+        "pets_four_beasts": JD.PETS_FOUR_BEASTS,
+        "pet_level_stages": JD.PET_LEVEL_STAGES,
+        "wuhun_rank": JD.WUHUN_RANK_SYSTEM,
+        "guild_xinfa": JD.GUILD_XINFA,
+        "forge_recipes_wap": JD.FORGE_RECIPES_WAP,
+        "currencies_wap": JD.CURRENCIES_WAP,
+        "skill_recommendations": JD.SKILL_RECOMMENDATIONS,
+        "exp_sources_wap": JD.EXP_SOURCES_WAP,
+        "main_quests": JD.MAIN_QUESTS,
+    })
+    return templates.TemplateResponse("jingwutang/archive.html", ctx)
+
+
+@router.get("/mainquests", response_class=HTMLResponse)
+async def jw_mainquests(request: Request, db: Session = Depends(get_db)):
+    ctx = get_common_context(request, db)
+    if not ctx:
+        return RedirectResponse(url="/auth/login", status_code=302)
+    redirect = require_character(ctx, db)
+    if redirect:
+        return redirect
+    role = ctx["user"].jw_role
+    ctx.update({"role": role, "stats": ctx["stats"], "quests": JD.MAIN_QUESTS})
+    return templates.TemplateResponse("jingwutang/mainquests.html", ctx)
+
+
+@router.get("/tasks", response_class=HTMLResponse)
+async def jw_tasks(request: Request, db: Session = Depends(get_db)):
+    """日常任务 + 活跃奖励"""
+    ctx = get_common_context(request, db)
+    if not ctx:
+        return RedirectResponse(url="/auth/login", status_code=302)
+    redirect = require_character(ctx, db)
+    if redirect:
+        return redirect
+    role = ctx["user"].jw_role
+    ds = get_daily_state(role, db)
+    task_list = []
+    for tid, info in JD.DAILY_TASKS.items():
+        progress = daily_counter(ds, info[2])
+        claimed = tid in (ds.claimed_tasks or [])
+        task_list.append({
+            "id": tid, "name": info[0], "open_level": info[1], "target": info[3],
+            "progress": min(progress, info[3]), "silver": info[4], "exp": info[5],
+            "item1": info[6], "qty1": info[7], "item2": info[8], "qty2": info[9],
+            "point": info[10], "claimed": claimed,
+            "can_claim": role.level >= info[1] and progress >= info[3] and not claimed,
+        })
+    activity_rewards = []
+    for point, r in JD.DAILY_ACTIVITY_REWARDS.items():
+        cp = point in (ds.claimed_activity or [])
+        activity_rewards.append({
+            "point": point, "silver": r[0], "exp": r[1],
+            "item1": r[2], "qty1": r[3], "item2": r[4], "qty2": r[5],
+            "claimed": cp,
+            "can_claim": ds.activity_point >= point and not cp,
+        })
+    ctx.update({
+        "role": role, "stats": ctx["stats"], "task_list": task_list,
+        "activity_rewards": activity_rewards, "activity_point": ds.activity_point,
+        "exp_need": JD.exp_needed(role.level),
+    })
+    return templates.TemplateResponse("jingwutang/tasks.html", ctx)
+
+
+@router.post("/tasks/claim/{tid}")
+async def jw_task_claim(tid: str, request: Request, db: Session = Depends(get_db)):
+    ctx = get_common_context(request, db)
+    if not ctx:
+        return RedirectResponse(url="/auth/login", status_code=302)
+    redirect = require_character(ctx, db)
+    if redirect:
+        return redirect
+    role = ctx["user"].jw_role
+    info = JD.DAILY_TASKS.get(tid)
+    if not info:
+        ctx["status_msg"] = "任务不存在"
+    else:
+        ds = get_daily_state(role, db)
+        claimed = tid in (ds.claimed_tasks or [])
+        progress = daily_counter(ds, info[2])
+        if claimed:
+            ctx["status_msg"] = "该任务已领取过"
+        elif role.level < info[1]:
+            ctx["status_msg"] = f"等级不足，需{info[1]}级"
+        elif progress < info[3]:
+            ctx["status_msg"] = "任务尚未完成"
+        else:
+            ds.claimed_tasks = list(ds.claimed_tasks or []) + [tid]
+            ds.activity_point = (ds.activity_point or 0) + info[10]
+            leveled = add_role_exp(role, db, info[5])
+            if info[6] and info[7] and info[6] != "":
+                add_item(role, info[6], info[7], db=db)
+            if info[8] and info[9] and info[8] != "":
+                add_item(role, info[8], info[9], db=db)
+            db.commit()
+            ctx["status_msg"] = f"领取任务奖励：银两+{info[4]}，经验+{info[5]}{'，升级了！' if leveled else ''}"
+    return RedirectResponse(url="/jingwutang/tasks", status_code=302)
+
+
+@router.post("/activity/claim/{point}")
+async def jw_activity_claim(point: int, request: Request, db: Session = Depends(get_db)):
+    ctx = get_common_context(request, db)
+    if not ctx:
+        return RedirectResponse(url="/auth/login", status_code=302)
+    redirect = require_character(ctx, db)
+    if redirect:
+        return redirect
+    role = ctx["user"].jw_role
+    r = JD.DAILY_ACTIVITY_REWARDS.get(point)
+    if not r:
+        ctx["status_msg"] = "档位不存在"
+    else:
+        ds = get_daily_state(role, db)
+        if point in (ds.claimed_activity or []):
+            ctx["status_msg"] = "该档位已领取"
+        elif ds.activity_point < point:
+            ctx["status_msg"] = f"活跃度不足（需{point}）"
+        else:
+            ds.claimed_activity = list(ds.claimed_activity or []) + [point]
+            leveled = add_role_exp(role, db, r[1])
+            if r[2] and r[3] and r[2] != "":
+                add_item(role, r[2], r[3], db=db)
+            if r[4] and r[5] and r[4] != "":
+                add_item(role, r[4], r[5], db=db)
+            db.commit()
+            ctx["status_msg"] = f"领取活跃奖励：银两+{r[0]}，经验+{r[1]}{'，升级了！' if leveled else ''}"
+    return RedirectResponse(url="/jingwutang/tasks", status_code=302)
+
+
+@router.get("/warshrine", response_class=HTMLResponse)
+async def jw_warshrine(request: Request, db: Session = Depends(get_db)):
+    """战神宫：分层修炼 + 排位挑战"""
+    ctx = get_common_context(request, db)
+    if not ctx:
+        return RedirectResponse(url="/auth/login", status_code=302)
+    redirect = require_character(ctx, db)
+    if redirect:
+        return redirect
+    role = ctx["user"].jw_role
+    ds = get_daily_state(role, db)
+    floor = ds.warshrine_floor or 1
+    cultivating = False
+    remaining = 0
+    if ds.warshrine_started_at:
+        elapsed = (datetime.utcnow().timestamp() - ds.warshrine_started_at)
+        duration = JD.WARSHRINE["duration_hours"] * 3600
+        if elapsed < duration:
+            cultivating = True
+            remaining = int((duration - elapsed) // 60)
+    floor_info = [{"floor": f, "name": JD.WARSHRINE_7FLOORS[f - 1][1] if f <= len(JD.WARSHRINE_7FLOORS) else f"第{f}层"} for f in range(1, JD.WARSHRINE["max_floor"] + 1)]
+    locked = role.level < JD.WARSHRINE["min_level"]
+    ctx.update({
+        "role": role, "stats": ctx["stats"], "floor": floor,
+        "cultivating": cultivating, "remaining": remaining,
+        "floor_info": floor_info, "warshrine": JD.WARSHRINE, "locked": locked,
+        "exp_need": JD.exp_needed(role.level),
+    })
+    return templates.TemplateResponse("jingwutang/warshrine.html", ctx)
+
+
+@router.post("/warshrine/start")
+async def jw_warshrine_start(request: Request, db: Session = Depends(get_db)):
+    ctx = get_common_context(request, db)
+    if not ctx:
+        return RedirectResponse(url="/auth/login", status_code=302)
+    redirect = require_character(ctx, db)
+    if redirect:
+        return redirect
+    role = ctx["user"].jw_role
+    if role.level < JD.WARSHRINE["min_level"]:
+        ctx["status_msg"] = f"需{JD.WARSHRINE['min_level']}级才能进入战神宫"
+    elif role.train_status == 1:
+        ctx["status_msg"] = "请先停止练功房修炼再进入战神宫"
+    else:
+        ds = get_daily_state(role, db)
+        if ds.warshrine_started_at:
+            elapsed = datetime.utcnow().timestamp() - ds.warshrine_started_at
+            if elapsed < JD.WARSHRINE["duration_hours"] * 3600:
+                ctx["status_msg"] = "战神宫修炼进行中，请稍后再来"
+            else:
+                ds.warshrine_started_at = datetime.utcnow().timestamp()
+                db.commit()
+                ctx["status_msg"] = f"开始战神宫第{ds.warshrine_floor or 1}层修炼"
+        else:
+            ds.warshrine_started_at = datetime.utcnow().timestamp()
+            db.commit()
+            ctx["status_msg"] = f"开始战神宫第{ds.warshrine_floor or 1}层修炼"
+    return RedirectResponse(url="/jingwutang/warshrine", status_code=302)
+
+
+@router.post("/warshrine/claim")
+async def jw_warshrine_claim(request: Request, db: Session = Depends(get_db)):
+    ctx = get_common_context(request, db)
+    if not ctx:
+        return RedirectResponse(url="/auth/login", status_code=302)
+    redirect = require_character(ctx, db)
+    if redirect:
+        return redirect
+    role = ctx["user"].jw_role
+    ds = get_daily_state(role, db)
+    if not ds.warshrine_started_at:
+        ctx["status_msg"] = "尚未开始战神宫修炼"
+    else:
+        elapsed = datetime.utcnow().timestamp() - ds.warshrine_started_at
+        duration = JD.WARSHRINE["duration_hours"] * 3600
+        if elapsed < duration:
+            ctx["status_msg"] = f"修炼未完成，还需{int((duration - elapsed) // 60)}分钟"
+        else:
+            floor = ds.warshrine_floor or 1
+            exp_gain = int(role.level * 100 * JD.WARSHRINE["exp_mul"].get(floor, 1.0))
+            leveled = add_role_exp(role, db, exp_gain)
+            ds.warshrine_started_at = None
+            db.commit()
+            ctx["status_msg"] = f"领取战神宫修炼经验：+{exp_gain}{'，升级了！' if leveled else ''}"
+    return RedirectResponse(url="/jingwutang/warshrine", status_code=302)
+
+
+@router.post("/warshrine/challenge")
+async def jw_warshrine_challenge(request: Request, db: Session = Depends(get_db)):
+    """挑战上层：战力比较概率判定"""
+    ctx = get_common_context(request, db)
+    if not ctx:
+        return RedirectResponse(url="/auth/login", status_code=302)
+    redirect = require_character(ctx, db)
+    if redirect:
+        return redirect
+    role = ctx["user"].jw_role
+    if role.level < JD.WARSHRINE["min_level"]:
+        ctx["status_msg"] = f"需{JD.WARSHRINE['min_level']}级才能进入战神宫"
+    else:
+        ds = get_daily_state(role, db)
+        floor = ds.warshrine_floor or 1
+        if floor >= JD.WARSHRINE["max_floor"]:
+            ctx["status_msg"] = "已在最高层，无法挑战"
+        else:
+            my_power = role.combat_power
+            prob = 0.5 + my_power * 0.001 - (role.level * 20) * 0.01
+            prob = max(0.05, min(0.95, prob))
+            win = random.random() < prob
+            if win:
+                ds.warshrine_floor = floor + 1
+                ctx["status_msg"] = f"挑战胜利！升至第{floor + 1}层"
+            else:
+                ds.warshrine_floor = 1
+                ctx["status_msg"] = "挑战失败，落回第1层"
+            db.commit()
+    return RedirectResponse(url="/jingwutang/warshrine", status_code=302)

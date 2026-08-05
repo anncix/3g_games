@@ -165,7 +165,8 @@ async def create_page(request: Request, db: Session = Depends(get_db)):
     db.commit()
     return templates.TemplateResponse("fengyun/create.html", {
         "request": request, "user": user, "st": st,
-        "classes": FY.CLASSES, "factions": FY.FACTIONS,
+        "classes": [(c[0], c[1], c[4]) for c in FY.CLASSES],
+        "factions": FY.FACTIONS,
         "base_attrs": FY.CLASS_BASE_ATTRS,
     })
 
@@ -660,4 +661,33 @@ async def achievements_page(request: Request, db: Session = Depends(get_db)):
     db.commit()
     return templates.TemplateResponse("fengyun/achievements.html", {
         "request": request, "user": user, "st": st, "grouped": grouped,
+    })
+
+
+# ============================================================
+# 主线任务链（v0.2.6：8 章三国剧情主线）
+# ============================================================
+@router.get("/mainquests", response_class=HTMLResponse)
+async def mainquests_page(request: Request, db: Session = Depends(get_db)):
+    user = _require_user(request, db)
+    if not user:
+        return RedirectResponse(url="/auth/login", status_code=302)
+    st = get_state(db, user.id)
+    db.commit()
+    return templates.TemplateResponse("fengyun/mainquests.html", {
+        "request": request, "user": user, "st": st, "quests": FY.MAIN_QUESTS,
+    })
+
+
+# ============================================================
+# 规则页
+# ============================================================
+@router.get("/rules", response_class=HTMLResponse)
+async def rules_page(request: Request, db: Session = Depends(get_db)):
+    user = _require_user(request, db)
+    if not user:
+        return RedirectResponse(url="/auth/login", status_code=302)
+    db.commit()
+    return templates.TemplateResponse("fengyun/rules.html", {
+        "request": request, "user": user,
     })

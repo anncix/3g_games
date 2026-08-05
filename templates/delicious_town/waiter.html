@@ -1,0 +1,62 @@
+{% extends "base_wap.html" %}
+
+{% block title %}服务员{% endblock %}
+
+{% block breadcrumb %}
+<div class="nav-bar">
+    <a href="/home/">首页</a>
+    <span class="sep">›</span>
+    <a href="/delicious_town/">美味小镇</a>
+    <span class="sep">›</span>
+    <span>服务员</span>
+</div>
+{% endblock %}
+
+{% block content %}
+<div class="section">
+    <div class="section-title">👨‍🍳 当前服务员（{{ waiter_info|length }}/{{ waiter_total }}）</div>
+    <div class="section-body">
+        {% if waiter_info %}
+        {% for w in waiter_info %}
+        <div style="border:1px solid #e0d0c0; border-radius:4px; padding:8px; margin-bottom:8px;">
+            <div style="display:flex; justify-content:space-between; align-items:center;">
+                <div><b>{{ w.friend.nickname if w.friend else '未知好友' }}</b>
+                    <span class="badge" style="background:#3a76c8;">加成:{{ w.waiter.bonus_type }}</span></div>
+                <div style="font-size:12px; color:#666;">剩余 {{ w.remain }} 秒</div>
+            </div>
+            <form method="post" action="/delicious_town/waiter/fire/{{ w.waiter.id }}" class="text-right">
+                <button class="btn btn-danger btn-small">解雇</button>
+            </form>
+        </div>
+        {% endfor %}
+        {% else %}
+        <div class="tip text-center">暂无服务员，去雇佣好友吧！</div>
+        {% endif %}
+    </div>
+</div>
+
+<div class="section">
+    <div class="section-title">👥 可雇佣好友</div>
+    <div class="section-body">
+        {% if hireable %}
+        <ul class="link-list">
+            {% for f in hireable %}
+            <li style="display:flex; justify-content:space-between; align-items:center;">
+                <span>{{ f.nickname }}</span>
+                <form method="post" action="/delicious_town/waiter/hire/{{ f.id }}" style="margin:0;">
+                    <button class="btn btn-small">雇佣 (500金币)</button>
+                </form>
+            </li>
+            {% endfor %}
+        </ul>
+        {% else %}
+        <div class="tip text-center">暂无可雇佣好友（或都已雇佣）</div>
+        {% endif %}
+        <div class="tip mt-10">💡 1 名服务员可服务 3 桌；加成：金币+3% / 满意度+2% / 速度-5%制作时间</div>
+    </div>
+</div>
+
+<div class="text-center mt-10">
+    <a href="/delicious_town/">« 返回小镇首页</a>
+</div>
+{% endblock %}

@@ -1,0 +1,61 @@
+{% extends "base_wap.html" %}
+
+{% block title %}{{ npc.name }} · 小轩西游{% endblock %}
+
+{% block breadcrumb %}
+<div class="nav-bar">
+    <a href="/home/">首页</a>
+    <span class="sep">›</span>
+    <a href="/games/xyou">小轩西游</a>
+    <span class="sep">›</span>
+    <span>{{ npc.name }}</span>
+</div>
+{% endblock %}
+
+{% block extra_css %}
+<link rel="stylesheet" href="/static/css/xyou.css">
+{% endblock %}
+
+{% block content %}
+{% set active = 'map' %}
+{% include "xyou/_header.html" %}
+
+<div class="xy-page-title">🏪 {{ npc.name }}</div>
+<div class="xy-card">
+    <div class="xy-desc">{{ npc.dialogue }}</div>
+    <div class="xy-desc">你的银两：<b>{{ char.money }}</b></div>
+</div>
+
+<div class="xy-card">
+    <ul class="xy-list">
+        {% for it in shop_items %}
+        <li>
+            <div class="xy-item">
+                <div class="ic {{ it.type }}">{{ '💊' if it.type == '药品' else ('🗡️' if it.attack > 0 else ('🦺' if it.defense > 0 else '📦')) }}</div>
+                <div>
+                    <div class="l-name">{{ it.name }} <span class="xy-tag gold">{{ it.price }} 银</span></div>
+                    <div class="l-sub">
+                        {% if it.type == '装备' %}
+                            攻+{{ it.attack }} 防+{{ it.defense }} 需Lv.{{ it.level_req }}
+                        {% elif it.type == '药品' %}
+                            气血+{{ it.hp }} 法力+{{ it.mp }}
+                        {% endif %}
+                        · {{ it.desc }}
+                    </div>
+                </div>
+            </div>
+            <div class="l-right">
+                <form method="POST" action="/games/xyou/buy" style="display:inline">
+                    <input type="hidden" name="npc_id" value="{{ npc.id }}">
+                    <input type="hidden" name="item_id" value="{{ it.id }}">
+                    <input type="hidden" name="count" value="1">
+                    <button class="btn gold sm" type="submit">购买</button>
+                </form>
+            </div>
+        </li>
+        {% endfor %}
+    </ul>
+</div>
+
+<a href="/games/xyou" class="btn block">← 返回地图</a>
+{% endblock %}

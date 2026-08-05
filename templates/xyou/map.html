@@ -1,0 +1,60 @@
+{% extends "base_wap.html" %}
+
+{% block title %}地图全览 · 小轩西游{% endblock %}
+
+{% block breadcrumb %}
+<div class="nav-bar">
+    <a href="/home/">首页</a>
+    <span class="sep">›</span>
+    <a href="/games/xyou">小轩西游</a>
+    <span class="sep">›</span>
+    <span>地图全览</span>
+</div>
+{% endblock %}
+
+{% block extra_css %}
+<link rel="stylesheet" href="/static/css/xyou.css">
+{% endblock %}
+
+{% block content %}
+{% set active = 'mapview' %}
+{% include "xyou/_header.html" %}
+
+<div class="xy-card">
+    <h3>📍 当前位置：{{ map.name }}</h3>
+    <div class="xy-desc">{{ map.desc }}</div>
+</div>
+
+<div class="xy-card">
+    <h3>🗺️ 全部地图</h3>
+    <ul class="xy-list">
+        {% for mid, m in maps.items() %}
+        <li>
+            <div>
+                <div class="l-name">
+                    {{ m.name }}
+                    {% if mid == char.map_id %}
+                    <span class="xy-tag green">你在此</span>
+                    {% else %}
+                    <span class="xy-tag gold">建议 Lv.{{ m.level }}</span>
+                    {% endif %}
+                </div>
+                <div class="l-sub">{{ m.desc }}</div>
+            </div>
+            <div class="l-right">
+                {% if mid == char.map_id %}
+                <span class="xy-tag dim">当前</span>
+                {% elif mid in map.links %}
+                <form method="POST" action="/games/xyou/move" style="display:inline">
+                    <input type="hidden" name="target" value="{{ mid }}">
+                    <button class="btn blue sm" type="submit">前往</button>
+                </form>
+                {% else %}
+                <span class="xy-tag dim">需邻近</span>
+                {% endif %}
+            </div>
+        </li>
+        {% endfor %}
+    </ul>
+</div>
+{% endblock %}

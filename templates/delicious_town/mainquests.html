@@ -1,0 +1,39 @@
+{% extends "base_wap.html" %}
+
+{% block title %}主线任务{% endblock %}
+
+{% block breadcrumb %}
+<div class="nav-bar">
+    <a href="/home/">首页</a>
+    <span class="sep">›</span>
+    <a href="/delicious_town/">美味小镇</a>
+    <span class="sep">›</span>
+    <span>主线任务</span>
+</div>
+{% endblock %}
+
+{% block content %}
+<div class="section">
+    <div class="section-title">🗺️ 主线任务（Lv.{{ st.restaurant_level }}）</div>
+    <div class="section-body">
+        {% for q in quests %}
+        {% set unlocked = st.restaurant_level >= q[2] %}
+        <div style="border:1px solid #e0d0c0; border-radius:4px; padding:8px; margin-bottom:8px; {% if not unlocked %}opacity:0.55;{% endif %}">
+            <div style="display:flex; justify-content:space-between; align-items:center;">
+                <div><b>#{{ q[0] }} {{ q[1] }}</b>
+                    {% if not unlocked %}<span class="badge" style="background:#999;">需Lv{{ q[2] }}</span>{% endif %}
+                </div>
+            </div>
+            <div style="font-size:13px; color:#666; margin:4px 0;">🎯 {{ q[3] }}</div>
+            <div style="font-size:12px; color:#c8a020;">🎁 {{ q[4] }}</div>
+        </div>
+        {% endfor %}
+    </div>
+</div>
+
+<div class="notice">💡 主线任务为里程碑指引，达成对应目标即可获奖励。多多经营餐厅升级吧！</div>
+
+<div class="text-center mt-10">
+    <a href="/delicious_town/">« 返回小镇首页</a>
+</div>
+{% endblock %}

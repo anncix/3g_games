@@ -1,0 +1,87 @@
+{% extends "base_wap.html" %}
+{% block title %}精武堂规则{% endblock %}
+{% block breadcrumb %}
+<div class="nav-bar">
+    <a href="/home/">首页</a><span class="sep">›</span><a href="/home/gamelobby">游戏大厅</a>
+    <span class="sep">›</span><a href="/jingwutang/">精武堂</a><span class="sep">›</span><span>规则</span>
+</div>
+{% endblock %}
+{% block content %}
+<div class="section">
+    <div class="section-title">📜 核心定位</div>
+    <div class="section-body">
+        以<b>人物养成、修炼推进、比武对抗、装备成长、帮派社交</b>为核心的文字页战斗模块。<br>
+        主循环：修炼/任务 → 获得经验资源 → 升级加点 → 换装强化 → 比武/挑战 → 继续养成。
+    </div>
+</div>
+<div class="section">
+    <div class="section-title">📈 四维属性</div>
+    <div class="section-body">
+        <div class="info-row"><span class="info-label">⚔️ 力量</span><span class="info-value">影响外功攻击（×3）</span></div>
+        <div class="info-row"><span class="info-label">💨 敏捷</span><span class="info-value">命中/闪避/暴击/速度</span></div>
+        <div class="info-row"><span class="info-label">🛡️ 体魄</span><span class="info-value">气血/外防/内防</span></div>
+        <div class="info-row"><span class="info-label">🌀 内息</span><span class="info-value">内功攻击/内防</span></div>
+    </div>
+</div>
+<div class="section">
+    <div class="section-title">📊 经验公式</div>
+    <div class="section-body">
+        升级所需经验：<b>need(L) = 120 + 80×L</b>（平台统一）。当前升级所需：<b>{{ exp_need }}</b>
+    </div>
+</div>
+<div class="section">
+    <div class="section-title">🧘 修炼系统</div>
+    <div class="section-body">
+        普通修炼：每小时 200 经验 / 120 银两<br>
+        闭关修炼：经验×2.0 / 银两×1.5，消耗 20 荣誉，日限 2 次<br>
+        离线收益上限 <b>12 小时</b>
+    </div>
+</div>
+<div class="section">
+    <div class="section-title">⚔️ 战斗结算</div>
+    <div class="section-body">
+        半自动回合制，速度高者先手；命中率 25%-95%，暴击率 5%-60% 暴击×1.5；<br>
+        最多 12 回合，超时比剩余气血。
+    </div>
+</div>
+<div class="section">
+    <div class="section-title">🗡️ 装备系统</div>
+    <div class="section-body">
+        8 部位：武器/衣服/护腕/腰带/鞋子/项链/戒指/秘籍<br>
+        5 品质：白/绿/蓝/紫/橙 · 强化 +1~+10（成功率 100%→30%）<br>
+        打造：12 级开启，消耗 3 玄铁精华 + 500 银两，随机品质
+    </div>
+</div>
+<div class="section">
+    <div class="section-title">🏆 比武场</div>
+    <div class="section-body">
+        每日免费 10 次，额外 5 荣誉/次；胜利 +12 比武分 +5 荣誉，失败 -4 分 +1 荣誉
+    </div>
+</div>
+<div class="section">
+    <div class="section-title">🏔️ 挑战关卡</div>
+    <div class="section-body">
+        9 个阶梯关卡（木人桩→武林盟主），奖励银两/经验/材料（强化石/玄铁精华/精炼石/洗点碎片）
+    </div>
+</div>
+<div class="section">
+    <div class="section-title">📋 日常任务 + 活跃奖励</div>
+    <div class="section-body">
+        12 项日常任务，活跃度档位 20/40/60/80/100，对应递增奖励
+    </div>
+</div>
+<div class="section">
+    <div class="section-title">🏯 帮派系统</div>
+    <div class="section-body">
+        创建消耗 10000 银两；捐献银两/荣誉换贡献（日限 3 次）；贡献兑换强化石/玄铁精华/精炼石等
+    </div>
+</div>
+<div class="section">
+    <div class="section-title">📖 技能列表</div>
+    <div class="section-body">
+        主动：劈山掌/连环腿/烈焰掌/冰心诀（外功/内功，1-12 级解锁）<br>
+        被动：踏雪无痕/铁布衫/金钟罩/暴击心法/鹰眼术/吸血功
+    </div>
+</div>
+<div class="text-center mt-10"><a href="/jingwutang/">« 返回精武堂</a></div>
+{% endblock %}

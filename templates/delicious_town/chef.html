@@ -1,0 +1,94 @@
+{% extends "base_wap.html" %}
+
+{% block title %}赛厨中心{% endblock %}
+
+{% block breadcrumb %}
+<div class="nav-bar">
+    <a href="/home/">首页</a>
+    <span class="sep">›</span>
+    <a href="/delicious_town/">美味小镇</a>
+    <span class="sep">›</span>
+    <span>赛厨</span>
+</div>
+{% endblock %}
+
+{% block content %}
+<div class="section">
+    <div class="section-title">👑 厨力综合战力</div>
+    <div class="section-body text-center">
+        <div style="font-size:40px; font-weight:bold; color:#d06020;">{{ power }}</div>
+        <div class="tip">厨力 = 等级×10 + 星级×200 + 菜数×5 + 金牌菜×20 + 装备厨具×15 + 技能×8</div>
+    </div>
+</div>
+
+<div class="section">
+    <div class="section-title">🗡️ 厨具（5 类）</div>
+    <div class="section-body">
+        {% for key, cfg in chef_tools_cfg.items() %}
+        {% set name = cfg[0] %}
+        {% set price = cfg[2] %}
+        {% set owned = tools | selectattr('tool_key', 'equalto', key) | list %}
+        <div style="display:flex; justify-content:space-between; align-items:center; padding:6px 0; border-bottom:1px dotted #f0f0f0;">
+            <span>{{ name }}
+                {% if owned %}<span class="badge" style="background:#2a8a2a;">Lv{{ owned[0].level }}</span>{% endif %}
+            </span>
+            {% if owned %}
+            <span class="tip">已拥有{% if owned[0].equipped %}（装备中）{% endif %}</span>
+            {% else %}
+            <form method="post" action="/delicious_town/chef/tool_buy/{{ key }}" style="margin:0;">
+                <button class="btn btn-small">购买 ({{ price }}币)</button>
+            </form>
+            {% endif %}
+        </div>
+        {% endfor %}
+    </div>
+</div>
+
+<div class="section">
+    <div class="section-title">🎯 技能点（剩余 {{ skill_remain }}/{{ skill_total }}）</div>
+    <div class="section-body">
+        {% for key, name in skill_names.items() %}
+        <div style="display:flex; justify-content:space-between; align-items:center; padding:6px 0; border-bottom:1px dotted #f0f0f0;">
+            <span>{{ name }}：{{ sk|attr(key) }} 点</span>
+            <form method="post" action="/delicious_town/chef/skill_alloc/{{ key }}" style="margin:0;">
+                <button class="btn btn-small" {% if skill_remain <= 0 %}disabled{% endif %}>+1</button>
+            </form>
+        </div>
+        {% endfor %}
+        <form method="post" action="/delicious_town/chef/skill_reset" class="text-center mt-10">
+            <button class="btn btn-danger btn-small">🔄 重置技能点（2000金币）</button>
+        </form>
+    </div>
+</div>
+
+<div class="section">
+    <div class="section-title">🏆 厨艺大赛（{{ zone }}）</div>
+    <div class="section-body">
+        <div class="info-row"><span class="info-label">今日报名</span><span class="info-value">{% if entry %}已报名{% else %}未报名{% endif %}</span></div>
+        <div class="text-center mt-10">
+            <a href="/delicious_town/match" class="btn">⚔️ 好友赛厨对战</a>
+            <a href="/delicious_town/contest" class="btn" style="background:#c8a020;border-color:#a08010;">🏆 前往厨艺大赛</a>
+        </div>
+    </div>
+</div>
+
+{% if recent %}
+<div class="section">
+    <div class="section-title">📜 最近赛厨记录</div>
+    <div class="section-body">
+        {% for m in recent %}
+        <div class="info-row">
+            <span class="info-label">{{ m.attacker_score }} vs {{ m.defender_score }}</span>
+            <span class="info-value {% if m.winner_id == user.id %}text-green{% else %}text-red{% endif %}">
+                {% if m.winner_id == user.id %}胜{% else %}负{% endif %}
+            </span>
+        </div>
+        {% endfor %}
+    </div>
+</div>
+{% endif %}
+
+<div class="text-center mt-10">
+    <a href="/delicious_town/">« 返回小镇首页</a>
+</div>
+{% endblock %}

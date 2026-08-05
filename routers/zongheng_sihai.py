@@ -14,9 +14,12 @@ from models.models import (
     SeaPet, SeaUserPet, SeaMount, SeaUserMount, SeaWing, SeaUserWing,
     SeaFollower, SeaUserFollower, SeaGem, SeaUserGem, SeaCard, SeaUserCard,
     SeaStigmata, SeaUserStigmata, SeaHideout, SeaHideoutPlot, SeaTrainingRoom,
-    SeaGoods, SeaUserGoods, Wallet, Notification, PlatformEvent
+    SeaGoods, SeaUserGoods, Wallet, Notification, PlatformEvent,
+    SeaShip, SeaDungeon, SeaEquipSet, SeaEquipPiece, SeaHolyMark,
+    SeaMainQuest, SeaCitySpecialty, SeaPetSkill, ItemSea, InventoryItem,
 )
 from utils.auth import get_current_user
+from utils.common import change_currency, add_item, remove_item
 from utils.i18n import t
 
 router = APIRouter(prefix="/zongheng_sihai", tags=["zongheng_sihai"])
@@ -1779,3 +1782,357 @@ async def sell_goods(request: Request, goods_id: int, qty: int = 1, db: Session 
 
     db.commit()
     return RedirectResponse(url=f"/zongheng_sihai/shop?msg=出售{goods_def.name}x{sell_qty}，获得{earn}银两", status_code=302)
+
+
+# ==================== 路由：图鉴系统（v0.3.1 移植） ====================
+# 引用 seed_sea_full 已入库的 SeaShip/SeaDungeon/SeaEquipSet/SeaEquipPiece/
+# SeaHolyMark/SeaMainQuest/SeaCitySpecialty/SeaPetSkill/SeaGem/SeaCard/SeaPet 等资料表
+
+def _today_open_day() -> int:
+    """返回今日开放编号：1=周一...6=周六, 0=周日（与 seed open_days 口径一致）"""
+    return datetime.utcnow().isoweekday() % 7
+
+
+def _owned_ship_keys(db: Session, user_id: int):
+    """返回玩家已拥有的船只 key 集合（存于全局背包）"""
+    keys = set()
+    for it in db.query(InventoryItem).filter(
+            InventoryItem.user_id == user_id,
+            InventoryItem.module_key == "sea").all():
+        if it.item_code.startswith("ship_") and it.quantity > 0:
+            keys.add(it.item_code)
+    return keys
+
+
+# ---------- 船只系统（SeaShip）----------
+@router.get("/ships", response_class=HTMLResponse)
+async def ships_page(request: Request, db: Session = Depends(get_db)):
+    ctx = get_common_context(request, db)
+    if not ctx:
+        return RedirectResponse(url="/auth/login", status_code=302)
+    user = ctx["user"]
+    init_sea_character(user, db)
+    sea = user.sea
+    ships = db.query(SeaShip).order_by(SeaShip.price).all()
+    owned_keys = _owned_ship_keys(db, user.id)
+    ctx.update({"sea": sea, "ships": ships, "owned_keys": owned_keys})
+    return templates.TemplateResponse("zongheng_sihai/ships.html", ctx)
+
+
+@router.get("/ships/buy/{ship_key}")
+async def ship_buy(request: Request, ship_key: str, db: Session = Depends(get_db)):
+    ctx = get_common_context(request, db)
+    if not ctx:
+        return RedirectResponse(url="/auth/login", status_code=302)
+    user = ctx["user"]
+    init_sea_character(user, db)
+    sea = user.sea
+    ship = db.query(SeaShip).filter(SeaShip.key == ship_key).first()
+    if not ship:
+        return RedirectResponse(url="/zongheng_sihai/ships?msg=船只不存在", status_code=302)
+    owned = db.query(InventoryItem).filter(
+        InventoryItem.user_id == user.id, InventoryItem.module_key == "sea",
+        InventoryItem.item_code == ship.key).first()
+    if owned and owned.quantity > 0:
+        return RedirectResponse(url="/zongheng_sihai/ships?msg=已拥有该船", status_code=302)
+    # 货币映射：铜→银贝，金贝→金贝
+    cur = "gold_coin" if ship.currency == "金贝" else "silver_coin"
+    wallet = db.query(Wallet).filter(Wallet.user_id == user.id).first()
+    bal = getattr(wallet, cur, 0) if wallet else 0
+    if bal < ship.price:
+        return RedirectResponse(url=f"/zongheng_sihai/ships?msg={ship.currency}不足，需{ship.price}", status_code=302)
+    change_currency(user.id, cur, -ship.price, "sea_ship_buy", ship.id,
+                    f"购买船只{ship.name}", db)
+    add_item(user.id, "sea", ship.key, ship.name, 1, "ship", "rare", "⛵",
+             f"船只·载重{ship.load}·消耗{ship.consume_per_100}铜/百海里", db=db)
+    sea.ship_name = ship.name
+    db.commit()
+    return RedirectResponse(url=f"/zongheng_sihai/ships?msg=购入{ship.name}成功！", status_code=302)
+
+
+# ---------- 副本系统（SeaDungeon）----------
+@router.get("/dungeons", response_class=HTMLResponse)
+async def dungeons_page(request: Request, db: Session = Depends(get_db)):
+    ctx = get_common_context(request, db)
+    if not ctx:
+        return RedirectResponse(url="/auth/login", status_code=302)
+    user = ctx["user"]
+    init_sea_character(user, db)
+    sea = user.sea
+    dungeons = db.query(SeaDungeon).all()
+    today = _today_open_day()
+    info = []
+    for d in dungeons:
+        city = get_city_by_code(db, d.entry_city)
+        level_reqs = json.loads(d.level_reqs or "[]")
+        diffs = json.loads(d.difficulties or "[]")
+        open_days = json.loads(d.open_days or "[]")
+        min_lvl = min(level_reqs) if level_reqs else 0
+        is_open = (not open_days) or (today in open_days)
+        tier = -1
+        for i, lr in enumerate(level_reqs):
+            if sea.level >= lr:
+                tier = i
+        can = is_open and tier >= 0
+        info.append({"d": d, "city": city, "diffs": diffs, "level_reqs": level_reqs,
+                     "is_open": is_open, "can": can, "tier": tier, "min_lvl": min_lvl})
+    ctx.update({"sea": sea, "info": info, "today": today})
+    return templates.TemplateResponse("zongheng_sihai/dungeons.html", ctx)
+
+
+@router.get("/dungeon/{dungeon_key}")
+async def dungeon_challenge(request: Request, dungeon_key: str, db: Session = Depends(get_db)):
+    ctx = get_common_context(request, db)
+    if not ctx:
+        return RedirectResponse(url="/auth/login", status_code=302)
+    user = ctx["user"]
+    init_sea_character(user, db)
+    sea = user.sea
+    d = db.query(SeaDungeon).filter(SeaDungeon.key == dungeon_key).first()
+    if not d:
+        return RedirectResponse(url="/zongheng_sihai/dungeons?msg=副本不存在", status_code=302)
+    open_days = json.loads(d.open_days or "[]")
+    today = _today_open_day()
+    if open_days and today not in open_days:
+        return RedirectResponse(url="/zongheng_sihai/dungeons?msg=今日未开放", status_code=302)
+    if sea.power < 10:
+        return RedirectResponse(url="/zongheng_sihai/dungeons?msg=体力不足，请先休息", status_code=302)
+    level_reqs = json.loads(d.level_reqs or "[]")
+    exps = json.loads(d.exps or "[]")
+    diffs = json.loads(d.difficulties or "[]")
+    drops = json.loads(d.drops or "[]")
+    tier = -1
+    for i, lr in enumerate(level_reqs):
+        if sea.level >= lr:
+            tier = i
+    if tier < 0:
+        return RedirectResponse(url=f"/zongheng_sihai/dungeons?msg=等级不足，需{min(level_reqs) if level_reqs else 0}级", status_code=302)
+    sea.power -= 10
+    # 战力影响胜率
+    stats = calculate_sea_stats(sea, db)
+    win = random.random() < min(0.9, 0.4 + stats["atk"] * 0.002)
+    diff_name = diffs[tier] if tier < len(diffs) else f"难度{tier + 1}"
+    if win:
+        exp_gain = exps[tier] if tier < len(exps) else 100
+        sea.exp += exp_gain
+        level_up_check(sea)
+        drop_names = []
+        for dk in drops:
+            it = db.query(ItemSea).filter(ItemSea.key == dk).first()
+            if it:
+                add_item(user.id, "sea", it.key, it.name, 1, it.type, "common", "",
+                         it.description or "", db=db)
+                drop_names.append(it.name)
+        msg = f"挑战{d.name}({diff_name})成功！经验+{exp_gain}"
+        if drop_names:
+            msg += "，掉落：" + "、".join(drop_names)
+    else:
+        msg = f"挑战{d.name}({diff_name})失败，强化装备再来"
+    db.commit()
+    return RedirectResponse(url=f"/zongheng_sihai/dungeons?msg={msg}", status_code=302)
+
+
+# ---------- 贸易系统（SeaCitySpecialty）----------
+SPEC_BUY_PRICE = 50  # 每单位特产收购价（金贝）
+
+@router.get("/trade", response_class=HTMLResponse)
+async def trade_page(request: Request, db: Session = Depends(get_db)):
+    ctx = get_common_context(request, db)
+    if not ctx:
+        return RedirectResponse(url="/auth/login", status_code=302)
+    user = ctx["user"]
+    init_sea_character(user, db)
+    sea = user.sea
+    city = get_city_by_code(db, sea.current_city_code)
+    spec = db.query(SeaCitySpecialty).filter(SeaCitySpecialty.city_key == sea.current_city_code).first()
+    specialties = []
+    if spec:
+        names = json.loads(spec.specialties or "[]")
+        for i, nm in enumerate(names):
+            specialties.append({"key": f"{spec.city_key}__{i}", "name": nm,
+                                "buy_price": SPEC_BUY_PRICE})
+    owned = []
+    cur_region = spec.region if spec else "未知"
+    inv = db.query(InventoryItem).filter(
+        InventoryItem.user_id == user.id, InventoryItem.module_key == "sea").all()
+    for inv_row in inv:
+        if inv_row.item_code.startswith("sea_spec_"):
+            src_city = inv_row.item_code[len("sea_spec_"):].rsplit("_", 1)[0]
+            src_spec = db.query(SeaCitySpecialty).filter(SeaCitySpecialty.city_key == src_city).first()
+            src_region = src_spec.region if src_spec else "未知"
+            sell_price = 120 if src_region != cur_region else 30
+            owned.append({"item_code": inv_row.item_code, "name": inv_row.item_name,
+                          "qty": inv_row.quantity, "src_region": src_region,
+                          "sell_price": sell_price})
+    ctx.update({"sea": sea, "city": city, "spec": spec, "specialties": specialties,
+                "owned": owned, "cur_region": cur_region})
+    return templates.TemplateResponse("zongheng_sihai/trade.html", ctx)
+
+
+@router.get("/trade/buy/{specialty_key}")
+async def trade_buy(request: Request, specialty_key: str, db: Session = Depends(get_db)):
+    ctx = get_common_context(request, db)
+    if not ctx:
+        return RedirectResponse(url="/auth/login", status_code=302)
+    user = ctx["user"]
+    init_sea_character(user, db)
+    sea = user.sea
+    spec = db.query(SeaCitySpecialty).filter(SeaCitySpecialty.city_key == sea.current_city_code).first()
+    if not spec:
+        return RedirectResponse(url="/zongheng_sihai/trade?msg=本港无特产可购", status_code=302)
+    names = json.loads(spec.specialties or "[]")
+    try:
+        src_city, idx_s = specialty_key.rsplit("__", 1)
+        idx = int(idx_s)
+    except ValueError:
+        src_city, idx = "", -1
+    if src_city != spec.city_key or idx < 0 or idx >= len(names):
+        return RedirectResponse(url="/zongheng_sihai/trade?msg=特产不存在", status_code=302)
+    name = names[idx]
+    wallet = db.query(Wallet).filter(Wallet.user_id == user.id).first()
+    bal = wallet.gold_coin if wallet else 0
+    if bal < SPEC_BUY_PRICE:
+        return RedirectResponse(url=f"/zongheng_sihai/trade?msg=金币不足，需{SPEC_BUY_PRICE}", status_code=302)
+    item_key = f"sea_spec_{spec.city_key}_{idx}"
+    change_currency(user.id, "gold_coin", -SPEC_BUY_PRICE, "sea_trade_buy", 0,
+                    f"购入特产{name}", db)
+    add_item(user.id, "sea", item_key, name, 1, "trade", "common", "📦",
+             f"特产·{spec.city_name}·{spec.region}", db=db)
+    db.commit()
+    return RedirectResponse(url=f"/zongheng_sihai/trade?msg=购入{name}，花费{SPEC_BUY_PRICE}金币", status_code=302)
+
+
+@router.get("/trade/sell")
+async def trade_sell(request: Request, db: Session = Depends(get_db)):
+    ctx = get_common_context(request, db)
+    if not ctx:
+        return RedirectResponse(url="/auth/login", status_code=302)
+    user = ctx["user"]
+    init_sea_character(user, db)
+    sea = user.sea
+    spec = db.query(SeaCitySpecialty).filter(SeaCitySpecialty.city_key == sea.current_city_code).first()
+    cur_region = spec.region if spec else "未知"
+    inv = db.query(InventoryItem).filter(
+        InventoryItem.user_id == user.id, InventoryItem.module_key == "sea").all()
+    total = 0
+    sold = []
+    for inv_row in inv:
+        if not inv_row.item_code.startswith("sea_spec_"):
+            continue
+        src_city = inv_row.item_code[len("sea_spec_"):].rsplit("_", 1)[0]
+        src_spec = db.query(SeaCitySpecialty).filter(SeaCitySpecialty.city_key == src_city).first()
+        src_region = src_spec.region if src_spec else "未知"
+        price = 120 if src_region != cur_region else 30
+        gain = price * inv_row.quantity
+        total += gain
+        sold.append(f"{inv_row.item_name}×{inv_row.quantity}")
+        remove_item(user.id, "sea", inv_row.item_code, inv_row.quantity, db)
+    if not sold:
+        return RedirectResponse(url="/zongheng_sihai/trade?msg=没有可售特产", status_code=302)
+    change_currency(user.id, "gold_coin", total, "sea_trade_sell", 0,
+                    f"售出{'、'.join(sold)}", db)
+    db.commit()
+    return RedirectResponse(url=f"/zongheng_sihai/trade?msg=售出{'、'.join(sold)}，获得{total}金币", status_code=302)
+
+
+# ---------- 宠物图鉴（SeaPet + SeaPetSkill + SeaMount + SeaWing + SeaFollower）----------
+@router.get("/pets", response_class=HTMLResponse)
+async def pets_page(request: Request, db: Session = Depends(get_db)):
+    ctx = get_common_context(request, db)
+    if not ctx:
+        return RedirectResponse(url="/auth/login", status_code=302)
+    user = ctx["user"]
+    init_sea_character(user, db)
+    sea = user.sea
+    pets = db.query(SeaPet).order_by(SeaPet.quality).all()
+    pet_skills = db.query(SeaPetSkill).all()
+    mounts = db.query(SeaMount).all()
+    wings = db.query(SeaWing).all()
+    followers = db.query(SeaFollower).all()
+    ctx.update({"sea": sea, "pets": pets, "pet_skills": pet_skills,
+                "mounts": mounts, "wings": wings, "followers": followers})
+    return templates.TemplateResponse("zongheng_sihai/pets.html", ctx)
+
+
+# ---------- 宝石（SeaGem）----------
+@router.get("/gems", response_class=HTMLResponse)
+async def gems_page(request: Request, db: Session = Depends(get_db)):
+    ctx = get_common_context(request, db)
+    if not ctx:
+        return RedirectResponse(url="/auth/login", status_code=302)
+    user = ctx["user"]
+    init_sea_character(user, db)
+    sea = user.sea
+    gems = db.query(SeaGem).order_by(SeaGem.tier, SeaGem.key).all()
+    tier_names = {1: "碎片", 2: "小", 3: "中", 4: "大", 5: "完美"}
+    gem_list = []
+    for g in gems:
+        gem_list.append({"g": g, "slots": json.loads(g.slots or "[]"),
+                         "tier_name": tier_names.get(g.tier, str(g.tier))})
+    ctx.update({"sea": sea, "gem_list": gem_list, "tier_names": tier_names})
+    return templates.TemplateResponse("zongheng_sihai/gems.html", ctx)
+
+
+# ---------- 卡片（SeaCard）----------
+@router.get("/cards", response_class=HTMLResponse)
+async def cards_page(request: Request, db: Session = Depends(get_db)):
+    ctx = get_common_context(request, db)
+    if not ctx:
+        return RedirectResponse(url="/auth/login", status_code=302)
+    user = ctx["user"]
+    init_sea_character(user, db)
+    sea = user.sea
+    cards = db.query(SeaCard).all()
+    ctx.update({"sea": sea, "cards": cards})
+    return templates.TemplateResponse("zongheng_sihai/cards.html", ctx)
+
+
+# ---------- 圣痕（SeaHolyMark）----------
+@router.get("/holymarks", response_class=HTMLResponse)
+async def holymarks_page(request: Request, db: Session = Depends(get_db)):
+    ctx = get_common_context(request, db)
+    if not ctx:
+        return RedirectResponse(url="/auth/login", status_code=302)
+    user = ctx["user"]
+    init_sea_character(user, db)
+    sea = user.sea
+    marks = db.query(SeaHolyMark).all()
+    quality_order = {"白": 0, "绿": 1, "蓝": 2, "紫": 3}
+    marks_sorted = sorted(marks, key=lambda m: (m.name, quality_order.get(m.quality, 9)))
+    ctx.update({"sea": sea, "marks": marks_sorted})
+    return templates.TemplateResponse("zongheng_sihai/holymarks.html", ctx)
+
+
+# ---------- 装备套装（SeaEquipSet + SeaEquipPiece）----------
+@router.get("/equipsets", response_class=HTMLResponse)
+async def equipsets_page(request: Request, db: Session = Depends(get_db)):
+    ctx = get_common_context(request, db)
+    if not ctx:
+        return RedirectResponse(url="/auth/login", status_code=302)
+    user = ctx["user"]
+    init_sea_character(user, db)
+    sea = user.sea
+    sets = db.query(SeaEquipSet).order_by(SeaEquipSet.level_req).all()
+    pieces = db.query(SeaEquipPiece).all()
+    pieces_by_set = {}
+    for p in pieces:
+        pieces_by_set.setdefault(p.set_key, []).append(p)
+    info = []
+    for s in sets:
+        info.append({"s": s, "pieces": pieces_by_set.get(s.key, [])})
+    ctx.update({"sea": sea, "info": info})
+    return templates.TemplateResponse("zongheng_sihai/equipsets.html", ctx)
+
+
+# ---------- 主线任务链（SeaMainQuest）----------
+@router.get("/mainquests", response_class=HTMLResponse)
+async def mainquests_page(request: Request, db: Session = Depends(get_db)):
+    ctx = get_common_context(request, db)
+    if not ctx:
+        return RedirectResponse(url="/auth/login", status_code=302)
+    user = ctx["user"]
+    init_sea_character(user, db)
+    sea = user.sea
+    quests = db.query(SeaMainQuest).order_by(SeaMainQuest.sort).all()
+    ctx.update({"sea": sea, "quests": quests})
+    return templates.TemplateResponse("zongheng_sihai/mainquests.html", ctx)

@@ -1,0 +1,96 @@
+{% extends "base_wap.html" %}
+
+{% block title %}花园装饰{% endblock %}
+
+{% block breadcrumb %}
+<div class="nav-bar">
+    <a href="/home/">首页</a><span class="sep">›</span>
+    <a href="/magic_garden">花园</a><span class="sep">›</span>
+    <span>装饰</span>
+</div>
+{% endblock %}
+
+{% block content %}
+<div class="section">
+    <div class="section-body">
+        <div class="info-row"><span class="info-label">称号</span><span class="info-value"><b>{{ title }}</b> Lv{{ st.level }}（{{ tier_range[0] }}-{{ tier_range[1] }}段）</span></div>
+        <div class="info-row"><span class="info-label">花园金币</span><span class="info-value"><b>{{ gold }}</b></span></div>
+    </div>
+</div>
+
+<div class="section">
+    <div class="section-title">🌿 环境值</div>
+    <div class="section-body">
+        <div class="info-row"><span class="info-label">装饰基础</span><span class="info-value"><b>{{ env_base }}</b></span></div>
+        <div class="info-row"><span class="info-label">套装加成</span><span class="info-value"><b>+{{ set_bonus_total }}</b>{% if set_bonuses %}（{% for s in set_bonuses %}{{ s.name }}+{{ s.bonus }} {% endfor %}）{% endif %}</span></div>
+        <div class="info-row"><span class="info-label">总环境值</span><span class="info-value"><b>{{ env_total }}</b></span></div>
+        <div class="info-row"><span class="info-label">品质倍率</span><span class="info-value"><b>{{ '%.3f'|format(env_mul) }}</b>×</span></div>
+        <div class="progress-bar"><div class="progress-fill" style="width:{{ ((env_mul-1)/0.3*100)|int }}%"></div></div>
+        <div class="tip">来源：env_quality_mul = 1 + 0.3×(1 - exp(-env_score/50))，影响收获品质抽取</div>
+    </div>
+</div>
+
+<div class="section">
+    <div class="section-title">🏡 已放置装饰（{{ decos|length }}）</div>
+    <div class="section-body">
+        {% if not decos %}
+        <div class="tip">花园空荡荡的，去下方装饰商店买些装饰摆放吧</div>
+        {% endif %}
+        {% for d in decos %}
+        <div class="post-item">
+            <b>{{ d.name }}</b> · 环境值 <b>+{{ d.env_score }}</b>
+            {% if d.set_key %}<span class="badge">{% if d.set_key == 'water' %}水景套装{% elif d.set_key == 'light' %}灯饰套装{% elif d.set_key == 'statue' %}雕塑套装{% endif %}</span>{% endif %}
+            <form method="post" action="/magic_garden/deco/remove/{{ d.item_key }}" style="margin-top:6px;">
+                <button class="btn" type="submit">撤下（回背包）</button>
+            </form>
+        </div>
+        {% endfor %}
+    </div>
+</div>
+
+<div class="section">
+    <div class="section-title">🧩 装饰套装</div>
+    <div class="section-body">
+        {% for s in set_status %}
+        <div class="post-item">
+            {% if s.active %}<span class="text-green">[已激活]</span>{% else %}<span class="text-gray">[未集齐]</span>{% endif %}
+            <b>{{ s.name }}</b>（{{ s.placed_count }}/{{ s.total_count }}件） · 集齐 <b>+{{ s.bonus }}</b> 环境值<br>
+            <span class="tip">成员：{{ s.member_names|join('、') }}</span>
+        </div>
+        {% endfor %}
+    </div>
+</div>
+
+<div class="section">
+    <div class="section-title">🛍️ 装饰商店</div>
+    <div class="section-body">
+        <div class="tip">购买后入背包，需在装饰页"放置"才能贡献环境值</div>
+        {% for s in shop %}
+        <div class="post-item">
+            <b>{{ s.name }}</b> · 环境值 <b>+{{ s.env_score }}</b>
+            {% if s.set_key %}<span class="badge">{% if s.set_key == 'water' %}水景套装{% elif s.set_key == 'light' %}灯饰套装{% elif s.set_key == 'statue' %}雕塑套装{% endif %}</span>{% endif %}
+            {% if s.placed %}<span class="text-green">[已放置]</span>{% endif %}<br>
+            价格 <b>{{ s.price }}</b> 金币 · 背包持有 <b>{{ s.have }}</b><br>
+            {% if s.placed %}
+            <span class="tip">已放置在花园</span>
+            {% else %}
+            <form method="post" action="/magic_garden/deco/buy/{{ s.key }}" style="display:inline; margin-top:6px;">
+                <button class="btn btn-success btn-small" type="submit">购买</button>
+            </form>
+            {% if s.have > 0 %}
+            <form method="post" action="/magic_garden/deco/place/{{ s.key }}" style="display:inline;">
+                <button class="btn btn-small" type="submit">放置</button>
+            </form>
+            {% else %}
+            <span class="tip">（背包无此装饰）</span>
+            {% endif %}
+            {% endif %}
+        </div>
+        {% endfor %}
+    </div>
+</div>
+
+<div class="text-center mt-10">
+    <a class="btn" href="/magic_garden">« 返回花园</a>
+</div>
+{% endblock %}

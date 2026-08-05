@@ -11,9 +11,10 @@ from models.models import (
     JingwuRole, JingwuItem, JingwuEquipment, JingwuFabao,
     JingwuWuhun, JingwuDungeon, JingwuTitle, JingwuSkill,
     JingwuUserSkill, JingwuPetTemplate, JingwuPet,
-    JingwuTalisman, JingwuLevelExp, BattleLog, User, Wallet
+    JingwuTalisman, JingwuLevelExp, BattleLog, User, Wallet, JingwuDailyState
 )
 from utils.common import change_currency, add_item as platform_add_item, add_notification
+from utils import jingwutang_data as JD
 
 # ============================================================
 # 一、基础配置数据
@@ -1613,9 +1614,39 @@ PROFESSIONS = {
     "mage": {"name_zh": "术士", "name_en": "Mage", "req_level": 40},
     "healer": {"name_zh": "医师", "name_en": "Healer", "req_level": 40},
 }
-FABAO_LIST = []
-DUNGEON_STAGES = []
-TRANSFER_PATHS = {}
+# ----------------------------
+# 由 v0.3.1 martial_data.py 的 22 组常量数据填充（utils.jingwutang_data）
+# ----------------------------
+# 法宝（魔法道具）列表
+FABAO_LIST = [
+    {"name": "紫金葫芦", "icon": "🍶", "level": 20, "desc": "每回合回复少量精气", "effect": "mp_regen"},
+    {"name": "乾坤袋", "icon": "👝", "level": 30, "desc": "提升背包容量", "effect": "bag_size"},
+    {"name": "定风珠", "icon": "🌬️", "level": 40, "desc": "提升闪避能力", "effect": "dodge"},
+    {"name": "照妖镜", "icon": "🪞", "level": 50, "desc": "提升命中能力", "effect": "hit"},
+    {"name": "镇魂铃", "icon": "🔔", "level": 60, "desc": "提升暴击率", "effect": "crit"},
+]
+
+# 副本关卡（来自 PVE_STAGES 阶梯式关卡）
+DUNGEON_STAGES = [
+    {
+        "id": idx, "name": info[0], "boss": info[0],
+        "level_req": info[1], "power_mul": info[2],
+        "silver": info[3], "exp": info[4],
+        "drop_item": info[5], "drop_qty": info[6], "drop_rate": info[7],
+    }
+    for idx, info in enumerate(JD.PVE_STAGES.values(), 1)
+]
+
+# 转职路线（分支职业）
+TRANSFER_PATHS = {
+    "swordsman": {"name_zh": "剑客", "req_level": 20, "desc": "剑法凌厉，攻守兼备", "icon": "⚔️"},
+    "blade": {"name_zh": "刀客", "req_level": 20, "desc": "刀法刚猛，爆发惊人", "icon": "🗡️"},
+    "fist": {"name_zh": "拳师", "req_level": 20, "desc": "拳拳到肉，近战之王", "icon": "👊"},
+    "assassin": {"name_zh": "刺客", "req_level": 40, "desc": "迅捷致命，先手制敌", "icon": "🥷"},
+    "mage": {"name_zh": "术士", "req_level": 40, "desc": "内功深厚，法术高强", "icon": "🪄"},
+    "healer": {"name_zh": "医师", "req_level": 40, "desc": "妙手回春，辅助万能", "icon": "💊"},
+}
+
 EQUIPMENT_SLOTS = {
     "weapon": {"name_zh": "武器", "name_en": "Weapon"},
     "helmet": {"name_zh": "头盔", "name_en": "Helmet"},
@@ -1628,14 +1659,191 @@ QUALITY_COLORS = {
     "common": "#95a5a6", "good": "#2ecc71", "excellent": "#3498db",
     "epic": "#9b59b6", "legendary": "#f39c12", "divine": "#e74c3c",
 }
-POLARIS_STARS = []
-DIVINE_EQUIPMENT_RECIPES = []
+# 北极星（星力系统，1-14 星）
+POLARIS_STARS = [
+    {"star": i, "name": f"第{i}星", "cost_gcoin": 1000 * i,
+     "hp_bonus": 100 * i, "dmg_bonus": 5 * i}
+    for i in range(1, JD.PET_SOUL_SAND_MAX_STAR + 1)
+]
 
-# 以下函数为兼容旧router保留的桩
-def do_transfer(role, path, db): pass
-def upgrade_polaris(role, db): pass
-def enhance_equipment(role, equipment_id, db): return False, "暂未开放"
-def socket_gem(role, equipment_id, gem_name, db): return False, "暂未开放"
-def forge_divine_equipment(role, recipe_index, db): return False, "暂未开放"
-def upgrade_star(role, star_index, db): return False, "暂未开放"
-def reset_dungeon_attempts(role, db): pass
+# 神级装备锻造配方（来自 WAP 原版锻造配方）
+DIVINE_EQUIPMENT_RECIPES = [
+    {"name": r[0], "slot": r[1], "level": r[2], "materials": r[3], "cost_yuanbao": 50 + r[2]}
+    for r in JD.FORGE_RECIPES_WAP
+]
+
+# 以下函数为兼容旧router保留的桩，已由 v0.3.1 完整玩法补充实现
+def do_transfer(role: "JingwuRole", path: str, db: Session) -> tuple:
+    """转职：校验等级后设置职业并给予属性加成"""
+    p = TRANSFER_PATHS.get(path)
+    if not p:
+        return False, "转职路线不存在"
+    if role.level < p["req_level"]:
+        return False, f"转职需{p['req_level']}级"
+    if role.transferred:
+        return False, "已完成转职"
+    role.transferred = True
+    role.transfer_path = path
+    role.transfer_name = p["name_zh"]
+    role.profession = path
+    # 转职奖励：潜能力量
+    role.potential += 5
+    apply_stats_to_role(role)
+    db.commit()
+    return True, f"转职为【{p['name_zh']}】成功，获得5点潜能！"
+
+
+def upgrade_polaris(role: "JingwuRole", db: Session) -> tuple:
+    """北极星升级"""
+    if role.polaris_level >= JD.PET_SOUL_SAND_MAX_STAR:
+        return False, "北极星已达最高等级"
+    cost = 1000 * (role.polaris_level + 1)
+    if role.gcoin < cost:
+        return False, f"G币不足（需{cost}）"
+    role.gcoin -= cost
+    role.polaris_level += 1
+    apply_stats_to_role(role)
+    db.commit()
+    return True, f"北极星升至第{role.polaris_level}星！"
+
+
+def enhance_equipment(role: "JingwuRole", equipment_id: int, db: Session) -> tuple:
+    """强化装备：消耗银两+强化石，按成功率提升强化等级"""
+    equip = db.query(JingwuEquipment).filter(
+        JingwuEquipment.id == equipment_id, JingwuEquipment.owner_id == role.id).first()
+    if not equip:
+        return False, "装备不存在"
+    lv = equip.enhance_lv or 0
+    if lv >= JD.STRENGTHEN_MAX:
+        return False, "已达强化上限"
+    row = JD.STRENGTHEN_TABLE.get(lv + 1)
+    if not row:
+        return False, "强化配置缺失"
+    silver_cost, stone_cost, rate, _ = row
+    if role.gcoin < silver_cost:
+        return False, f"G币不足（需{silver_cost}）"
+    role.gcoin -= silver_cost
+    if not consume_item(role, "天权强化符", stone_cost, db):
+        # 兼容：用强化石（MT_STRENGTH_STONE 中文名）
+        if not consume_item(role, "强化石", stone_cost, db):
+            return False, f"强化材料不足（需强化石×{stone_cost}）"
+    if random.random() < rate:
+        equip.enhance_lv = lv + 1
+        equip.enhance_level = lv + 1
+        db.commit()
+        return True, f"强化成功！{equip.name}+{lv+1}"
+    db.commit()
+    return False, "强化失败，装备未受损"
+
+
+def socket_gem(role: "JingwuRole", equipment_id: int, gem_name: str, db: Session) -> tuple:
+    """镶嵌宝石（简化：直接写入宝石孔）"""
+    equip = db.query(JingwuEquipment).filter(
+        JingwuEquipment.id == equipment_id, JingwuEquipment.owner_id == role.id).first()
+    if not equip:
+        return False, "装备不存在"
+    gems = list(equip.gems_embed or [])
+    if len(gems) >= (equip.hole_count or 1):
+        return False, "宝石孔已满"
+    gems.append({"name": gem_name, "attr": "hp+100"})
+    equip.gems_embed = gems
+    db.commit()
+    return True, f"镶嵌宝石【{gem_name}】成功"
+
+
+def forge_divine_equipment(role: "JingwuRole", recipe_index: int, db: Session) -> tuple:
+    """锻造神级装备：消耗元宝+材料，生成一件装备"""
+    if recipe_index < 0 or recipe_index >= len(DIVINE_EQUIPMENT_RECIPES):
+        return False, "配方不存在"
+    recipe = DIVINE_EQUIPMENT_RECIPES[recipe_index]
+    if role.level < recipe["level"]:
+        return False, f"锻造需{recipe['level']}级"
+    if role.yuanbao < recipe["cost_yuanbao"]:
+        return False, f"元宝不足（需{recipe['cost_yuanbao']}）"
+    role.yuanbao -= recipe["cost_yuanbao"]
+    slot_name = {"武器": "weapon", "衣服": "armor", "帽子": "helmet",
+                 "靴子": "boots", "项链": "necklace"}.get(recipe["slot"], "weapon")
+    equip = JingwuEquipment(
+        owner_id=role.id, name=recipe["name"], slot=1, slot_name=slot_name,
+        level_required=recipe["level"], enhance_lv=0, refine_quality=2,
+        refine_quality_name="优良", quality="excellent",
+        damage=10 + recipe["level"], defense=5 + recipe["level"] // 2,
+        hp=50 + recipe["level"] * 3, speed=2 + recipe["level"] // 5,
+    )
+    db.add(equip)
+    db.commit()
+    return True, f"锻造出神兵【{recipe['name']}】！"
+
+
+def upgrade_star(role: "JingwuRole", star_index: int, db: Session) -> tuple:
+    """北极星升星（按星序）"""
+    if star_index < 1 or star_index > JD.PET_SOUL_SAND_MAX_STAR:
+        return False, "星序不存在"
+    target = JD.PET_STAR_HP_BONUS.get(star_index)
+    cost = 1000 * star_index
+    if role.gcoin < cost:
+        return False, f"G币不足（需{cost}）"
+    role.gcoin -= cost
+    role.polaris_level = max(role.polaris_level, star_index)
+    bonus_hp = target if target else 100 * star_index
+    apply_stats_to_role(role)
+    role.max_hp += bonus_hp
+    role.hp = role.max_hp
+    db.commit()
+    return True, f"北极星升星至第{star_index}星，气血+{bonus_hp}"
+
+
+def reset_dungeon_attempts(role: "JingwuRole", db: Session):
+    """副本每日次数重置（跨天重置）"""
+    dungeon = db.query(JingwuDungeon).filter(JingwuDungeon.role_id == role.id).first()
+    if dungeon:
+        today = datetime.utcnow().date()
+        if not dungeon.last_reset or dungeon.last_reset.date() != today:
+            dungeon.daily_attempts = dungeon.max_attempts
+            dungeon.last_reset = datetime.utcnow()
+            db.commit()
+
+
+# ============================================================
+# 十二、每日状态（日常任务/活跃度/战神宫）
+# ============================================================
+
+def get_daily_state(role: "JingwuRole", db: Session) -> "JingwuDailyState":
+    """获取（或创建）角色每日状态，跨天自动重置"""
+    ds = db.query(JingwuDailyState).filter(JingwuDailyState.role_id == role.id).first()
+    today = datetime.utcnow().strftime("%Y-%m-%d")
+    if not ds:
+        ds = JingwuDailyState(role_id=role.id, date=today,
+                              counters={}, claimed_tasks=[], activity_point=0,
+                              claimed_activity=[], warshrine_floor=1)
+        db.add(ds)
+        db.flush()
+    elif ds.date != today:
+        # 跨天重置
+        ds.date = today
+        ds.counters = {}
+        ds.claimed_tasks = []
+        ds.activity_point = 0
+        ds.claimed_activity = []
+        ds.warshrine_floor = 1
+        ds.warshrine_started_at = None
+    return ds
+
+
+def incr_daily(role: "JingwuRole", db: Session, counter: str, amount: int = 1):
+    """累计每日任务计数"""
+    ds = get_daily_state(role, db)
+    ds.counters = dict(ds.counters or {})
+    ds.counters[counter] = ds.counters.get(counter, 0) + amount
+
+
+def daily_counter(ds: "JingwuDailyState", counter: str) -> int:
+    return (ds.counters or {}).get(counter, 0)
+
+
+def add_role_exp(role: "JingwuRole", db: Session, exp: int) -> bool:
+    """给角色加经验并处理升级，返回是否升级"""
+    role.exp = (role.exp or 0) + exp
+    old_level = role.level
+    _check_level_up(role, db)
+    return role.level > old_level

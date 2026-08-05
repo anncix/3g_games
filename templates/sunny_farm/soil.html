@@ -1,0 +1,78 @@
+{% extends "base_wap.html" %}
+
+{% block title %}土地等级{% endblock %}
+
+{% block breadcrumb %}
+<div class="nav-bar">
+    <a href="/home/">首页</a><span class="sep">›</span>
+    <a href="/sunny_farm">阳光农场</a><span class="sep">›</span>
+    <span>土地等级</span>
+</div>
+{% endblock %}
+
+{% block content %}
+<div class="section">
+    <div class="section-title">🪨 土地等级系统</div>
+    <div class="section-body">
+        <div class="tip">升级土地提升产量加成，高级土地更易触发变异。金币从钱包 g_coin 扣除。</div>
+        {% for soil_name, info in soil_grades.items() %}
+        <div class="info-row">
+            <span class="info-label"><b>{{ soil_name }}土地</b> · 产量×{{ info.yield_mul }}</span>
+            <span class="info-value">
+                {% if info.next %}Lv{{ info.min_level }} · ¥{{ info.cost }}{% else %}已最高{% endif %}
+                {% if info.variation_bonus > 0 %} · 变异+{{ (info.variation_bonus*100)|int }}%{% endif %}
+            </span>
+        </div>
+        {% endfor %}
+    </div>
+</div>
+
+<div class="section">
+    <div class="section-title">🌍 我的地块</div>
+    <div class="section-body">
+        {% for p in plots %}
+        <div class="info-row">
+            <span class="info-label">
+                第{{ p.plot_no }}块 · <b>{{ p.soil_type }}土地</b>
+                {% if p.variation %}<span class="text-red">变异·{{ p.variation }}</span>{% endif %}
+            </span>
+            <span class="info-value">
+                {% if soil_grades[p.soil_type].next %}
+                <form method="post" action="/sunny_farm/soil/upgrade/{{ p.plot_no }}" style="display:inline;">
+                    <button class="btn btn-small" type="submit">升级→{{ soil_grades[p.soil_type].next }}土地</button>
+                </form>
+                {% else %}<span class="text-gray">已最高级</span>{% endif %}
+            </span>
+        </div>
+        {% endfor %}
+    </div>
+</div>
+
+<div class="section">
+    <div class="section-title">🧪 化肥系统</div>
+    <div class="section-body">
+        <div class="tip">施肥可加速成熟，有机/高级化肥有概率触发作物变异</div>
+        {% for fk, f in fertilizers.items() %}
+        <div class="info-row">
+            <span class="info-label">{{ f.name }}</span>
+            <span class="info-value">加速{{ f.speedup_sec }}秒 · 可用{{ f.uses }}次 · ¥{{ f.cost }}</span>
+        </div>
+        {% endfor %}
+        <hr><div class="tip">在地块详情页对作物使用化肥</div>
+    </div>
+</div>
+
+<div class="section">
+    <div class="section-title">✨ 变异效果</div>
+    <div class="section-body">
+        {% for vn, v in variations.items() %}
+        <div class="info-row"><span class="info-label"><b>{{ vn }}</b></span><span class="info-value">{{ v.desc }}</span></div>
+        {% endfor %}
+        <hr><div class="tip">变异随机触发，土地等级越高概率越大；收获后变异清空</div>
+    </div>
+</div>
+
+<div class="text-center mt-10">
+    <a class="btn" href="/sunny_farm">« 返回农场</a>
+</div>
+{% endblock %}

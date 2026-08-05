@@ -1,0 +1,44 @@
+{% extends "base_wap.html" %}
+{% block title %}日常任务 - 召唤之王{% endblock %}
+{% block breadcrumb %}
+<div class="nav-bar">
+    <a href="/home/gamelobby">游戏大厅</a>
+    <span class="sep">›</span>
+    <a href="/summon_king">召唤之王</a>
+    <span class="sep">›</span> 日常任务
+</div>
+{% endblock %}
+{% block content %}
+<div class="section">
+    <div class="section-title">📆 今日任务</div>
+    <div class="section-body">
+        <div class="info-row">
+            <span class="info-label">召唤师</span>
+            <span class="info-value">Lv.{{ profile.level }}</span>
+        </div>
+    </div>
+</div>
+
+{% for task in task_list %}
+<div class="section">
+    <div class="section-title">{{ task.id }} · {{ task.name }}</div>
+    <div class="section-body">
+        <div class="info-row"><span class="info-label">解锁</span><span class="info-value">Lv.{{ task.unlock }}</span></div>
+        <div class="info-row"><span class="info-label">目标</span><span class="info-value">{{ task.target }}</span></div>
+        <div class="info-row">
+            <span class="info-label">奖励</span>
+            <span class="info-value">
+                {% for r in task.rewards %} {{ r[0] }}×{{ r[1] }}{% if not loop.last %}｜{% endif %}{% endfor %}
+            </span>
+        </div>
+        {% if not task.implemented %}
+        <div class="tip">即将开放</div>
+        {% endif %}
+    </div>
+</div>
+{% endfor %}
+
+<div class="text-center mt-10">
+    <a href="/summon_king" class="btn btn-small">返回首页</a>
+</div>
+{% endblock %}

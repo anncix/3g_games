@@ -1,0 +1,46 @@
+{% extends "base_wap.html" %}
+
+{% block title %}设施{% endblock %}
+
+{% block breadcrumb %}
+<div class="nav-bar">
+    <a href="/home/">首页</a>
+    <span class="sep">›</span>
+    <a href="/delicious_town/">美味小镇</a>
+    <span class="sep">›</span>
+    <span>设施</span>
+</div>
+{% endblock %}
+
+{% block content %}
+<div class="section">
+    <div class="section-title">🏛️ 设施（{{ active_count }}/{{ facility_slots }}）</div>
+    <div class="section-body">
+        {% for fi in facility_info %}
+        <div style="border:1px solid #e0d0c0; border-radius:4px; padding:8px; margin-bottom:8px; {% if fi.active %}background:linear-gradient(180deg,#f0fff0 0%,#e0f8e0 100%);{% endif %}">
+            <div style="display:flex; justify-content:space-between; align-items:center;">
+                <div>
+                    <b>{{ fi.name }}</b>
+                    {% if fi.active %}<span class="badge" style="background:#2a8a2a;">生效中</span>
+                    <span class="tip">剩余{{ fi.remain }}秒</span>
+                    {% else %}<span class="badge" style="background:#999;">未启用</span>{% endif %}
+                </div>
+                <div style="font-size:12px; color:#666;">{{ fi.price }}金币 / {{ fi.hours }}时</div>
+            </div>
+            <div style="font-size:12px; color:#666; margin:4px 0;">✨ {{ fi.effect }}</div>
+            {% if not fi.active %}
+            <form method="post" action="/delicious_town/facility/buy/{{ fi.key }}" class="text-right">
+                <button class="btn btn-small">购买</button>
+            </form>
+            {% endif %}
+        </div>
+        {% endfor %}
+    </div>
+</div>
+
+<div class="notice">💡 每名设施 24 小时生效，设施位随星级增加。省油灶台做菜-10%耗油，防翻保鲜柜防好友翻柜。</div>
+
+<div class="text-center mt-10">
+    <a href="/delicious_town/">« 返回小镇首页</a>
+</div>
+{% endblock %}

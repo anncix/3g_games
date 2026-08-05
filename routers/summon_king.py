@@ -20,6 +20,7 @@ from models.models import (
 )
 from utils.auth import get_current_user
 from utils.common import change_currency, add_item, remove_item, add_notification
+from routers import summon_data as SD
 
 router = APIRouter(prefix="/summon_king", tags=["summon_king"])
 templates = Jinja2Templates(directory="templates")
@@ -2187,3 +2188,421 @@ async def heal_all_beasts(request: Request, db: Session = Depends(get_db)):
         ub.hp = stats["max_hp"]
     db.commit()
     return RedirectResponse(url=f"/summon_king/inventory?msg=治疗完成，消耗{total_cost}铜币", status_code=302)
+
+
+# ============================================================
+# 路由：新增玩法系统（移植自 v0.3.1 summon.py + summon_data.py）
+# ============================================================
+
+def get_battle_beast(db: Session, profile: SummonProfile):
+    """获取当前出战幻兽"""
+    return db.query(SummonUserBeast).filter(
+        SummonUserBeast.profile_id == profile.id,
+        SummonUserBeast.status == "battle"
+    ).first()
+
+
+# ---- 图鉴 ----
+@router.get("/album", response_class=HTMLResponse)
+async def summon_album(request: Request, db: Session = Depends(get_db)):
+    ctx = get_common_context(request, db)
+    if not ctx:
+        return RedirectResponse(url="/auth/login", status_code=302)
+    profile = get_or_create_profile(db, ctx["user"])
+    owned_ids = set()
+    for ub in db.query(SummonUserBeast).filter(SummonUserBeast.profile_id == profile.id).all():
+        owned_ids.add(ub.beast_id)
+    beasts = db.query(SummonBeast).all()
+    album = {}
+    for b in beasts:
+        if b.map_level_min >= 50:
+            tier = "T5 雪山"
+        elif b.map_level_min >= 40:
+            tier = "T4 荒漠/雷鸣"
+        elif b.map_level_min >= 30:
+            tier = "T3 沼泽/荒原"
+        elif b.map_level_min >= 20:
+            tier = "T2 矿场/湖"
+        elif b.map_level_min >= 10:
+            tier = "T1 清溪"
+        else:
+            tier = "T1 新手村"
+        album.setdefault(tier, []).append({"beast": b, "owned": b.id in owned_ids})
+    ctx.update({
+        "profile": profile,
+        "album": album,
+        "owned_count": len(owned_ids),
+        "total_count": len(beasts),
+        "rarity_names": RARITY_NAMES,
+        "rarity_colors": RARITY_COLORS,
+    })
+    return templates.TemplateResponse("summon_king/album.html", ctx)
+
+
+# ---- 玩法规则 ----
+@router.get("/rules", response_class=HTMLResponse)
+async def summon_rules(request: Request, db: Session = Depends(get_db)):
+    ctx = get_common_context(request, db)
+    if not ctx:
+        return RedirectResponse(url="/auth/login", status_code=302)
+    profile = get_or_create_profile(db, ctx["user"])
+    ctx.update({
+        "profile": profile,
+        "max_level": SD.MAX_LEVEL,
+        "tier_unlock": SD.TIER_UNLOCK_LEVEL,
+        "race_list": SD.RACE_LIST,
+        "race_counter": SD.RACE_COUNTER,
+        "level_unlocks": SD.LEVEL_UNLOCKS,
+        "energy_cap": SD.ENERGY_CAP,
+        "daily_limits": SD.DAILY_LIMITS,
+    })
+    return templates.TemplateResponse("summon_king/rules.html", ctx)
+
+
+# ---- 资料图鉴（参考层）----
+@router.get("/guide", response_class=HTMLResponse)
+async def summon_guide(request: Request, db: Session = Depends(get_db)):
+    ctx = get_common_context(request, db)
+    if not ctx:
+        return RedirectResponse(url="/auth/login", status_code=302)
+    profile = get_or_create_profile(db, ctx["user"])
+    ctx.update({
+        "profile": profile,
+        "menu_info_bar": SD.MENU_INFO_BAR,
+        "menu_structure": SD.MENU_STRUCTURE,
+        "level_unlocks_spec": SD.LEVEL_UNLOCKS_SPEC,
+        "talent_schools": SD.TALENT_SCHOOLS,
+        "pet_races_spec": SD.PET_RACES_SPEC,
+        "pet_quality_tiers": SD.PET_QUALITY_TIERS,
+        "bone_grades_spec": SD.BONE_GRADES_SPEC,
+        "soul_grades_spec": SD.SOUL_GRADES_SPEC,
+        "soul_affixes_fixed": SD.SOUL_AFFIXES_FIXED,
+        "soul_affixes_percent": SD.SOUL_AFFIXES_PERCENT,
+        "currency_table": SD.CURRENCY_TABLE_SPEC,
+        "newbie_guide": SD.NEWBIE_GUIDE,
+        "newbie_principles": SD.NEWBIE_PRINCIPLES,
+    })
+    return templates.TemplateResponse("summon_king/guide.html", ctx)
+
+
+# ---- 主线任务 ----
+@router.get("/mainquests", response_class=HTMLResponse)
+async def summon_mainquests(request: Request, db: Session = Depends(get_db)):
+    ctx = get_common_context(request, db)
+    if not ctx:
+        return RedirectResponse(url="/auth/login", status_code=302)
+    profile = get_or_create_profile(db, ctx["user"])
+    ctx.update({"profile": profile, "main_quests": SD.MAIN_QUESTS})
+    return templates.TemplateResponse("summon_king/mainquests.html", ctx)
+
+
+# ---- 日常任务 ----
+@router.get("/tasks", response_class=HTMLResponse)
+async def summon_tasks(request: Request, db: Session = Depends(get_db)):
+    ctx = get_common_context(request, db)
+    if not ctx:
+        return RedirectResponse(url="/auth/login", status_code=302)
+    profile = get_or_create_profile(db, ctx["user"])
+    task_list = []
+    for (tid, name, unlock, target, metric, reward) in SD.DAILY_TASKS:
+        task_list.append({
+            "id": tid, "name": name, "unlock": unlock,
+            "target": target, "metric": metric,
+            "rewards": SD.parse_reward(reward),
+            "implemented": metric in SD.IMPLEMENTED_METRICS,
+        })
+    ctx.update({"profile": profile, "task_list": task_list})
+    return templates.TemplateResponse("summon_king/tasks.html", ctx)
+
+
+# ---- 商店 ----
+@router.get("/shop", response_class=HTMLResponse)
+async def summon_shop(request: Request, db: Session = Depends(get_db)):
+    ctx = get_common_context(request, db)
+    if not ctx:
+        return RedirectResponse(url="/auth/login", status_code=302)
+    profile = get_or_create_profile(db, ctx["user"])
+    items = []
+    for (shop, pos, iid, cur, price, daily, lock, name) in SD.SHOP:
+        if shop in ("shop_general", "shop_cash") and cur == "coins":
+            items.append({
+                "item_id": iid, "name": name, "price": price,
+                "currency": "铜钱",
+                "buyable": iid in ("IT_BALL_N", "IT_BALL_S", "IT_BALL_U"),
+            })
+    ctx.update({"profile": profile, "shop_items": items, "shop_names": SD.SHOP_NAMES})
+    return templates.TemplateResponse("summon_king/shop.html", ctx)
+
+
+@router.post("/shop/buy/{item_id}")
+async def summon_shop_buy(request: Request, item_id: str, count: int = Form(1),
+                          db: Session = Depends(get_db)):
+    ctx = get_common_context(request, db)
+    if not ctx:
+        return RedirectResponse(url="/auth/login", status_code=302)
+    profile = get_or_create_profile(db, ctx["user"])
+    mapping = {
+        "IT_BALL_N": ("normal", 80),
+        "IT_BALL_S": ("strong", 300),
+        "IT_BALL_U": ("super", 900),
+    }
+    if item_id not in mapping:
+        return RedirectResponse(url="/summon_king/shop?msg=该商品暂不支持购买", status_code=302)
+    field, price = mapping[item_id]
+    count = max(1, min(count, 99))
+    cost = price * count
+    if profile.copper_coin < cost:
+        return RedirectResponse(url=f"/summon_king/shop?msg=铜钱不足，需要{cost}", status_code=302)
+    profile.copper_coin -= cost
+    setattr(profile, f"catch_ball_{field}", getattr(profile, f"catch_ball_{field}", 0) + count)
+    db.commit()
+    return RedirectResponse(url=f"/summon_king/shop?msg=购买成功，{mapping[item_id][1]}球×{count}", status_code=302)
+
+
+# ---- 战灵 ----
+@router.get("/spirit", response_class=HTMLResponse)
+async def summon_spirit(request: Request, db: Session = Depends(get_db)):
+    ctx = get_common_context(request, db)
+    if not ctx:
+        return RedirectResponse(url="/auth/login", status_code=302)
+    profile = get_or_create_profile(db, ctx["user"])
+    beast = get_battle_beast(db, profile)
+    spirits = []
+    if beast:
+        rows = db.query(SummonUserSpirit).filter(
+            SummonUserSpirit.beast_id == beast.id
+        ).order_by(SummonUserSpirit.id).all()
+        for s in rows:
+            try:
+                attrs = json.loads(s.current_attr_json) if s.current_attr_json else []
+            except Exception:
+                attrs = []
+            spirits.append({"spirit": s, "attrs": attrs})
+    ctx.update({
+        "profile": profile, "beast": beast, "spirits": spirits,
+        "element_names": SD.SPIRIT_ELEMENTS,
+        "affix_names": {k: v[0] for k, v in SD.SPIRIT_AFFIXES.items()},
+        "reroll_free": SD.SPIRIT_REROLL_FREE_COUNT,
+        "reroll_cap": SD.SPIRIT_REROLL_DAILY_CAP,
+        "coin_cost": SD.SPIRIT_REROLL_COST[4][1],
+    })
+    return templates.TemplateResponse("summon_king/spirit.html", ctx)
+
+
+@router.post("/spirit/reroll")
+async def summon_spirit_reroll(request: Request, lock_count: int = Form(0),
+                               db: Session = Depends(get_db)):
+    ctx = get_common_context(request, db)
+    if not ctx:
+        return RedirectResponse(url="/auth/login", status_code=302)
+    profile = get_or_create_profile(db, ctx["user"])
+    beast = get_battle_beast(db, profile)
+    if not beast:
+        return RedirectResponse(url="/summon_king/spirit?msg=请先设置出战幻兽", status_code=302)
+    coin_cost = SD.SPIRIT_REROLL_COST[4][1]
+    if profile.copper_coin < coin_cost:
+        return RedirectResponse(url=f"/summon_king/spirit?msg=铜钱不足，洗炼需要{coin_cost}", status_code=302)
+    profile.copper_coin -= coin_cost
+    elem = SD.SPIRIT_ELEMENTS[random.randint(0, len(SD.SPIRIT_ELEMENTS) - 1)]
+    affix_keys = list(SD.SPIRIT_AFFIXES.keys())
+    results = []
+    for _ in range(random.randint(2, 3)):
+        ak = random.choice(affix_keys)
+        name, atype, stat, lo, hi = SD.SPIRIT_AFFIXES[ak]
+        val = round(random.uniform(lo, hi), 3) if atype == "pct" else random.randint(lo, hi)
+        results.append({"name": name, "stat": stat, "value": val, "type": atype})
+    current_attr = json.dumps(results, ensure_ascii=False)
+    existing = db.query(SummonUserSpirit).filter(SummonUserSpirit.beast_id == beast.id).first()
+    if existing:
+        existing.current_attr_json = current_attr
+        existing.element_type = elem
+        existing.wash_count += 1
+    else:
+        db.add(SummonUserSpirit(
+            beast_id=beast.id,
+            user_id=ctx["user"].id,
+            spirit_id=None,
+            element_type=elem,
+            quality="精良",
+            current_attr_json=current_attr,
+            wash_count=1,
+            equipped=True,
+        ))
+    db.commit()
+    return RedirectResponse(url=f"/summon_king/spirit?msg=洗炼成功，元素：{elem}", status_code=302)
+
+
+# ---- 战场 ----
+@router.get("/battlefield", response_class=HTMLResponse)
+async def summon_battlefield(request: Request, db: Session = Depends(get_db)):
+    ctx = get_common_context(request, db)
+    if not ctx:
+        return RedirectResponse(url="/auth/login", status_code=302)
+    profile = get_or_create_profile(db, ctx["user"])
+    beast = get_battle_beast(db, profile)
+    start = datetime.utcnow().replace(hour=0, minute=0, second=0, microsecond=0)
+    done_today = db.query(SummonBattlefieldRecord).filter(
+        SummonBattlefieldRecord.user_id == ctx["user"].id,
+        SummonBattlefieldRecord.created_at >= start
+    ).count()
+    recent = db.query(SummonBattlefieldRecord).filter(
+        SummonBattlefieldRecord.user_id == ctx["user"].id
+    ).order_by(desc(SummonBattlefieldRecord.created_at)).limit(10).all()
+    ctx.update({
+        "profile": profile, "beast": beast,
+        "bf": SD.BATTLEFIELD, "done_today": done_today,
+        "limit": SD.BATTLEFIELD["daily_join_limit"], "recent": recent,
+    })
+    return templates.TemplateResponse("summon_king/battlefield.html", ctx)
+
+
+@router.post("/battlefield/join")
+async def summon_battlefield_join(request: Request, db: Session = Depends(get_db)):
+    ctx = get_common_context(request, db)
+    if not ctx:
+        return RedirectResponse(url="/auth/login", status_code=302)
+    profile = get_or_create_profile(db, ctx["user"])
+    beast = get_battle_beast(db, profile)
+    if not beast:
+        return RedirectResponse(url="/summon_king/battlefield?msg=请先设置出战幻兽", status_code=302)
+    start = datetime.utcnow().replace(hour=0, minute=0, second=0, microsecond=0)
+    done_today = db.query(SummonBattlefieldRecord).filter(
+        SummonBattlefieldRecord.user_id == ctx["user"].id,
+        SummonBattlefieldRecord.created_at >= start
+    ).count()
+    if done_today >= SD.BATTLEFIELD["daily_join_limit"]:
+        return RedirectResponse(url="/summon_king/battlefield?msg=今日战场次数已用完", status_code=302)
+    bdef = db.query(SummonBeast).filter(SummonBeast.id == beast.beast_id).first()
+    my_stats = calculate_beast_stats(beast, bdef)
+    e_stats = {
+        "hp": int(my_stats["hp"] * 1.1), "max_hp": int(my_stats["hp"] * 1.1),
+        "patk": int(my_stats["patk"] * 1.05), "matk": int(my_stats["matk"] * 1.05),
+        "pdef": int(my_stats["pdef"] * 0.95), "mdef": int(my_stats["mdef"] * 0.95),
+        "speed": int(my_stats["speed"] * 0.9),
+    }
+    enemy = SummonBeast(name="战场突击者", race_type="beast", map_level_min=profile.level,
+                        rarity="uncommon")
+    logs, winner = simulate_beast_battle(beast, bdef, my_stats, beast, enemy, e_stats)
+    win = winner == "attacker"
+    if win:
+        profile.prestige += SD.BATTLEFIELD["win_prestige"]
+        coins = random.randint(800, 1800)
+        profile.copper_coin += coins
+        profile.exp += 60
+        result = "win"
+    else:
+        profile.prestige = max(0, profile.prestige - SD.BATTLEFIELD["loss_prestige"])
+        coins = 100
+        profile.copper_coin += coins
+        profile.exp += 20
+        result = "lose"
+    recalc_profile_exp(profile, db)
+    record = SummonBattlefieldRecord(
+        user_id=ctx["user"].id, battlefield_id=None, camp="蜀",
+        kills=1 if win else 0, deaths=0 if win else 1, result=result,
+        prestige_reward=SD.BATTLEFIELD["win_prestige"] if win else 0,
+        exp_reward=60 if win else 20,
+        copper_reward=coins,
+    )
+    db.add(record)
+    db.commit()
+    msg = "战场胜利！声望+" + str(SD.BATTLEFIELD["win_prestige"]) if win else "战场失利"
+    return RedirectResponse(url=f"/summon_king/battlefield?msg={msg}", status_code=302)
+
+
+# ---- 师徒 ----
+@router.get("/mentor", response_class=HTMLResponse)
+async def summon_mentor(request: Request, db: Session = Depends(get_db)):
+    ctx = get_common_context(request, db)
+    if not ctx:
+        return RedirectResponse(url="/auth/login", status_code=302)
+    profile = get_or_create_profile(db, ctx["user"])
+    can_recruit = profile.level >= SD.MASTER_MIN_LEVEL
+    apprentices = db.query(SummonMasterApprentice).filter(
+        SummonMasterApprentice.master_user_id == ctx["user"].id
+    ).order_by(desc(SummonMasterApprentice.created_at)).limit(20).all()
+    ctx.update({
+        "profile": profile, "ma": SD.MASTER_APPRENTICE,
+        "can_recruit": can_recruit, "apprentices": apprentices,
+    })
+    return templates.TemplateResponse("summon_king/mentor.html", ctx)
+
+
+@router.post("/mentor/recruit")
+async def summon_mentor_recruit(request: Request, db: Session = Depends(get_db)):
+    ctx = get_common_context(request, db)
+    if not ctx:
+        return RedirectResponse(url="/auth/login", status_code=302)
+    profile = get_or_create_profile(db, ctx["user"])
+    if profile.level < SD.MASTER_MIN_LEVEL:
+        return RedirectResponse(url="/summon_king/mentor?msg=等级不足，需要40级", status_code=302)
+    rel = SummonMasterApprentice(
+        master_user_id=ctx["user"].id,
+        master_nickname=profile.summoner_name,
+        apprentice_user_id=None,
+        apprentice_nickname="NPC学徒",
+        status="active",
+    )
+    db.add(rel)
+    val = 10
+    profile.taoli_value += val
+    profile.apprentice_count += 1
+    db.commit()
+    return RedirectResponse(url=f"/summon_king/mentor?msg=招收成功，桃李值+{val}", status_code=302)
+
+
+# ---- 通天塔 / 战灵塔 ----
+@router.get("/tower", response_class=HTMLResponse)
+async def summon_tower(request: Request, db: Session = Depends(get_db)):
+    ctx = get_common_context(request, db)
+    if not ctx:
+        return RedirectResponse(url="/auth/login", status_code=302)
+    profile = get_or_create_profile(db, ctx["user"])
+    beast = get_battle_beast(db, profile)
+    ctx.update({
+        "profile": profile, "beast": beast,
+        "tongtian_max": SD.TONGTIAN_TOWER_FLOORS,
+        "spirit_max": SD.SPIRIT_TOWER_FLOORS,
+        "spirit_unlocked": profile.level >= 35,
+    })
+    return templates.TemplateResponse("summon_king/tower.html", ctx)
+
+
+@router.post("/tower/climb/{tower_type}")
+async def summon_tower_climb(request: Request, tower_type: str, floor: int = Form(1),
+                             db: Session = Depends(get_db)):
+    ctx = get_common_context(request, db)
+    if not ctx:
+        return RedirectResponse(url="/auth/login", status_code=302)
+    profile = get_or_create_profile(db, ctx["user"])
+    beast = get_battle_beast(db, profile)
+    if not beast:
+        return RedirectResponse(url="/summon_king/tower?msg=请先设置出战幻兽", status_code=302)
+    if tower_type == "spirit" and profile.level < 35:
+        return RedirectResponse(url="/summon_king/tower?msg=战灵塔需要35级", status_code=302)
+    floor = max(1, min(floor, 99))
+    bdef = db.query(SummonBeast).filter(SummonBeast.id == beast.beast_id).first()
+    my_stats = calculate_beast_stats(beast, bdef)
+    scale = 1 + floor * 0.03
+    e_stats = {
+        "hp": int(my_stats["hp"] * scale), "max_hp": int(my_stats["hp"] * scale),
+        "patk": int(my_stats["patk"] * scale), "matk": int(my_stats["matk"] * scale),
+        "pdef": int(my_stats["pdef"] * scale * 0.9), "mdef": int(my_stats["mdef"] * scale * 0.9),
+        "speed": int(my_stats["speed"] * scale * 0.9),
+    }
+    enemy = SummonBeast(name="塔层守卫·" + tower_type, race_type="elemental",
+                        map_level_min=profile.level, rarity="rare")
+    logs, winner = simulate_beast_battle(beast, bdef, my_stats, beast, enemy, e_stats)
+    if winner == "attacker":
+        coins = 100 + floor * 20
+        exp = 20 + floor * 5
+        profile.copper_coin += coins
+        profile.exp += exp
+        recalc_profile_exp(profile, db)
+        db.commit()
+        msg = f"第{floor}层挑战成功！铜钱+{coins} 经验+{exp}"
+    else:
+        profile.exp += 8
+        db.commit()
+        msg = f"第{floor}层挑战失败，获得安慰经验+8"
+    return RedirectResponse(url=f"/summon_king/tower?msg={msg}", status_code=302)

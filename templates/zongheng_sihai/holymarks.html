@@ -1,0 +1,37 @@
+{% extends "base_wap.html" %}
+
+{% block title %}纵横四海 - 圣痕图鉴{% endblock %}
+
+{% block breadcrumb %}
+<div class="nav-bar">
+    <a href="/home/">首页</a><span class="sep">›</span>
+    <a href="/home/gamelobby">游戏大厅</a><span class="sep">›</span>
+    <a href="/zongheng_sihai">纵横四海</a><span class="sep">›</span>
+    <span>圣痕图鉴</span>
+</div>
+{% endblock %}
+
+{% block content %}
+
+<div class="notice">🕳️ 圣痕共 10 种 × 4 品质（白/绿/蓝/紫），按品质分阶。</div>
+
+{% set ns = namespace(cur='') %}
+{% for m in marks %}
+{% if m.name != ns.cur %}
+<div class="section-title">{{ m.name }}</div>
+{% set ns.cur = m.name %}
+{% endif %}
+<div class="info-row">
+    <div>{{ m.name }}</div>
+    <div>
+        <span class="tag {% if m.quality == '紫' %}text-red{% elif m.quality == '蓝' %}text-blue{% elif m.quality == '绿' %}text-green{% else %}text-gray{% endif %}">{{ m.quality }}</span>
+    </div>
+</div>
+{% else %}
+<div class="notice">暂无圣痕</div>
+{% endfor %}
+
+<div class="text-center mt-10">
+    <a href="/zongheng_sihai">« 返回航海首页</a>
+</div>
+{% endblock %}

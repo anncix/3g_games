@@ -1,0 +1,42 @@
+{% extends "base_wap.html" %}
+
+{% block title %}聊天 · 小轩西游{% endblock %}
+
+{% block breadcrumb %}
+<div class="nav-bar">
+    <a href="/home/">首页</a>
+    <span class="sep">›</span>
+    <a href="/games/xyou">小轩西游</a>
+    <span class="sep">›</span>
+    <span>世界聊天</span>
+</div>
+{% endblock %}
+
+{% block extra_css %}
+<link rel="stylesheet" href="/static/css/xyou.css">
+{% endblock %}
+
+{% block content %}
+{% set active = 'chat' %}
+{% include "xyou/_header.html" %}
+
+<div class="xy-page-title">世界聊天</div>
+
+<div class="xy-chat-box">
+    {% if messages %}
+    {% for m in messages %}
+    <div class="xy-chat-msg">
+        <span class="who">{{ m.character_name }}：</span>{{ m.content }}
+        <span class="time">{{ m.created_at.strftime('%H:%M') }}</span>
+    </div>
+    {% endfor %}
+    {% else %}
+    <div class="xy-empty">还没有消息，来发一句吧</div>
+    {% endif %}
+</div>
+
+<form method="POST" action="/games/xyou/chat/send" class="xy-chat-input">
+    <input class="xy-input" type="text" name="content" placeholder="说点什么..." maxlength="200" required>
+    <button class="btn gold" type="submit">发送</button>
+</form>
+{% endblock %}

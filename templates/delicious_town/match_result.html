@@ -1,0 +1,45 @@
+{% extends "base_wap.html" %}
+
+{% block title %}对战结果{% endblock %}
+
+{% block breadcrumb %}
+<div class="nav-bar">
+    <a href="/home/">首页</a>
+    <span class="sep">›</span>
+    <a href="/delicious_town/">美味小镇</a>
+    <span class="sep">›</span>
+    <a href="/delicious_town/match">赛厨对战</a>
+</div>
+{% endblock %}
+
+{% block content %}
+<div class="section text-center">
+    <div class="section-title">⚔️ 对战结果：{{ defender.nickname if defender else '对手' }}</div>
+    <div class="section-body">
+        <div style="font-size:52px; margin-bottom:8px;">
+            {% if winner_id == user.id %}🎉{% else %}😥{% endif %}
+        </div>
+        <div style="font-size:18px; font-weight:bold; {% if winner_id == user.id %}color:#2a8a2a;{% else %}color:#e8403a;{% endif %}">
+            {% if winner_id == user.id %}胜利！{% else %}失利{% endif %}
+        </div>
+        <div style="font-size:16px; margin-top:8px;"><b>{{ a_total }}</b> : <b>{{ d_total }}</b></div>
+        <div class="tip mt-5">{{ msg }}</div>
+    </div>
+</div>
+
+<div class="section">
+    <div class="section-title">👨‍🍳 评委打分明细</div>
+    <div class="section-body">
+        {% for jd in judge_detail %}
+        <div class="info-row">
+            <span class="info-label">{{ jd.focus }}</span>
+            <span class="info-value">{{ jd.a_score }} : {{ jd.d_score }}</span>
+        </div>
+        {% endfor %}
+    </div>
+</div>
+
+<div class="text-center mt-10">
+    <a href="{{ back_href }}" class="btn">{{ back_text }}</a>
+</div>
+{% endblock %}

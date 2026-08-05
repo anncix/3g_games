@@ -1,0 +1,42 @@
+{% extends "base_wap.html" %}
+
+{% block title %}排行榜 · 小轩西游{% endblock %}
+
+{% block breadcrumb %}
+<div class="nav-bar">
+    <a href="/home/">首页</a>
+    <span class="sep">›</span>
+    <a href="/games/xyou">小轩西游</a>
+    <span class="sep">›</span>
+    <span>三界排行榜</span>
+</div>
+{% endblock %}
+
+{% block extra_css %}
+<link rel="stylesheet" href="/static/css/xyou.css">
+{% endblock %}
+
+{% block content %}
+{% set active = 'rank' %}
+{% include "xyou/_header.html" %}
+
+<div class="xy-page-title">三界排行榜</div>
+
+<div class="xy-card">
+    <ul class="xy-list">
+        {% for r in rankings %}
+        <li>
+            <div>
+                <div class="l-name">
+                    {% if loop.index == 1 %}🥇{% elif loop.index == 2 %}🥈{% elif loop.index == 3 %}🥉{% else %}{{ loop.index }}.{% endif %}
+                    {{ r.character_name }}
+                    {% if r.character_id == char.id %}<span class="xy-tag green">你</span>{% endif %}
+                </div>
+                <div class="l-sub">银两 {{ r.money }}</div>
+            </div>
+            <span class="xy-tag gold">Lv.{{ r.level }}</span>
+        </li>
+        {% endfor %}
+    </ul>
+</div>
+{% endblock %}

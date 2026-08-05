@@ -1,0 +1,64 @@
+{% extends "base_wap.html" %}
+
+{% block title %}菜谱大全{% endblock %}
+
+{% block breadcrumb %}
+<div class="nav-bar">
+    <a href="/home/">首页</a>
+    <span class="sep">›</span>
+    <a href="/delicious_town/">美味小镇</a>
+    <span class="sep">›</span>
+    <span>菜谱</span>
+</div>
+{% endblock %}
+
+{% block content %}
+<div class="section">
+    <div class="section-title">📖 菜谱大全（Lv.{{ st.restaurant_level }}）</div>
+    <div class="section-body">
+        <div class="tip mb-10">经验: {{ st.restaurant_exp }}/{{ exp_need }} · 学会后记得上架才能招待顾客</div>
+        {% for it in info %}
+        <div style="border:1px solid #e0d0c0; border-radius:4px; padding:8px; margin-bottom:8px; background:linear-gradient(180deg,#fffaf0 0%,#fdf0e0 100%);">
+            <div style="display:flex; justify-content:space-between; align-items:center;">
+                <div>
+                    <b>{{ it.r.name }}</b>
+                    <span class="badge" style="background:#d06020;">Lv{{ it.r.recipe_level }}菜</span>
+                    {% if it.p.quality_level == '极品' %}<span class="badge" style="background:#3a76c8;">极品</span>
+                    {% elif it.p.quality_level == '金牌' %}<span class="badge" style="background:#c8a020;">金牌</span>{% endif %}
+                    {% if it.p.on_shelf %}<span class="badge" style="background:#2a8a2a;">上架中</span>{% endif %}
+                    {% if it.locked_level %}<span class="badge" style="background:#999;">需Lv{{ it.r.level_required }}</span>{% endif %}
+                </div>
+                <div style="font-size:12px; color:#666;">售价{{ it.r.gold_income }} 耗油{{ it.r.oil_cost }} 时{{ it.r.cook_seconds }}s</div>
+            </div>
+            <div style="margin:6px 0; font-size:12px;">
+                {% for ing in it.ings %}
+                <span {% if ing.have < ing.need %}class="text-red"{% endif %}>{{ ing.name }}{{ ing.need }}
+                    {% if ing.need > 1 %}个{% endif %}(有{{ ing.have }})</span>{% if not loop.last %} + {% endif %}
+                {% endfor %}
+            </div>
+            <div style="display:flex; gap:6px; flex-wrap:wrap;">
+                {% if it.locked_level %}
+                <span class="btn btn-small" style="opacity:0.5;">需 Lv.{{ it.r.level_required }}</span>
+                {% elif not it.p.quality_level or it.p.quality_level == '未学' %}
+                <form method="post" action="/delicious_town/learn/{{ it.r.id }}" style="display:inline;">
+                    <button class="btn btn-small">📖 学习</button>
+                </form>
+                {% else %}
+                <form method="post" action="/delicious_town/cook/{{ it.r.id }}" style="display:inline;">
+                    <button class="btn btn-small">🍳 制作</button>
+                </form>
+                <a href="/delicious_town/recipe/{{ it.r.id }}" class="btn btn-small">详情</a>
+                {% if it.p.quality_level != '金牌' and it.upgrade %}
+                <a href="/delicious_town/recipe/{{ it.r.id }}" class="btn btn-small" style="background:#c8a020;border-color:#a08010;">⬆️ 升级品质</a>
+                {% endif %}
+                {% endif %}
+            </div>
+        </div>
+        {% endfor %}
+    </div>
+</div>
+
+<div class="text-center mt-10">
+    <a href="/delicious_town/">« 返回小镇首页</a>
+</div>
+{% endblock %}

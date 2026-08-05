@@ -1,0 +1,46 @@
+{% extends "base_wap.html" %}
+
+{% block title %}兑换中心{% endblock %}
+
+{% block breadcrumb %}
+<div class="nav-bar">
+    <a href="/home/">首页</a><span class="sep">›</span>
+    <a href="/magic_garden">花园</a><span class="sep">›</span>
+    <span>兑换中心</span>
+</div>
+{% endblock %}
+
+{% block content %}
+<div class="section">
+    <div class="section-body">
+        <div class="tip">用活动材料兑换稀有花种，稳定路径不靠运气 · 花园金币 <b>{{ gold }}</b></div>
+    </div>
+</div>
+
+<div class="section">
+    <div class="section-title">🎁 活动兑换</div>
+    <div class="section-body">
+        {% for item in info %}
+        <div class="post-item">
+            <b>{{ item.seed.name }}种子</b> ×{{ item.ex.result_qty }}<br>
+            目标花种：<b>{{ item.seed.name }}</b>（{{ item.seed.rarity }}，需Lv{{ item.seed.min_level }}）<br>
+            材料：
+            {% for m in item.mats %}{{ m.name }}×{{ m.need }}(<b>{{ m.have }}</b>) {% endfor %}<br>
+            {% if item.can %}
+            <form method="post" action="/magic_garden/exchange/{{ item.ex.id }}" style="margin-top:6px;">
+                <button class="btn btn-success" type="submit">兑换</button>
+            </form>
+            {% else %}
+            <span class="tip">材料不足</span>
+            {% endif %}
+        </div>
+        {% else %}
+        <div class="tip">暂无可兑换项</div>
+        {% endfor %}
+    </div>
+</div>
+
+<div class="text-center mt-10">
+    <a class="btn" href="/magic_garden">« 返回花园</a>
+</div>
+{% endblock %}

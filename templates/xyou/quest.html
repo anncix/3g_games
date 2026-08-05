@@ -1,0 +1,79 @@
+{% extends "base_wap.html" %}
+
+{% block title %}任务 · 小轩西游{% endblock %}
+
+{% block breadcrumb %}
+<div class="nav-bar">
+    <a href="/home/">首页</a>
+    <span class="sep">›</span>
+    <a href="/games/xyou">小轩西游</a>
+    <span class="sep">›</span>
+    <span>任务</span>
+</div>
+{% endblock %}
+
+{% block extra_css %}
+<link rel="stylesheet" href="/static/css/xyou.css">
+{% endblock %}
+
+{% block content %}
+{% set active = 'quest' %}
+{% include "xyou/_header.html" %}
+
+<div class="xy-page-title">任务</div>
+
+{% if available %}
+<div class="xy-card">
+    <h3>📜 可接 / 进行中</h3>
+    <ul class="xy-list">
+        {% for q in available %}
+        <li>
+            <div>
+                <div class="l-name">{{ q.name }}
+                    <span class="xy-tag {% if q.status_text == '可完成' %}green{% elif q.status_text == '进行中' %}blue{% else %}gold{% endif %}">{{ q.status_text }}</span>
+                </div>
+                <div class="l-sub">
+                    目标：{{ q.target_name }} × {{ q.count }} · 奖励：{{ q.reward_exp }}经验 / {{ q.reward_money }}银两
+                </div>
+                {% if q.status_text == '进行中' and q.progress is defined %}
+                <div class="xy-progress"><i style="width: {{ (q.progress / q.count * 100) | round(0) }}%"></i></div>
+                {% endif %}
+            </div>
+            <div class="l-right">
+                {% if q.status_text == '可接取' %}
+                <form method="POST" action="/games/xyou/quest/accept" style="display:inline">
+                    <input type="hidden" name="quest_id" value="{{ q.id }}">
+                    <button class="btn gold sm" type="submit">接取</button>
+                </form>
+                {% elif q.status_text == '可完成' %}
+                <form method="POST" action="/games/xyou/quest/complete" style="display:inline">
+                    <input type="hidden" name="quest_id" value="{{ q.id }}">
+                    <button class="btn green sm" type="submit">完成</button>
+                </form>
+                {% endif %}
+            </div>
+        </li>
+        {% endfor %}
+    </ul>
+</div>
+{% else %}
+<div class="xy-empty">暂无可接任务</div>
+{% endif %}
+
+{% if done %}
+<div class="xy-card">
+    <h3>✅ 已完成</h3>
+    <ul class="xy-list">
+        {% for q in done %}
+        <li>
+            <div>
+                <div class="l-name">{{ q.name }}</div>
+                <div class="l-sub">已完成</div>
+            </div>
+            <span class="xy-tag green">已完成</span>
+        </li>
+        {% endfor %}
+    </ul>
+</div>
+{% endif %}
+{% endblock %}

@@ -1,0 +1,178 @@
+{% extends "base_wap.html" %}
+
+{% block title %}美味小镇{% endblock %}
+
+{% block extra_css %}
+<style>
+    .town-header { border:2px solid #d06020; border-radius:5px; padding:12px; margin-bottom:10px; background:linear-gradient(135deg, #fff8f0 0%, #ffe8d0 100%); }
+    .town-header .name-row { display:flex; justify-content:space-between; align-items:center; margin-bottom:8px; }
+    .town-header .lvl-badge { background:#d06020; color:white; padding:2px 8px; border-radius:10px; font-size:12px; }
+    .stat-grid { display:grid; grid-template-columns:1fr 1fr; gap:5px; font-size:13px; }
+</style>
+{% endblock %}
+
+{% block breadcrumb %}
+<div class="nav-bar">
+    <a href="/home/">首页</a>
+    <span class="sep">›</span>
+    <a href="/home/gamelobby">游戏大厅</a>
+    <span class="sep">›</span>
+    <span>美味小镇</span>
+</div>
+{% endblock %}
+
+{% block content %}
+{# 餐厅信息卡 #}
+<div class="town-header">
+    <div class="name-row">
+        <div style="font-weight:bold; font-size:16px;">🍳 {{ st.restaurant_name }}</div>
+        <div class="lvl-badge">Lv.{{ st.restaurant_level }} · {{ st.star_level }}星</div>
+    </div>
+    <div class="stat-grid">
+        <div>🪙 金币: <b class="text-blue">{{ st.gold }}</b></div>
+        <div>⭐ 口碑: <b class="text-red">{{ st.star_level }}</b></div>
+        <div>🪑 座位: <b>{{ st.seats }}</b></div>
+        <div>🏆 名望: <b>{{ st.fame }}</b></div>
+    </div>
+    <div style="margin-top:8px; font-size:12px; color:#666;">
+        累计营业 <b>{{ st.total_service }}</b> 次 · 累计收入 <b>{{ st.total_revenue }}</b>
+    </div>
+    <div style="margin-top:8px; font-size:12px;">
+        经验: {{ st.restaurant_exp }}/{{ exp_need }}
+        <div class="progress-bar mt-5">
+            <div class="progress-fill" style="width: {{ st.restaurant_exp / exp_need * 100 if exp_need > 0 else 0 }}%; background:linear-gradient(90deg, #d06020 0%, #f08040 100%);"></div>
+        </div>
+    </div>
+</div>
+
+{# 油量 & 营业状态 #}
+<div class="section">
+    <div class="section-title">🛢️ 油量 & 营业</div>
+    <div class="section-body">
+        <div class="info-row">
+            <span class="info-label">油量</span>
+            <span class="info-value">{{ st.oil_amount }}/{{ st.oil_cap }}</span>
+        </div>
+        <div class="progress-bar mt-5 mb-10">
+            <div class="progress-fill" style="width: {{ oil_pct }}%;{% if oil_pct < 20 %}background:linear-gradient(90deg,#e8403a 0%,#f08060 100%);{% endif %}"></div>
+        </div>
+        <div class="info-row">
+            <span class="info-label">可服务桌位</span>
+            <span class="info-value">{{ serving_tables }} / {{ st.seats }}</span>
+        </div>
+        <div class="info-row">
+            <span class="info-label">服务员</span>
+            <span class="info-value">{{ waiters|length }} 名（上限 {{ waiter_total }}）</span>
+        </div>
+        <div class="info-row">
+            <span class="info-label">设施</span>
+            <span class="info-value">{{ facilities|length }} / {{ facility_slots }}</span>
+        </div>
+        <div class="text-center mt-10">
+            <form method="post" action="/delicious_town/serve" style="display:inline;">
+                <button class="btn btn-success" {% if not can_service %}disabled style="opacity:0.5;"{% endif %}>🍜 招待顾客</button>
+            </form>
+            {% if roaches %}
+            <form method="post" action="/delicious_town/roach/clean" style="display:inline;">
+                <button class="btn btn-danger">🪳 清理蟑螂({{ roaches|length }})</button>
+            </form>
+            {% endif %}
+        </div>
+        {% if not can_service %}
+        <div class="tip text-center mt-5">油量为 0 或无可服务桌位，先去补油/上架菜</div>
+        {% endif %}
+    </div>
+</div>
+
+{# 待办事项 #}
+<div class="section">
+    <div class="section-title">📌 待办事项</div>
+    <div class="section-body">
+        {% for item in todo %}
+        <div class="info-row">
+            <span class="info-value {% if item[1] == 'red' %}text-red{% elif item[1] == 'green' %}text-green{% else %}text-gray{% endif %}">{{ item[0] }}</span>
+            <a href="{{ item[2] }}" class="btn btn-small">{{ item[3] }}</a>
+        </div>
+        {% endfor %}
+    </div>
+</div>
+
+{# 灶台（当前烹饪） #}
+<div class="section">
+    <div class="section-title">🔥 灶台</div>
+    <div class="section-body text-center">
+        {% if cooking_recipe %}
+        <div style="font-size:42px;">🍳</div>
+        <div style="font-weight:bold; font-size:15px;">{{ cooking_recipe.name }}</div>
+        <div style="font-size:12px; color:#e88020; margin-top:4px;">
+            {% if cook_remain > 0 %}烹饪中，剩余 {{ cook_remain }} 秒{% else %}已出锅！{% endif %}
+        </div>
+        {% if cook_remain <= 0 %}
+        <form method="post" action="/delicious_town/finish" style="display:inline; margin-top:8px;">
+            <button class="btn">✅ 收菜</button>
+        </form>
+        {% endif %}
+        {% else %}
+        <div style="font-size:42px;">🔥</div>
+        <div style="font-size:13px; color:#666;">灶台空闲</div>
+        <div class="mt-10"><a href="/delicious_town/recipes" class="btn">去菜谱做菜</a></div>
+        {% endif %}
+    </div>
+</div>
+
+{# 快捷操作 #}
+<div class="section">
+    <div class="section-title">🎮 快捷操作</div>
+    <div class="section-body">
+        <div class="grid-3">
+            <a href="/delicious_town/recipes" style="text-decoration:none; color:inherit;">
+                <div class="game-card"><div class="icon">📖</div><div class="name">菜谱</div><div class="desc">做菜/学菜</div></div>
+            </a>
+            <a href="/delicious_town/oil" style="text-decoration:none; color:inherit;">
+                <div class="game-card"><div class="icon">🛢️</div><div class="name">油量</div><div class="desc">补油/扩容</div></div>
+            </a>
+            <a href="/delicious_town/star" style="text-decoration:none; color:inherit;">
+                <div class="game-card"><div class="icon">⭐</div><div class="name">升星</div><div class="desc">餐厅评级</div></div>
+            </a>
+            <a href="/delicious_town/waiter" style="text-decoration:none; color:inherit;">
+                <div class="game-card"><div class="icon">👨‍🍳</div><div class="name">服务员</div><div class="desc">雇好友</div></div>
+            </a>
+            <a href="/delicious_town/facility" style="text-decoration:none; color:inherit;">
+                <div class="game-card"><div class="icon">🏛️</div><div class="name">设施</div><div class="desc">增益设施</div></div>
+            </a>
+            <a href="/delicious_town/chef" style="text-decoration:none; color:inherit;">
+                <div class="game-card"><div class="icon">👑</div><div class="name">赛厨</div><div class="desc">厨具/技能</div></div>
+            </a>
+            <a href="/delicious_town/match" style="text-decoration:none; color:inherit;">
+                <div class="game-card"><div class="icon">⚔️</div><div class="name">赛厨对战</div><div class="desc">好友切磋</div></div>
+            </a>
+            <a href="/delicious_town/contest" style="text-decoration:none; color:inherit;">
+                <div class="game-card"><div class="icon">🏆</div><div class="name">厨艺大赛</div><div class="desc">全区争锋</div></div>
+            </a>
+            <a href="/delicious_town/delivery" style="text-decoration:none; color:inherit;">
+                <div class="game-card"><div class="icon">🛵</div><div class="name">外卖</div><div class="desc">送餐任务</div></div>
+            </a>
+        </div>
+    </div>
+</div>
+
+{# 功能菜单 #}
+<div class="section">
+    <div class="section-title">📋 更多功能</div>
+    <div class="section-body">
+        <ul class="link-list">
+            <li><a href="/delicious_town/mainquests">🗺️ 主线任务</a></li>
+            <li><a href="/delicious_town/rules">📜 玩法规则</a></li>
+            <li><a href="/home/friends">👥 拜访好友餐厅（翻橱柜/丢蟑螂）</a></li>
+        </ul>
+    </div>
+</div>
+
+<div class="notice">
+    💡 多学高阶菜、多上架、多招待顾客，才能更快升星赚钱！有空去好友家翻翻橱柜补食材~
+</div>
+
+<div class="text-center mt-10">
+    <a href="/home/gamelobby">« 返回游戏大厅</a>
+</div>
+{% endblock %}

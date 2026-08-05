@@ -1,0 +1,86 @@
+{% extends "base_wap.html" %}
+
+{% block title %}种子商店{% endblock %}
+
+{% block breadcrumb %}
+<div class="nav-bar">
+    <a href="/home/">首页</a><span class="sep">›</span>
+    <a href="/sunny_farm">阳光农场</a><span class="sep">›</span>
+    <span>种子商店</span>
+</div>
+{% endblock %}
+
+{% block content %}
+<div class="section">
+    <div class="section-title">🪙 我的金币：<b class="text-blue">{{ platform_gcoin }}</b></div>
+    <div class="section-body">
+        <div class="tip">购买种子后到农田种植；收获的作物可在此出售换金币。</div>
+    </div>
+</div>
+
+<div class="section">
+    <div class="section-title">🌱 购买种子（50种作物）</div>
+    <div class="section-body">
+        {% for c in crops %}
+        <div class="info-row">
+            <span class="info-label">
+                {{ c.name }} · Lv{{ c.level_req }} · ¥{{ c.price }} · 成熟{{ c.grow_seconds // 3600 }}小时
+                {% if c.crop_type == '多季' %}<span class="text-green">[多季]</span>{% endif %}
+                {% if seed_counts.get(c.seed_item_key) %}<span class="text-blue">已有×{{ seed_counts[c.seed_item_key] }}</span>{% endif %}
+            </span>
+            <span class="info-value">
+                <form method="post" action="/sunny_farm/shop/buy" style="display:inline;">
+                    <input type="hidden" name="crop_key" value="{{ c.key }}">
+                    <select name="quantity" style="width:52px;">
+                        {% for n in [1,5,10] %}<option value="{{ n }}">{{ n }}</option>{% endfor %}
+                    </select>
+                    <button class="btn btn-small" type="submit">购买</button>
+                </form>
+            </span>
+        </div>
+        {% else %}
+        <div class="tip">暂无作物数据，请先执行 seed_farm_full 初始化</div>
+        {% endfor %}
+    </div>
+</div>
+
+<div class="section">
+    <div class="section-title">🐄 购买动物</div>
+    <div class="section-body">
+        <form method="post" action="/sunny_farm/buy_animal">
+            <select name="animal_code">
+                <option value="chicken">小鸡 ¥100</option>
+                <option value="duck">小鸭 ¥150</option>
+                <option value="cow">奶牛 ¥500</option>
+            </select>
+            <button class="btn btn-small" type="submit">购买</button>
+        </form>
+    </div>
+</div>
+
+<div class="section">
+    <div class="section-title">📦 出售仓库作物</div>
+    <div class="section-body">
+        {% if storage %}
+        {% for row in storage %}
+        <div class="info-row">
+            <span class="info-label">{{ row.item.item_name }} × {{ row.item.quantity }}</span>
+            <span class="info-value">
+                <form method="post" action="/sunny_farm/shop/sell" style="display:inline;">
+                    <input type="hidden" name="item_code" value="{{ row.item.item_code }}">
+                    <input type="hidden" name="quantity" value="{{ row.item.quantity }}">
+                    <button class="btn btn-small btn-success" type="submit">出售¥{{ row.price * row.item.quantity }}</button>
+                </form>
+            </span>
+        </div>
+        {% endfor %}
+        {% else %}
+        <div class="tip">仓库暂无作物/产品，先种植收获吧</div>
+        {% endif %}
+    </div>
+</div>
+
+<div class="text-center mt-10">
+    <a class="btn" href="/sunny_farm">« 返回农场</a>
+</div>
+{% endblock %}

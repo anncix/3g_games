@@ -1,0 +1,63 @@
+{% extends "base_wap.html" %}
+{% block title %}通天塔/战灵塔 - 召唤之王{% endblock %}
+{% block breadcrumb %}
+<div class="nav-bar">
+    <a href="/home/gamelobby">游戏大厅</a>
+    <span class="sep">›</span>
+    <a href="/summon_king">召唤之王</a>
+    <span class="sep">›</span> 登塔
+</div>
+{% endblock %}
+{% block content %}
+<div class="section">
+    <div class="section-title">🐉 出战幻兽</div>
+    <div class="section-body">
+        {% if beast %}
+        <div class="info-row"><span class="info-label">名称</span><span class="info-value">{{ beast.nickname or beast.beast.name }}</span></div>
+        <div class="info-row"><span class="info-label">等级</span><span class="info-value">Lv.{{ beast.level }}</span></div>
+        {% else %}
+        <p class="text-gray">请先设置出战幻兽</p>
+        {% endif %}
+    </div>
+</div>
+
+<div class="section">
+    <div class="section-title">🏯 通天塔（产焚火晶）</div>
+    <div class="section-body">
+        <div class="info-row"><span class="info-label">总层数</span><span class="info-value">{{ tongtian_max }}</span></div>
+        <div class="tip">每层奖励铜钱+经验，层数越高奖励越丰</div>
+        {% if beast %}
+        <form method="post" action="/summon_king/tower/climb/tongtian" class="mt-5">
+            <div class="form-group">
+                <label>挑战层数</label>
+                <input type="number" name="floor" value="1" min="1" max="99">
+            </div>
+            <button type="submit" class="btn">挑战通天塔</button>
+        </form>
+        {% endif %}
+    </div>
+</div>
+
+<div class="section">
+    <div class="section-title">🗼 战灵塔（产灵力）{% if not spirit_unlocked %} <span class="text-gray">Lv.35解锁</span>{% endif %}</div>
+    <div class="section-body">
+        <div class="info-row"><span class="info-label">总层数</span><span class="info-value">{{ spirit_max }}</span></div>
+        <div class="tip">每层奖励灵力+铜钱，层数越高奖励越丰</div>
+        {% if beast and spirit_unlocked %}
+        <form method="post" action="/summon_king/tower/climb/spirit" class="mt-5">
+            <div class="form-group">
+                <label>挑战层数</label>
+                <input type="number" name="floor" value="1" min="1" max="99">
+            </div>
+            <button type="submit" class="btn">挑战战灵塔</button>
+        </form>
+        {% elif not spirit_unlocked %}
+        <span class="text-gray">需 Lv.35 解锁战灵塔</span>
+        {% endif %}
+    </div>
+</div>
+
+<div class="text-center mt-10">
+    <a href="/summon_king" class="btn btn-small">返回首页</a>
+</div>
+{% endblock %}

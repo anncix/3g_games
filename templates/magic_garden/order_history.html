@@ -1,0 +1,45 @@
+{% extends "base_wap.html" %}
+
+{% block title %}订单历史{% endblock %}
+
+{% block breadcrumb %}
+<div class="nav-bar">
+    <a href="/home/">首页</a><span class="sep">›</span>
+    <a href="/magic_garden/orders">订单板</a><span class="sep">›</span>
+    <span>历史</span>
+</div>
+{% endblock %}
+
+{% block content %}
+<div class="section">
+    <div class="section-title">📊 交付统计（近20条）</div>
+    <div class="section-body">
+        <div class="info-row"><span class="info-label">累计金币</span><span class="info-value"><b>{{ total_coin }}</b></span></div>
+        <div class="info-row"><span class="info-label">累计经验</span><span class="info-value"><b>{{ total_exp }}</b></span></div>
+    </div>
+</div>
+
+<div class="section">
+    <div class="section-title">🧾 交付记录</div>
+    <div class="section-body">
+        {% if not logs %}
+        <div class="tip">暂无交付记录</div>
+        {% endif %}
+        {% for l in logs %}
+        <div class="info-row">
+            <span class="info-label">
+                {% if l.order_type == 'limited' %}<span class="text-red">[限时]</span>
+                {% elif l.order_type == 'premium' %}<span class="text-red">[加价]</span>
+                {% else %}<span class="text-green">[普通]</span>{% endif %}
+                金币+{{ l.coin_gain }} 经验+{{ l.exp_gain }}{% if l.token_gain %} 代币+{{ l.token_gain }}{% endif %}
+            </span>
+            <span class="info-value tip">{{ l.delivered_at.strftime('%m-%d %H:%M') }}</span>
+        </div>
+        {% endfor %}
+    </div>
+</div>
+
+<div class="text-center mt-10">
+    <a class="btn" href="/magic_garden/orders">« 返回订单板</a>
+</div>
+{% endblock %}

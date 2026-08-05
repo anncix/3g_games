@@ -1,0 +1,58 @@
+{% extends "base_wap.html" %}
+{% block title %}日常任务 - 精武堂{% endblock %}
+{% block breadcrumb %}
+<div class="nav-bar">
+    <a href="/home/">首页</a><span class="sep">›</span><a href="/home/gamelobby">游戏大厅</a>
+    <span class="sep">›</span><a href="/jingwutang/">精武堂</a><span class="sep">›</span><span>日常任务</span>
+</div>
+{% endblock %}
+{% block content %}
+{% if status_msg %}<div class="section"><div class="section-body text-center" style="color:#27ae60;">{{ status_msg }}</div></div>{% endif %}
+
+<div class="section">
+    <div class="section-title">🔥 今日活跃度：{{ activity_point }}/100</div>
+    <div class="section-body">
+        {% for ar in activity_rewards %}
+        <div style="display:flex; justify-content:space-between; align-items:center; padding:8px 0; border-bottom:1px dotted #eee;">
+            <div>
+                <b>活跃 {{ ar.point }}</b>
+                <div style="font-size:11px; color:#666;">银两+{{ ar.silver }} 经验+{{ ar.exp }}</div>
+            </div>
+            {% if ar.can_claim %}
+            <form method="post" action="/jingwutang/activity/claim/{{ ar.point }}">
+                <button type="submit" class="btn btn-small btn-success">领取</button>
+            </form>
+            {% else %}
+            <span style="font-size:11px; color:#999;">{% if ar.claimed %}已领取{% else %}未达标{% endif %}</span>
+            {% endif %}
+        </div>
+        {% endfor %}
+    </div>
+</div>
+
+<div class="section">
+    <div class="section-title">📋 日常任务列表</div>
+    <div class="section-body">
+        {% for t in task_list %}
+        <div style="padding:10px 0; border-bottom:1px dotted #eee;">
+            <div style="display:flex; justify-content:space-between; align-items:center;">
+                <div>
+                    <b>{{ t.name }}</b>
+                    {% if t.open_level > role.level %}<span class="tag">Lv.{{ t.open_level }}</span>{% endif %}
+                    <div style="font-size:11px; color:#666;">进度 {{ t.progress }}/{{ t.target }}</div>
+                    <div style="font-size:11px; color:#f39c12;">奖励：银两+{{ t.silver }} 经验+{{ t.exp }} 活跃+{{ t.point }}</div>
+                </div>
+                {% if t.can_claim %}
+                <form method="post" action="/jingwutang/tasks/claim/{{ t.id }}">
+                    <button type="submit" class="btn btn-small btn-success">领取</button>
+                </form>
+                {% else %}
+                <span style="font-size:11px; color:#999;">{% if t.claimed %}已领取{% elif t.progress >= t.target %}待领取{% else %}进行中{% endif %}</span>
+                {% endif %}
+            </div>
+        </div>
+        {% endfor %}
+    </div>
+</div>
+<div class="text-center mt-10"><a href="/jingwutang/">« 返回精武堂</a></div>
+{% endblock %}

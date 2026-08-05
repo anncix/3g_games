@@ -1,0 +1,37 @@
+{% extends "base_wap.html" %}
+
+{% block title %}我的农田{% endblock %}
+
+{% block breadcrumb %}
+<div class="nav-bar">
+    <a href="/home/">首页</a><span class="sep">›</span>
+    <a href="/sunny_farm">阳光农场</a><span class="sep">›</span>
+    <span>我的农田</span>
+</div>
+{% endblock %}
+
+{% block content %}
+<div class="section">
+    <div class="section-title">🌿 我的农田 ({{ plot_info|length }}块)</div>
+    <div class="section-body">
+        {% for info in plot_info %}
+        <a class="info-row" href="/sunny_farm/plot/{{ info.plot.plot_no }}" style="text-decoration:none; color:inherit;">
+            <span class="info-label">
+                第{{ info.plot.plot_no }}块
+                {% if info.crop %} · {{ info.crop.name }} · {{ info.stage }}
+                    {% if info.mature %}<span class="text-green">[可收]</span>{% endif %}
+                    {% if info.plot.insect_state %}<span class="text-red">[虫]</span>{% endif %}
+                    {% if info.plot.locked %}<span class="text-gray">[锁]</span>{% endif %}
+                {% else %}<span class="text-gray">空地</span>{% endif %}
+            </span>
+            <span class="info-value">{% if info.remain > 0 %}{{ (info.remain // 60) }}分{{ info.remain % 60 }}秒{% else %}›{% endif %}</span>
+        </a>
+        {% else %}
+        <div class="tip">还没有初始化地块</div>
+        {% endfor %}
+    </div>
+</div>
+<div class="text-center mt-10">
+    <a class="btn" href="/sunny_farm">« 返回农场</a>
+</div>
+{% endblock %}

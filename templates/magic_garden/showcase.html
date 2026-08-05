@@ -1,0 +1,52 @@
+{% extends "base_wap.html" %}
+
+{% block title %}花园展示{% endblock %}
+
+{% block breadcrumb %}
+<div class="nav-bar">
+    <a href="/home/">首页</a><span class="sep">›</span>
+    <a href="/magic_garden">花园</a><span class="sep">›</span>
+    <span>展示</span>
+</div>
+{% endblock %}
+
+{% block content %}
+<div class="section">
+    <div class="section-title">📖 花谱概览</div>
+    <div class="section-body">
+        <div class="info-row"><span class="info-label">花园等级</span><span class="info-value"><b>{{ st.level }}</b></span></div>
+        <div class="info-row"><span class="info-label">花谱点亮</span><span class="info-value"><b>{{ lit_count }}/{{ total }}</b></span></div>
+        <div class="info-row"><span class="info-label">花园金币</span><span class="info-value"><b>{{ gold }}</b></span></div>
+        <div class="progress-bar"><div class="progress-fill" style="width:{{ (lit_count/total*100)|int if total else 0 }}%"></div></div>
+    </div>
+</div>
+
+<div class="section">
+    <div class="section-title">✨ 最近点亮</div>
+    <div class="section-body">
+        {% for e in recent %}
+        <div class="info-row"><span class="info-label text-green">[已亮]</span><span class="info-value">{{ e.name }}（{{ e.series }}）</span></div>
+        {% else %}
+        <div class="tip">还未点亮任何花谱</div>
+        {% endfor %}
+    </div>
+</div>
+
+<div class="section">
+    <div class="section-title">💎 稀有花收藏</div>
+    <div class="section-body">
+        {% for rb in rare_blooms %}
+        <div class="info-row">
+            <span class="info-label"><span class="badge">{{ rb.bloom.rarity }}</span> {{ rb.bloom.name }}（{{ rb.bloom.color }}）</span>
+            <span class="info-value">×{{ rb.qty }}</span>
+        </div>
+        {% else %}
+        <div class="tip">暂无稀有花，多种植稀有花种或合成获取</div>
+        {% endfor %}
+    </div>
+</div>
+
+<div class="text-center mt-10">
+    <a class="btn" href="/magic_garden">« 返回花园</a>
+</div>
+{% endblock %}

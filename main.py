@@ -20,8 +20,6 @@ from models.models import (
     FengyunState, FengyunSkill, FengyunUserSkill, FengyunEquip, FengyunUserEquip,
     FengyunDungeon, FengyunLegion, FengyunLegionMember, FengyunTitle,
     FengyunAchievement, FengyunCity, ItemFengyun,
-    XyouState, XyouSkill, XyouUserSkill, XyouEquip, XyouUserEquip,
-    XyouDungeon, XyouPet, XyouUserPet, XyouScene, XyouMaterial, XyouCoord, ItemXyou
 )
 from utils.auth import get_current_user, get_password_hash
 from routers import auth, home, jingwutang, magic_garden, sunny_farm, delicious_town, zongheng_sihai, admin, summon_king, fengyun, xyou
@@ -426,11 +424,6 @@ async def startup_event():
     # 13副本/15称号/21成就/189物品字典，幂等）
     from seed.seeds_fengyun import seed_fengyun_full
     seed_fengyun_full(db)
-
-    # 幻想西游完整数据（10场景/45技能/108装备/8龙宫叉/22副本/13宠物/
-    # 14药品/14扩展药品/19高级材料/12坐标，幂等）
-    from seed.seeds_xyou import seed_xyou_full
-    seed_xyou_full(db)
 
     admin_user = db.query(User).filter(User.username == "admin").first()
     if not admin_user:

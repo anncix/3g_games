@@ -26,6 +26,7 @@ venv/
 env/
 ENV/
 .venv/
+.venv_check/
 
 # IDE
 .vscode/
@@ -38,6 +39,7 @@ ENV/
 *.db
 *.sqlite
 *.sqlite3
+*.db.bak*
 
 # Environment variables
 .env

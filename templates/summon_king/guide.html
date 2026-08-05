@@ -1,0 +1,150 @@
+{% extends "base_wap.html" %}
+{% block title %}资料图鉴 - 召唤之王{% endblock %}
+{% block breadcrumb %}
+<div class="nav-bar">
+    <a href="/home/gamelobby">游戏大厅</a>
+    <span class="sep">›</span>
+    <a href="/summon_king">召唤之王</a>
+    <span class="sep">›</span> 资料图鉴
+</div>
+{% endblock %}
+{% block content %}
+<div class="section">
+    <div class="section-title">📌 主界面信息栏</div>
+    <div class="section-body">
+        <span>{{ menu_info_bar|join(' · ') }}</span>
+    </div>
+</div>
+
+<div class="section">
+    <div class="section-title">🗂️ 核心功能菜单</div>
+    <div class="section-body">
+        <ul class="link-list">
+            {% for item in menu_structure %}
+            <li><b>{{ item[1] }}</b> <span class="text-gray">{{ item[3] }}</span></li>
+            {% endfor %}
+        </ul>
+    </div>
+</div>
+
+<div class="section">
+    <div class="section-title">🔓 系统开放</div>
+    <div class="section-body">
+        <ul class="link-list">
+            {% for item in level_unlocks_spec %}
+            <li><b>{{ item[0] }}</b>：{{ item[3] }}</li>
+            {% endfor %}
+        </ul>
+    </div>
+</div>
+
+<div class="section">
+    <div class="section-title">🏛️ 幻兽三大流派</div>
+    <div class="section-body">
+        <ul class="link-list">
+            {% for item in talent_schools %}
+            <li><b>{{ item[0] }}</b>（{{ item[1] }}）：{{ item[2] }}</li>
+            {% endfor %}
+        </ul>
+    </div>
+</div>
+
+<div class="section">
+    <div class="section-title">🐉 幻兽种族</div>
+    <div class="section-body">
+        <ul class="link-list">
+            {% for item in pet_races_spec %}
+            <li><b>{{ item[0] }}</b>（{{ item[1] }}）：{{ item[2] }}</li>
+            {% endfor %}
+        </ul>
+    </div>
+</div>
+
+<div class="section">
+    <div class="section-title">⭐ 品质阶位</div>
+    <div class="section-body">
+        <ul class="link-list">
+            {% for item in pet_quality_tiers %}
+            <li><b>{{ item[0] }}</b>（{{ item[1] }}）：{{ item[2] }}</li>
+            {% endfor %}
+        </ul>
+    </div>
+</div>
+
+<div class="section">
+    <div class="section-title">🦴 战骨品级</div>
+    <div class="section-body">
+        <span>{{ bone_grades_spec|join('、') }}</span>
+    </div>
+</div>
+
+<div class="section">
+    <div class="section-title">🔮 魔魂品级</div>
+    <div class="section-body">
+        <ul class="link-list">
+            {% for item in soul_grades_spec %}
+            <li><b>{{ item[0] }}</b>：{{ item[2] }}</li>
+            {% endfor %}
+        </ul>
+    </div>
+</div>
+
+<div class="section">
+    <div class="section-title">🌟 天魂极品属性（固定）</div>
+    <div class="section-body">
+        <ul class="link-list">
+            {% for item in soul_affixes_fixed %}
+            <li>{{ item[0] }}：{{ item[1] }}</li>
+            {% endfor %}
+        </ul>
+    </div>
+</div>
+
+<div class="section">
+    <div class="section-title">🌟 天魂极品属性（百分比）</div>
+    <div class="section-body">
+        <ul class="link-list">
+            {% for item in soul_affixes_percent %}
+            <li>{{ item[0] }}：{{ item[1] }}</li>
+            {% endfor %}
+        </ul>
+    </div>
+</div>
+
+<div class="section">
+    <div class="section-title">💰 货币一览</div>
+    <div class="section-body">
+        <ul class="link-list">
+            {% for item in currency_table %}
+            <li><b>{{ item[0] }}</b>（{{ item[1] }}）｜用途：{{ item[2] }}</li>
+            {% endfor %}
+        </ul>
+    </div>
+</div>
+
+<div class="section">
+    <div class="section-title">🧭 新手路线</div>
+    <div class="section-body">
+        <ul class="link-list">
+            {% for item in newbie_guide %}
+            <li><b>{{ item[0] }}</b>：{{ item[1] }}</li>
+            {% endfor %}
+        </ul>
+    </div>
+</div>
+
+<div class="section">
+    <div class="section-title">💡 四大核心原则</div>
+    <div class="section-body">
+        <ul class="link-list">
+            {% for item in newbie_principles %}
+            <li>{{ item }}</li>
+            {% endfor %}
+        </ul>
+    </div>
+</div>
+
+<div class="text-center mt-10">
+    <a href="/summon_king" class="btn btn-small">返回首页</a>
+</div>
+{% endblock %}

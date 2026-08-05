@@ -1,0 +1,53 @@
+{% extends "base_wap.html" %}
+
+{% block title %}餐厅升星{% endblock %}
+
+{% block breadcrumb %}
+<div class="nav-bar">
+    <a href="/home/">首页</a>
+    <span class="sep">›</span>
+    <a href="/delicious_town/">美味小镇</a>
+    <span class="sep">›</span>
+    <span>升星</span>
+</div>
+{% endblock %}
+
+{% block content %}
+<div class="section">
+    <div class="section-title">⭐ 当前星级（{{ st.star_level }} 星）</div>
+    <div class="section-body">
+        <div style="font-size:30px; text-align:center;">{{ '⭐' * (st.star_level if st.star_level else 0) }}</div>
+        <div class="info-row mt-10"><span class="info-label">餐厅等级</span><span class="info-value">Lv.{{ st.restaurant_level }}</span></div>
+        <div class="info-row"><span class="info-label">累计营业</span><span class="info-value">{{ st.total_service }} 次</span></div>
+        <div class="info-row"><span class="info-label">累计收入</span><span class="info-value">{{ st.total_revenue }}</span></div>
+        <div class="info-row"><span class="info-label">已学菜品</span><span class="info-value">普通{{ normal }} / 极品{{ fine }} / 金牌{{ gold }}</span></div>
+    </div>
+</div>
+
+{% if next_star and next_req %}
+<div class="section">
+    <div class="section-title">⬆️ 升到 {{ next_star }} 星条件</div>
+    <div class="section-body">
+        <div class="info-row"><span class="info-label">需要等级</span><span class="info-value {{ 'text-red' if st.restaurant_level < next_req[0] }}">Lv.{{ next_req[0] }}</span></div>
+        {% if next_req[1] %}<div class="info-row"><span class="info-label">普通菜</span><span class="info-value {{ 'text-red' if normal < next_req[1] }}">{{ normal }}/{{ next_req[1] }}</span></div>{% endif %}
+        {% if next_req[2] %}<div class="info-row"><span class="info-label">极品菜</span><span class="info-value {{ 'text-red' if fine < next_req[2] }}">{{ fine }}/{{ next_req[2] }}</span></div>{% endif %}
+        {% if next_req[3] %}<div class="info-row"><span class="info-label">金牌菜</span><span class="info-value {{ 'text-red' if gold < next_req[3] }}">{{ gold }}/{{ next_req[3] }}</span></div>{% endif %}
+        <div class="info-row"><span class="info-label">累计营业</span><span class="info-value {{ 'text-red' if st.total_service < next_req[4] }}">{{ st.total_service }}/{{ next_req[4] }}</span></div>
+        <div class="info-row"><span class="info-label">累计收入</span><span class="info-value {{ 'text-red' if st.total_revenue < next_req[5] }}">{{ st.total_revenue }}/{{ next_req[5] }}</span></div>
+        {% if can_apply %}
+        <form method="post" action="/delicious_town/star/apply" class="text-center mt-10">
+            <button class="btn">⭐ 申请升星</button>
+        </form>
+        {% else %}
+        <div class="tip text-center mt-10">{{ apply_msg }}</div>
+        {% endif %}
+    </div>
+</div>
+{% endif %}
+
+<div class="notice">💡 星级越高，可管理菜谱/服务员/设施越多，顾客也更挑剔（出现挑剔客/稀有客）。</div>
+
+<div class="text-center mt-10">
+    <a href="/delicious_town/">« 返回小镇首页</a>
+</div>
+{% endblock %}

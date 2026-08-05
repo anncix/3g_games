@@ -1,0 +1,48 @@
+{% extends "base_wap.html" %}
+
+{% block title %}我的花圃{% endblock %}
+
+{% block breadcrumb %}
+<div class="nav-bar">
+    <a href="/home/">首页</a><span class="sep">›</span>
+    <a href="/magic_garden">花园</a><span class="sep">›</span>
+    <span>花圃</span>
+</div>
+{% endblock %}
+
+{% block content %}
+<div class="section">
+    <div class="section-title">📊 花圃状态</div>
+    <div class="section-body">
+        <div class="info-row"><span class="info-label">等级</span><span class="info-value"><b>{{ st.level }}</b></span></div>
+        <div class="info-row"><span class="info-label">经验</span><span class="info-value"><b>{{ st.exp }}/{{ exp_need }}</b></span></div>
+        <div class="info-row"><span class="info-label">花园金币</span><span class="info-value"><b>{{ gold }}</b></span></div>
+        <div class="info-row"><span class="info-label">称号</span><span class="info-value"><b>{{ title }}</b></span></div>
+    </div>
+</div>
+
+<div class="section">
+    <div class="section-title">🪴 花盆列表（共{{ pot_info|length }}盆）</div>
+    <div class="section-body">
+        {% for info in pot_info %}
+        <a class="info-row" href="/magic_garden/pot/{{ info.pot.slot }}" style="text-decoration:none; color:inherit;">
+            <span class="info-label">第{{ info.pot.slot+1 }}盆 · {{ info.seed.name if info.seed else '空地' }}</span>
+            <span class="info-value">
+                {% if info.stage == -1 %}<span class="text-gray">空</span>
+                {% elif info.seed and info.stage == info.seed.stages %}<span class="text-green">✓成熟</span>
+                {% else %}{{ info.stage_label }}
+                    {% if info.action and not info.action_done %}<span class="text-red">[{{ action_names[info.action] if action_names else info.action }}]</span>
+                    {% elif info.remain > 0 %}{{ info.remain }}s{% endif %}
+                {% endif %}
+            </span>
+        </a>
+        {% else %}
+        <div class="tip">还没有花盆，等级提升可解锁更多</div>
+        {% endfor %}
+    </div>
+</div>
+
+<div class="text-center mt-10">
+    <a class="btn" href="/magic_garden">« 返回花园</a>
+</div>
+{% endblock %}

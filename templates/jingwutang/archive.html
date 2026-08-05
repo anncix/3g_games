@@ -1,0 +1,102 @@
+{% extends "base_wap.html" %}
+{% block title %}资料图鉴 - 精武堂{% endblock %}
+{% block breadcrumb %}
+<div class="nav-bar">
+    <a href="/home/">首页</a><span class="sep">›</span><a href="/home/gamelobby">游戏大厅</a>
+    <span class="sep">›</span><a href="/jingwutang/">精武堂</a><span class="sep">›</span><span>资料</span>
+</div>
+{% endblock %}
+{% block content %}
+
+<div class="section">
+    <div class="section-title">🏅 等级称号表</div>
+    <div class="section-body">
+        {% for lo, hi, name in level_titles %}
+        <div class="info-row"><span class="info-label">{{ lo }}-{{ hi }}级</span><span class="info-value">{{ name }}</span></div>
+        {% endfor %}
+    </div>
+</div>
+
+<div class="section">
+    <div class="section-title">📊 主流加点流派</div>
+    <div class="section-body">
+        {% for name, dist, eval in add_point_schools %}
+        <div class="info-row"><span class="info-label">{{ name }}</span><span class="info-value">{{ dist }} · {{ eval }}</span></div>
+        {% endfor %}
+    </div>
+</div>
+
+<div class="section">
+    <div class="section-title">🐉 四圣兽宠物</div>
+    <div class="section-body">
+        {% for p in pets_four_beasts %}
+        <div class="info-row"><span class="info-label">{{ p.name }}</span><span class="info-value" style="font-size:11px;">{{ p.evolution }} · {{ p.skill }}</span></div>
+        {% endfor %}
+    </div>
+</div>
+
+<div class="section">
+    <div class="section-title">👻 武魂段位</div>
+    <div class="section-body">
+        来源：{{ wuhun_rank.source }}<br>
+        用途：{{ wuhun_rank.usage }}<br>
+        商店：{{ wuhun_rank.shop }}
+    </div>
+</div>
+
+<div class="section">
+    <div class="section-title">📖 帮派心法</div>
+    <div class="section-body">
+        {% for name, attr, cost in guild_xinfa %}
+        <div class="info-row"><span class="info-label">{{ name }}</span><span class="info-value">{{ attr }} · {{ cost }}</span></div>
+        {% endfor %}
+    </div>
+</div>
+
+<div class="section">
+    <div class="section-title">🔨 WAP 锻造配方</div>
+    <div class="section-body">
+        {% for name, slot, lv, mats in forge_recipes_wap %}
+        <div class="info-row"><span class="info-label">{{ name }}({{ slot }}·Lv{{ lv }})</span><span class="info-value" style="font-size:11px;">{{ mats }}</span></div>
+        {% endfor %}
+    </div>
+</div>
+
+<div class="section">
+    <div class="section-title">💰 四货币体系</div>
+    <div class="section-body">
+        {% for name, typ, src, use in currencies_wap %}
+        <div class="info-row"><span class="info-label">{{ name }}({{ typ }})</span><span class="info-value" style="font-size:11px;">{{ use }}</span></div>
+        {% endfor %}
+    </div>
+</div>
+
+<div class="section">
+    <div class="section-title">📖 技能推荐组合</div>
+    <div class="section-body">
+        {% for typ, combo in skill_recommendations %}
+        <div class="info-row"><span class="info-label">{{ typ }}</span><span class="info-value" style="font-size:11px;">{{ combo }}</span></div>
+        {% endfor %}
+    </div>
+</div>
+
+<div class="section">
+    <div class="section-title">⚡ 经验获取途径</div>
+    <div class="section-body">
+        {% for src, cost, note in exp_sources_wap %}
+        <div class="info-row"><span class="info-label">{{ src }}</span><span class="info-value" style="font-size:11px;">{{ cost }} · {{ note }}</span></div>
+        {% endfor %}
+    </div>
+</div>
+
+<div class="section">
+    <div class="section-title">🗺️ 主线任务链</div>
+    <div class="section-body">
+        {% for sort, qname, unlock, target, reward in main_quests %}
+        <div class="info-row"><span class="info-label">{{ sort }}. {{ qname }}</span><span class="info-value" style="font-size:11px;">{{ target }} · {{ reward }}</span></div>
+        {% endfor %}
+    </div>
+</div>
+
+<div class="text-center mt-10"><a href="/jingwutang/">« 返回精武堂</a></div>
+{% endblock %}

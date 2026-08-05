@@ -1,0 +1,48 @@
+{% extends "base_wap.html" %}
+
+{% block title %}花种商店{% endblock %}
+
+{% block breadcrumb %}
+<div class="nav-bar">
+    <a href="/home/">首页</a><span class="sep">›</span>
+    <a href="/magic_garden">花园</a><span class="sep">›</span>
+    <span>花种商店</span>
+</div>
+{% endblock %}
+
+{% block content %}
+<div class="section">
+    <div class="section-body">
+        <div class="info-row"><span class="info-label">称号</span><span class="info-value"><b>{{ title }}</b> Lv{{ st.level }}</span></div>
+        <div class="info-row"><span class="info-label">花园金币</span><span class="info-value"><b>{{ gold }}</b></span></div>
+        <div class="info-row"><span class="info-label">物品上限</span><span class="info-value">Lv{{ item_cap }}</span></div>
+        <div class="tip">只上架基础花种，稀有花需合成/兑换获取</div>
+    </div>
+</div>
+
+<div class="section">
+    <div class="section-title">🏪 花种商店</div>
+    <div class="section-body">
+        {% for item in shop_list %}
+        <div class="post-item">
+            <b>{{ item.seed.name }}种子</b><br>
+            <span class="badge">{{ item.seed.rarity }}</span> Lv{{ item.seed.item_level }} · 成长 {{ item.seed.grow_seconds }}秒 · 持有 {{ item.have }}<br>
+            需要等级：Lv{{ item.seed.min_level }} · 价格：{% set base = item.seed.item_level * 20 %}{% set p = base if item.seed.rarity == '普通' else base * 2 %}<b>{{ p }}</b> 金币<br>
+            {% if item.locked_level %}
+            <span class="tip">等级/物品等级不足</span>
+            {% else %}
+            <form method="post" action="/magic_garden/shop/buy/{{ item.seed.key }}" style="margin-top:6px;">
+                <button class="btn btn-success" type="submit">购买</button>
+            </form>
+            {% endif %}
+        </div>
+        {% else %}
+        <div class="tip">商店暂无花种</div>
+        {% endfor %}
+    </div>
+</div>
+
+<div class="text-center mt-10">
+    <a class="btn" href="/magic_garden">« 返回花园</a>
+</div>
+{% endblock %}

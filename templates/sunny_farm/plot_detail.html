@@ -1,0 +1,87 @@
+{% extends "base_wap.html" %}
+
+{% block title %}第{{ plot.plot_no }}块地{% endblock %}
+
+{% block breadcrumb %}
+<div class="nav-bar">
+    <a href="/home/">首页</a><span class="sep">›</span>
+    <a href="/sunny_farm/plots">农田</a><span class="sep">›</span>
+    <span>第{{ plot.plot_no }}块</span>
+</div>
+{% endblock %}
+
+{% block content %}
+<div class="section">
+    <div class="section-title">{{ crop.name if crop else '空地' }} · {{ plot.soil_type }}土地</div>
+    <div class="section-body">
+        {% if crop %}
+        <div class="info-row"><span class="info-label">状态</span><span class="info-value"><b>{{ stage }}</b></span></div>
+        {% if remain > 0 %}
+        <div class="info-row"><span class="info-label">剩余</span><span class="info-value">{{ (remain // 60) }}分{{ remain % 60 }}秒</span></div>
+        {% else %}
+        <div class="info-row"><span class="info-label">状态</span><span class="info-value text-green">已成熟，可收获</span></div>
+        {% endif %}
+        {% if plot.water_count > 0 %}<div class="info-row"><span class="info-label">浇水</span><span class="info-value">{{ plot.water_count }}/3次</span></div>{% endif %}
+        {% if plot.insect_state %}<div class="info-row"><span class="info-label">虫害</span><span class="info-value text-red">有虫害！</span></div>{% endif %}
+        {% if plot.weed_state %}<div class="info-row"><span class="info-label">杂草</span><span class="info-value text-red">有杂草！</span></div>{% endif %}
+        {% if plot.variation %}<div class="info-row"><span class="info-label">变异</span><span class="info-value text-red">变异·{{ plot.variation }}</span></div>{% endif %}
+        {% if plot.locked %}<div class="info-row"><span class="info-label">上锁</span><span class="info-value text-gray">已上锁(防偷)</span></div>{% endif %}
+        {% else %}
+        <div class="tip">这块地空着，种点什么吧</div>
+        {% endif %}
+    </div>
+</div>
+
+<div class="section">
+    <div class="section-title">🌱 操作</div>
+    <div class="section-body">
+        {% if not crop %}
+        <form method="post" action="/sunny_farm/plant/{{ plot.plot_no }}">
+            <div class="form-group">
+                <label>选择作物（需有种子）</label>
+                <select name="crop_key">
+                    {% for c in crops %}
+                    <option value="{{ c.key }}">{{ c.name }}（Lv{{ c.level_req }}·{{ c.grow_seconds }}秒）</option>
+                    {% endfor %}
+                </select>
+            </div>
+            <button class="btn btn-success" type="submit">🌱 种植</button>
+        </form>
+        {% if seeds %}
+        <hr>
+        <div class="tip">已有种子：</div>
+        {% for c, n in seeds %}<span class="text-blue">{{ c.name }}×{{ n }}</span> {% endfor %}
+        {% else %}
+        <div class="tip">没有种子，<a href="/sunny_farm/shop">去商店买</a></div>
+        {% endif %}
+        {% else %}
+        {% if not plot.water_count or plot.water_count < 3 %}
+            {% if stage != '成熟' %}<form method="post" action="/sunny_farm/water/{{ plot.plot_no }}" style="display:inline;"><button class="btn" type="submit">💧 浇水(+10秒)</button></form>{% endif %}
+        {% endif %}
+        {% if plot.insect_state %}<form method="post" action="/sunny_farm/deworm/{{ plot.plot_no }}" style="display:inline;"><button class="btn" type="submit">🐛 除虫</button></form>{% endif %}
+        {% if plot.weed_state %}<form method="post" action="/sunny_farm/weed/{{ plot.plot_no }}" style="display:inline;"><button class="btn" type="submit">🌿 除草</button></form>{% endif %}
+        {% if stage == '成熟' %}<form method="post" action="/sunny_farm/harvest/{{ plot.plot_no }}" style="display:inline;"><button class="btn btn-success" type="submit">🌾 收获</button></form>{% endif %}
+        <form method="post" action="/sunny_farm/fertilize/{{ plot.plot_no }}" style="margin-top:8px;">
+            <select name="fert_key">
+                {% for fk, f in fertilizers.items() %}
+                <option value="{{ fk }}">{{ f.name }}（加速{{ f.speedup_sec }}秒）</option>
+                {% endfor %}
+            </select>
+            <button class="btn" type="submit">🧪 施肥</button>
+        </form>
+        {% endif %}
+        <hr>
+        <form method="post" action="/sunny_farm/lock/{{ plot.plot_no }}" style="display:inline;">
+            <button class="btn {{ 'btn-danger' if plot.locked else '' }}" type="submit">{{ '🔓 解锁(防偷)' if plot.locked else '🔒 上锁(防偷)' }}</button>
+        </form>
+        {% if crop %}
+        <form method="post" action="/sunny_farm/pest/{{ plot.plot_no }}" style="display:inline;">
+            <button class="btn" type="submit">🐛 演示·触发虫害</button>
+        </form>
+        {% endif %}
+    </div>
+</div>
+<div class="text-center mt-10">
+    <a class="btn" href="/sunny_farm/plots">« 返回农田</a>
+</div>
+{% endblock %}

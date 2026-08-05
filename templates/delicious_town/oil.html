@@ -1,0 +1,52 @@
+{% extends "base_wap.html" %}
+
+{% block title %}油量管理{% endblock %}
+
+{% block breadcrumb %}
+<div class="nav-bar">
+    <a href="/home/">首页</a>
+    <span class="sep">›</span>
+    <a href="/delicious_town/">美味小镇</a>
+    <span class="sep">›</span>
+    <span>油量</span>
+</div>
+{% endblock %}
+
+{% block content %}
+<div class="section">
+    <div class="section-title">🛢️ 油壶（{{ st.oil_amount }}/{{ st.oil_cap }}）</div>
+    <div class="section-body">
+        <div class="progress-bar">
+            <div class="progress-fill" style="width: {{ oil_pct }}%;{% if oil_pct < 20 %}background:linear-gradient(90deg,#e8403a 0%,#f08060 100%);{% endif %}"></div>
+        </div>
+        <div class="info-row mt-10"><span class="info-label">当前油壶容量</span><span class="info-value">{{ st.oil_cap }}</span></div>
+        {% if next_pot %}
+        <div class="info-row"><span class="info-label">下一档容量</span><span class="info-value">{{ next_pot[0] }}</span></div>
+        <div class="info-row"><span class="info-label">扩容费用</span><span class="info-value">{{ next_pot[1] }} 金币</span></div>
+        <form method="post" action="/delicious_town/oil/expand" class="text-center mt-10">
+            <button class="btn">⬆️ 扩容到 {{ next_pot[0] }}</button>
+        </form>
+        {% else %}
+        <div class="tip text-center mt-10">已达油壶最高档 {{ st.oil_cap }}</div>
+        {% endif %}
+    </div>
+</div>
+
+<div class="section">
+    <div class="section-title">🧴 购买补油包</div>
+    <div class="section-body">
+        {% for key, (gain, price) in oil_packs.items() %}
+        <form method="post" action="/delicious_town/oil/buy/{{ key }}" style="display:flex; justify-content:space-between; align-items:center; padding:6px 0; border-bottom:1px dotted #f0f0f0;">
+            <span>⛽ {{ gain }} 油 <span class="tip">({{ price }} 金币)</span></span>
+            <button class="btn btn-small">购买</button>
+        </form>
+        {% endfor %}
+    </div>
+</div>
+
+<div class="notice">💡 油量不足无法营业和做菜，注意补油！做菜和招待顾客都会耗油。</div>
+
+<div class="text-center mt-10">
+    <a href="/delicious_town/">« 返回小镇首页</a>
+</div>
+{% endblock %}
